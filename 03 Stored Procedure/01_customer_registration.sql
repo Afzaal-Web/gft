@@ -27,9 +27,14 @@ BEGIN
     /* ===================== Customer Core ===================== */
     DECLARE v_customer_status     		VARCHAR(30) DEFAULT 'registration_request';
     DECLARE v_customer_type       		VARCHAR(30) DEFAULT 'personal';
-
+    DECLARE v_corporate_account_rec_id	INT;
+	DECLARE v_first_name               	VARCHAR(1000);
+    DECLARE v_last_name           		VARCHAR(1000);
+    DECLARE v_phone           			VARCHAR(20);
+    DECLARE v_whatsapp_num           	VARCHAR(20);
     DECLARE v_email               		VARCHAR(100);
     DECLARE v_user_name           		VARCHAR(100);
+    DECLARE v_national_id				VARCHAR(20);
     DECLARE v_password_plain      		VARCHAR(255);
     DECLARE v_password_hashed     		VARCHAR(255);
     DECLARE v_account_seq 		  		VARCHAR(255);
@@ -48,10 +53,10 @@ BEGIN
 	DECLARE done 						INT DEFAULT FALSE;
 	DECLARE v_tradable_asset_rec_id 	INT;
 
-	DECLARE asset_cursor CURSOR FOR
-    SELECT tradable_assets_rec_id
-    FROM tradable_assets
-    WHERE available_to_customers = TRUE  AND tradable_assets_rec_id > 0;
+	DECLARE 	asset_cursor 			CURSOR FOR
+    SELECT  	tradable_assets_rec_id
+    FROM    	tradable_assets
+    WHERE   	available_to_customers = TRUE  AND tradable_assets_rec_id > 0;
 
 	DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
     
@@ -77,6 +82,8 @@ BEGIN
         SET v_user_name 		= v_email;
 
         /* ===================== Validations ===================== */
+	IF isFalsy(getJval(pjReqObj,'customer_rec_id')) THEN
+    
         IF isFalsy(getJval(pjReqObj,'first_name')) THEN
             SET v_errors		= JSON_ARRAY_APPEND(v_errors,'$','First name is required');
         END IF;
@@ -98,7 +105,6 @@ BEGIN
         END IF;
         
         /* ===================== Check the INSERT uniqueness ===================== */
-		IF isFalsy(getJval(pjReqObj,'customer_rec_id')) THEN
 
 			IF EXISTS (
 						SELECT 1 FROM customer
@@ -175,6 +181,7 @@ BEGIN
        
         
         /* =============== INSERT NEW ROW IF REC ID NOT EXISTS in Request ============= */
+	/* ===================== Transaction ===================== */
 	START TRANSACTION;
         IF isFalsy(getJval(pjReqObj,'customer_rec_id')) THEN
         
@@ -183,9 +190,7 @@ BEGIN
 													'$.created_at',		DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i:%s'),
 													'$.created_by', 	'SYSTEM'
 												   );
-		  /* ===================== Transaction ===================== */
 	
-             
 				INSERT INTO customer
 				SET customer_status 		= v_customer_status,		-- registration_request
 					customer_type   		= v_customer_type,			-- personal
@@ -216,12 +221,17 @@ BEGIN
 
 				/* ---------- Prepare Auth JSON ---------- */
 				SET v_auth_json = JSON_SET( v_auth_json,
-											'$.parent_table_name',					'customer',
-											'$.parent_table_rec_id',				v_customer_rec_id,
-											'$.user_name',							v_user_name,
-											'$.login_credentials.password',			v_password_hashed,
-											'$.password_history[0].password',		v_password_hashed
+											'$.parent_table_name',							   'customer',
+											'$.parent_table_rec_id',						    v_customer_rec_id,
+											'$.user_name',									     v_user_name,
+											'$.login_credentials.password',					     v_password_hashed,
+                                            '$.login_credentials.username',					     v_email,                                            
+											'$.password_history[0].password',				     v_password_hashed,
+											'$.password_history[0].password_set_at',	 		  DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i:%s'),
+											'$.password_history[0].password_expiration_date',	  DATE_FORMAT(DATE_ADD(NOW(), INTERVAL 1 MONTH),'%Y-%m-%d %H:%i:%s')
 										  );
+
+                                      
 
 				/* ---------- Insert Auth ---------- */
 				INSERT INTO auth
@@ -267,78 +277,101 @@ BEGIN
         
         START TRANSACTION;
         
-				SET v_customer_rec_id 		= getJval(pjReqObj,'customer_rec_id');
+			SET v_customer_rec_id 		= getJval(pjReqObj,'customer_rec_id');
 				
-				SELECT 	row_metadata, customer_json
-				INTO 	v_row_metadata, v_customer_json
-				FROM 	customer
-				WHERE 	customer_rec_id = v_customer_rec_id;
+			SELECT 	corporate_account_rec_id,    first_name,   last_name,    email,   phone,    whatsapp_num,    national_id,    row_metadata,    customer_json
+			INTO 	v_corporate_account_rec_id,  v_first_name, v_last_name,  v_email, v_phone,  v_whatsapp_num,  v_national_id,  v_row_metadata,  v_customer_json
+			FROM 	customer
+			WHERE 	customer_rec_id = v_customer_rec_id;
 				
-				SET v_row_metadata	  		= JSON_SET( v_row_metadata,
-														  '$.updated_by', 	'SYSTEM',
-														   '$.updated_at', 	DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i:%s')
-													   );
-												   
-				SET v_customer_json 		= fillTemplate(pjReqObj, v_customer_json);
-				
-				UPDATE customer
-				SET customer_status 		= v_customer_status,		-- registration_request
-					customer_type   		= v_customer_type,			-- personal
-					first_name				= getJval(pjReqObj, 'first_name'),
-					last_name				= getJval(pjReqObj, 'last_name'),
-					user_name       		= v_user_name,
-					email           		= v_email,
-					phone           		= getJval(pjReqObj,'phone'),
-					whatsapp_num    		= getJval(pjReqObj,'whatsapp_number'),
-					national_id     		= getJval(pjReqObj,'national_id'),
-					customer_json   		= v_customer_json,
-					row_metadata    		= v_row_metadata
-				WHERE customer_rec_id		= v_customer_rec_id;
-				
-				SELECT  row_metadata, auth_json
-				INTO 	v_row_metadata, v_auth_json
-				FROM    auth
-				WHERE 	parent_table_rec_id = v_customer_rec_id;
-				
-				SET v_row_metadata	  	= JSON_SET( v_row_metadata,
+			SET v_row_metadata	  		= JSON_SET( v_row_metadata,
+													'$.status',			COALESCE(getJval(pjReqObj, 'customer_status'),	v_customer_status),	
 													'$.updated_by', 	'SYSTEM',
 													'$.updated_at', 	DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i:%s')
 												);
 												   
-				SET v_auth_json 		= fillTemplate(pjReqObj, v_auth_json);
+			SET v_customer_json 		= fillTemplate(pjReqObj, v_customer_json);
 				
-				/* ---------- Prepare Auth JSON ---------- */
-				SET v_auth_json = JSON_SET( v_auth_json,
-											'$.user_name',							v_user_name,
-											'$.login_credentials.password',			v_password_hashed,
-											'$.password_history[0].password',		v_password_hashed
-										  );
+			UPDATE customer
+			SET customer_status 			= COALESCE(getJval(pjReqObj, 'customer_status'),				v_customer_status),		-- registration_request
+				customer_type   			= COALESCE(getJval(pjReqObj, 'customer_type'),					v_customer_type),			-- personal
+                corporate_account_rec_id	= COALESCE(getJval(pjReqObj, 'corporate_account_rec_id'),		v_corporate_account_rec_id),			-- personal
+				first_name					= COALESCE(getJval(pjReqObj, 'first_name'), 					v_first_name),
+				last_name					= COALESCE(getJval(pjReqObj, 'last_name'), 						v_last_name),
+				user_name       			= COALESCE(getJval(pjReqObj, 'email'), 							v_email),
+				email           			= COALESCE(getJval(pjReqObj, 'email'), 							v_email),
+				phone           			= COALESCE(getJval(pjReqObj,'phone'),							v_phone),
+				whatsapp_num    			= COALESCE(getJval(pjReqObj,'whatsapp_number'),					v_whatsapp_num),
+				national_id     			= COALESCE(getJval(pjReqObj,'national_id'),						v_national_id),
+				customer_json   			= v_customer_json,
+				row_metadata    			= v_row_metadata
+				WHERE customer_rec_id		= v_customer_rec_id;
+				
+			SELECT  row_metadata, auth_json
+			INTO 	v_row_metadata, v_auth_json
+			FROM    auth
+			WHERE 	parent_table_rec_id = v_customer_rec_id;
+				
+			SET v_row_metadata	  	= JSON_SET( v_row_metadata,
+												'$.updated_by', 	'SYSTEM',
+												'$.updated_at', 	DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i:%s')
+											);
+												   
+			SET v_auth_json 		= fillTemplate(pjReqObj, v_auth_json);
+            
+            
+            IF isFalsy(getJval(pjReqObj,'password')) THEN
+            
+			SET v_auth_json = JSON_SET( v_auth_json,
+										'$.user_name',							COALESCE(getJval(pjReqObj, 'email'), v_email),
+										'$.login_credentials.password',			v_password_hashed,
+										'$.password_history[0].password',		v_password_hashed
+									  );
+			ELSE
+            
+			SET v_password_plain  			= getJval(pjReqObj,'password');
+			SET v_password_hashed 			= SHA2(v_password_plain,256);
+        
+            SET v_auth_json = JSON_SET( v_auth_json,
+										'$.user_name',										 COALESCE(getJval(pjReqObj, 'email'), v_email),
+                                        '$.login_credentials.password',						 v_password_hashed,
+                                        '$.login_credentials.username',					     COALESCE(getJval(pjReqObj, 'email'), v_email),   
+                                        '$.password_history[0].password',					 v_password_hashed,
+                                        '$.password_history[0].last_password_updated_at',	 DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i:%s'),
+                                        '$.password_history[0].password_expiration_date',	 DATE_FORMAT(
+																											DATE_ADD(NOW(), INTERVAL 1 MONTH),
+																											'%Y-%m-%d %H:%i:%s'
+																										)
+									  );
+                                      
+			 END IF;
+	
 
 				/* ---------- Update Auth table with  ---------- */
-				UPDATE auth
-				SET user_name        = v_user_name,
-					auth_json        = v_auth_json,
-					row_metadata     = v_row_metadata
-				WHERE parent_table_rec_id = v_customer_rec_id;
-                    
-				IF ROW_COUNT() = 0 THEN
-					SIGNAL SQLSTATE '45000'
-					SET MESSAGE_TEXT = 'Update failed: no rows affected';
-				END IF;
+			UPDATE auth
+			SET   user_name        = COALESCE(getJval(pjReqObj, 'email'), v_email),
+				  auth_json        = v_auth_json,
+				  row_metadata     = v_row_metadata
+			WHERE parent_table_rec_id = v_customer_rec_id;
+				
+			IF ROW_COUNT() = 0 THEN
+				SIGNAL SQLSTATE '45000'
+				SET MESSAGE_TEXT = 'Update failed: no rows affected';
+			END IF;
+            
         COMMIT;
         END IF;
         
         
 
-         
         /* ===================== Successful Registration ===================== */
 		SET psResObj = JSON_OBJECT(
 									'status', 'success',
 									'status_code', '0',
 									'message',
 									IF(isFalsy(getJval(pjReqObj,'customer_rec_id')),
-								   'Customer created successfully',
-								   'Customer updated successfully'
+									   'Customer created successfully',
+									   'Customer updated successfully'
                                    )
 		);
 
