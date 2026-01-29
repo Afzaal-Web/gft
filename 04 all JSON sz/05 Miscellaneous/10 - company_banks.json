@@ -1,0 +1,43 @@
+{
+    "company_bank_rec_id"    :  0,                                 "_comment_company_bank_rec_id"   : "Auto-increment bank record ID",
+    "company_name"           :  "Demo Organization",               "_comment_company_name"          : "Name of the company",
+    "bank_name"              :  "Demo Bank",                        "_comment_bank_name"             : "Name of the bank",
+    "account_number"         :  "1234567890",                       "_comment_account_number"        : "Bank account number",
+    "iban"                   :  "PK00DEMO1234567890",               "_comment_iban"                  : "IBAN number",
+    "branch_name"            :  "Main Branch",                      "_comment_branch_name"           : "Branch name",
+    "branch_address"         :  "123 Demo Street, City, Country",   "_comment_branch_address"        : "Branch address",
+    "swift_code"             :  "DEMO123",                           "_comment_swift_code"            : "SWIFT code",
+
+    "e_wallets"              :  [
+        {
+            "wallet_name"    :  "PayPal",                           "_comment_wallet_name"          : "E-wallet provider name",
+            "wallet_id"      :  "PAYPAL001",                        "_comment_wallet_id"            : "Wallet account ID",
+            "wallet_balance" :  1000.00,                            "_comment_wallet_balance"       : "Wallet balance",
+            "currency"       :  "USD",                               "_comment_currency"             : "Wallet currency",
+            "status"         :  "Active",                            "_comment_status"               : "Wallet status"
+        },
+        {
+            "wallet_name"    :  "Skrill",
+            "wallet_id"      :  "SKRILL001",
+            "wallet_balance" :  500.00,
+            "currency"       :  "USD",
+            "status"         :  "Active"
+        },
+        {
+            "wallet_name"    :  "JazzCash",
+            "wallet_id"      :  "JAZZ001",
+            "wallet_balance" :  2000.00,
+            "currency"       :  "PKR",
+            "account_number" :  "03001234567",                        "_comment_account_number"       : "JazzCash account number",
+            "status"         :  "Active"
+        }
+    ],
+
+    "row_metadata"           :  {
+        "created_at"         :  "2026-01-17T12:00:00.000Z",
+        "created_by"         :  "SYSTEM",
+        "updated_at"         :  null,
+        "updated_by"         :  null,
+        "status"             :  "Active"
+    }
+}

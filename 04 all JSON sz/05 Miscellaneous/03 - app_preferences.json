@@ -1,0 +1,26 @@
+{
+    "preference_rec_id":      0,                    "_comment_preference_rec_id":    "Auto-increment preference record ID",
+    "preference_key":         "default_currency",   "_comment_preference_key":       "Preference unique key",
+    "preference_value":       "USD",                "_comment_preference_value":     "Preference configured value",
+
+    "application_scope": {
+        "application_name":   "GFT",                "_comment_application_name":     "Application name",
+        "module_name":        "GlobalSettings",     "_comment_module_name":          "Module where preference applies",
+        "environment":        "Production",         "_comment_environment":          "Environment scope (Prod/Test/Dev)"
+    },
+
+    "preference_behavior": {
+        "is_user_editable":   true,                 "_comment_is_user_editable":     "Can user modify this preference",
+        "is_system_defined":  true,                 "_comment_is_system_defined":    "System-level preference",
+        "effective_from":     "NOW()",              "_comment_effective_from":       "Preference effective date",
+        "effective_until":    null,                 "_comment_effective_until":      "Expiration date if any"
+    },
+
+    "row_metadata": {
+        "created_at":         "NOW(3)",
+        "created_by":         "SYSTEM",
+        "updated_at":         null,
+        "updated_by":         null,
+        "status":             "Active"
+    }
+}

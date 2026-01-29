@@ -1,0 +1,61 @@
+{
+    "organization_info_rec_id":   0,
+    "organization_name":          "Demo Organization",
+    "primary_email":              "info@demoorg.com",
+    "primary_phone":              "+1234567890",
+
+    "branding": {
+        "tagline":                "Innovation at its Best",                 "_comment_tagline":         "Organization tagline",
+        "logo_url":               "/uploads/organization/logo.png",         "_comment_logo_url":        "URL/path to organization logo",
+        "building_image":         "/uploads/organization/building.png",      "_comment_building_image": "URL/path to building image"
+    },
+
+    "additional_contact_info": {
+        "secondary_email":        "support@GFT.com",                        "_comment_secondary_email": "Secondary email",
+        "secondary_phone":        "+1987654321",                             "_comment_secondary_phone": "Secondary phone",
+        "uan_helpline":           "+1800123456",                             "_comment_uan_helpline":    "Universal Access Number",
+        "support_whatsapp":       "+12345678901",                            "_comment_support_whatsapp":"WhatsApp support number",
+        "website_url":            "https://www.gft.com",                    "_comment_website_url":      "Organization website"
+    },
+
+    "address_location": {
+        "location_address":       "123 Demo Street, City, Country",         "_comment_location_address": "Full location address",
+        "location_ip":            "192.168.1.1",                            "_comment_location_ip":      "IP address of the organization location",
+        "location_lat":           "24.8607",                                 "_comment_location_lat":     "Latitude",
+        "location_lng":           "67.0011",                                 "_comment_location_lng":     "Longitude",
+        "business_hours":         "Mon-Fri 9:00-18:00",                     "_comment_business_hours":   "Business operating hours"
+    },
+
+    "roles_key_contacts": [
+        {
+            "role":              "CEO",                                     "_comment_role":            "Role/Position",
+            "role_name":         "Ali Khan",                                 "_comment_role_name":       "Name of person",
+            "role_phone":        "+1234000000",                               "_comment_role_phone":      "Contact number",
+            "role_email":        "ali.khan@demoorg.com",                     "_comment_role_email":      "Email address"
+        },
+        {
+            "role":              "CTO",
+            "role_name":         "Sara Malik",
+            "role_phone":        "+1234000001",
+            "role_email":        "sara.malik@demoorg.com"
+        }
+    ],
+
+    "branches": [
+        {
+            "branch_name":       "Main Branch",                               "_comment_branch_name":     "Branch name",
+            "branch_address":    "123 Demo Street, City, Country",            "_comment_branch_address":  "Branch address"
+        },
+        {
+            "branch_name":       "Secondary Branch",
+            "branch_address":    "456 Another St, City, Country"
+        }
+    ],
+
+    "row_metadata": {
+        "created_at":         "2026-01-17T12:00:00.000Z",
+        "created_by":         "SYSTEM",
+        "updated_at":         null,
+        "updated_by":         null
+    }
+}

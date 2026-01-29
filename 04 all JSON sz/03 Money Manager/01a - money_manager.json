@@ -1,0 +1,40 @@
+{
+    "money_manager_rec_id"  : 0,
+    "customer_rec_id"       : 1,
+    "account_number"        : "CUS-001",
+
+    "request_type"          : "Deposit",                    "_comment_request_type"          : "Type of money manager request",  
+    "transaction_type"      : "Bank Transfer",              "_comment_transaction_type"      : "Type of transaction",
+
+    "transaction_change_log": {
+        "transaction_posted_at" : "2026-01-16 06:00:00",        "_comment_transaction_posted_at" : "Timestamp when transaction was posted", 
+        "back_office_post_num"  : "GFT-2026-0001",              "_comment_back_office_post_num"  : "Back office posting number"
+},
+    "company_log": {
+        "processed_by"          : "Zain Ahmed",                 "_comment_processed_by"          : "Name of the processor",
+        "reviewed_by"           : "Sara Khan",                  "_comment_reviewed_by"           : "Name of the reviewer",
+        "approved_by"           : "Kamran Iqbal",               "_comment_approved_by"           : "Name of the approver"
+},
+
+
+    "sender_info" : {
+        "initiated_by"          : "Ali Raza",               "_comment_initiated_by"          : "Company employee who initiated the transaction",   
+        "institution_name"       : "Bank Al Habib",         "_comment_institution_name"        : "Name of sending institution",
+        "account_holder_name"    : "Ali Raza",              "_comment_account_holder_name"     : "Sender account holder name",
+        "account_number"         : "ACC-123456",            "_comment_account_number"          : "Sender account number",
+        "amount_sent"            : 45838.50,                "_comment_amount_sent"             : "Amount sent by sender",
+        "transaction_id"         : "TXN-2026-001",          "_comment_transaction_id"          : "Transaction reference ID",
+        "receipt_number"         : "RCT-2026-0001",         "_comment_receipt_number"          : "Receipt number for the transaction",
+        "receipt_picture_rec_id" : 501,                     "_comment_receipt_picture_rec_id"  : "Reference ID for receipt picture",
+        "trans_at"               : "2026-01-14 14:04:39",   "_comment_trans_at"                : "Transaction timestamp"
+    },
+
+    "receiver_info" : {
+        "institution_name"       : "Meezan Bank",           "_comment_institution_name"        : "Name of receiving institution",
+        "account_holder_name"    : "GFT Company",           "_comment_account_holder_name"     : "Receiver account holder name",
+        "account_number"         : "ACC-987654",            "_comment_account_number"          : "Receiver account number",
+        "amount_received"        : 45838.50,                "_comment_amount_received"         : "Amount received",
+        "received_at"            : "2026-01-16 06:00:00",   "_comment_received_at"             : "Timestamp when amount received",
+        "processing_fee"         : 25.00,                   "_comment_processing_fee"          : "Fee charged for processing"
+    }
+}

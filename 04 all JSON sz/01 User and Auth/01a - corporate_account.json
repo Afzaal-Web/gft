@@ -1,0 +1,94 @@
+{
+  "corporate_account_rec_id"        : 0,                                          "_comment_corporate_account_rec_id"         : "Auto-incremented unique corporate account ID",
+  "main_account_num"                : "000",                                      "_comment_main_account_num"                 : "Unique corporate account number",
+  "main_account_title"              : "azs",                                      "_comment_main_account_title"                : "Corporate main account title",
+  "account_status"                  : "inactive",                                 "_comment_account_status"                   : "Current status: registration req, active, inactive, blocked, etc.",
+  
+
+  "status_change_history":[
+        {
+        "changed_at"               : "2026-11-11 10:41",                               "_comment_changed_at"                    : "Timestamp when status was changed",
+        "new_status"               : "SUBMITTED",                                     "_comment_new_status"                    : "New status after change",
+        "notes"                    : "Account is opened by the customer",             "_comment_notes"                         : "Remarks related to status change"
+        },
+        {
+        "changed_at"               : "2026-11-11 10:41",                               "_comment_changed_at"                    : "Timestamp when status was changed",
+        "new_status"               : "APPROVED",                                      "_comment_new_status"                    : "New status after change",
+        "notes"                    : "Approved by Afzaal",                            "_comment_notes"                         : "Remarks related to status change"
+        },
+        {
+        "changed_at"               : "2026-11-11 10:41",                               "_comment_changed_at"                    : "Timestamp when status was changed",
+        "new_status"               : "OPEN",                                          "_comment_new_status"                    : "New status after change",
+        "notes"                    : "Approved by Afzaal",                            "_comment_notes"                         : "Remarks related to status change"
+        },
+        {
+        "changed_at"               : "2026-11-11 10:41",                               "_comment_changed_at"                    : "Timestamp when status was changed",
+        "new_status"               : "SUSPENDED",                                     "_comment_new_status"                    : "New status after change",
+        "notes"                    : "by Afzaal",                                    "_comment_notes"                         : "Remarks related to status change"
+        },
+        {
+        "changed_at"               : "2026-11-11 10:41",                               "_comment_changed_at"                    : "Timestamp when status was changed",
+        "new_status"               : "OPEN",                                          "_comment_new_status"                    : "New status after change",
+        "notes"                    : "REOPEND by Afzaal",                             "_comment_notes"                         : "Remarks related to status change"
+        },
+        {
+        "changed_at"               : "2026-11-11 10:41",                               "_comment_changed_at"                    : "Timestamp when status was changed",
+        "new_status"               : "CLOSED",                                        "_comment_new_status"                    : "New status after change",
+        "notes"                    : "REOPEND by Afzaal",                             "_comment_notes"                         : "Remarks related to status change"
+        }
+    ],
+
+  "account_admin" : { 
+    "_comment_create_customer_record_with_account_admin_info"                    : "create customer record with this account_admin_info as well",
+    "first_name"                   : "Ali",                                       "_comment_first_name"                      : "First name of primary contact",
+    "last_name"                    : "Raza",                                      "_comment_last_name"                       : "Last name of primary contact",
+    "primary_email"                : "ali.raza@abctraders.com",                   "_comment_primary_email"                   : "Primary contact email",
+    "primary_phone"                : "+92-300-2223344",                           "_comment_primary_phone"                   : "Primary contact phone",
+    "primary_contact"              : "Ali Raza",                                  "_comment_primary_contact"                 : "Primary contact person name",
+    "designation_of_contact"       : "Finance Manager",                           "_comment_designation_of_contact"          : "Designation/title of primary contact"
+  },
+
+  "company" : {
+      "company_name"                 : "AZS Traders Pvt Ltd",                        "_comment_company_name"                    : "Full registered name of the company",
+      "company_email"                : "info@abctraders.com",                        "_comment_company_email"                   : "Official email of the company",
+      "company_phone"                : "+92-300-1234567",                            "_comment_company_phone"                   : "Official phone of the company",
+      "company_ntn_number"           : "1234567-8",                                  "_comment_company_ntn_number"              : "National Tax Number of company",
+      "company_date_of_incorporation": "2018-06-15",                                 "_comment_company_date_of_incorporation"   : "Date company was incorporated",
+
+      "owner_info" : {
+          "owner_name"                 : "Ahmed Khan",                               "_comment_owner_name"                      : "Name of company owner",
+          "owner_email"                : "ahmed.khan@abctraders.com",                "_comment_owner_email"                     : "Email of company owner",
+          "owner_phone"                : "+92-300-1112233",                          "_comment_owner_phone"                     : "Phone number of company owner",
+          "owner_national_id"          : "35202-3344565-1",                          "_comment_national_id"                     : "CNIC number of company owner"
+    },
+
+      "company_address" : {
+          "google_reference_number"       : "ChIJ1234567890",                        "_comment_google_reference_number"         : "Google Maps reference ID",
+          "full_address"                  : "123 Main St, Apt 4B, New York, USA",    "_comment_full_address"                  : "Complete full address",
+          "country"                       : "USA",                                   "_comment_country"                        : "Country name",
+          "building_number"               : "123",                                   "_comment_building_number"                : "Building number or identifier",
+          "street_name"                   : "Main St",                               "_comment_street_name"                    : "Street name",
+          "street_address_2"              : "Apt 4B",                                 "_comment_street_address_2"               : "Secondary street info or apartment number",
+          "city"                          : "New York",                              "_comment_city"                           : "City name",
+          "state"                         : "New York",                              "_comment_state"                          : "State or province",
+          "zip_code"                      : "10001",                                 "_comment_zip_code"                       : "Postal/zip code",
+          "directions"                    : "Near Central Park",                     "_comment_directions"                     : "Additional directions to the address",
+          "cross_street_1_name"           : "2nd Ave",                               "_comment_cross_street_1_name"             : "Nearby cross street 1",
+          "cross_street_2_name"           : "3rd Ave",                               "_comment_cross_street_2_name"             : "Nearby cross street 2",
+          "latitude"                      : "40.7128",                               "_comment_latitude"                       : "Latitude coordinate",
+          "longitude"                     : "-74.006",                               "_comment_longitude"                      : "Longitude coordinate"
+    }
+  },
+
+  "account_stats" : {
+	    "total Cash Wallet"           : "PKR 5000.00",                                  "_comment_total_cash_wallet"                : "Total cash balance in wallet",
+	    "total Gold Wallet"           : "230.4567 grams",                               "_comment_total_gold_wallet"                : "Total gold holdings in grams",
+	    "totla Silver Wallet"         : "1500.7890 grams",                              "_comment_total_silver_wallet"              : "Total silver holdings in grams",  
+      "total_orders"                : 1340,                                           "_comment_total_orders"                     : "Total orders placed by the company",
+      "total_assets"                : 85000000,                                       "_comment_total_assets"                     : "Total assets of the company",
+      "open_tickets"                : 2,                                              "_comment_open_tickets"                     : "Number of open support tickets",
+      "num_of_tickets"              : 18,                                             "_comment_num_of_tickets"                   : "Total number of support tickets",
+      "num_of_employees"            : 25,                                             "_comment_num_of_employees"                 : "Total employees in company",
+      "year_to_date_orders"         : 215,                                            "_comment_year_to_date_orders"              : "Orders placed this year"
+  }
+}

@@ -1,0 +1,66 @@
+{
+    "product_rec_id":               0,                                             "_comment_product_rec_id":             "Auto-increment product record ID",
+    "tradable_assets_rec_id":       0,                                             "_comment_tradable_assets_rec_id":     "Linked tradable_assets record",
+    "asset_code":                   "GLD",                                         "_comment_asset_code":                 "Owning company code like GLD for gold, SLV for silver, etc.",
+    "product_code":                 "PG-3344" ,                                    "_comment_product_code":               "Unique User typed product code",
+    "product_type":                 "bar",                                         "_comment_product_type":               "product type values: bar, jewellry",
+    "product_name":                 "Gold Bar 10g",                                "_comment_product_name":               "Full product name",
+
+
+    
+    "product_short_name":           "GB10",                                        "_comment_product_short_name":        "Short display name",
+    "product_description":          "24K pure gold bar",                           "_comment_product_description":       "Detailed product description",
+    "product_classification":       "Bar",                                         "_comment_product_classification":    "Product classification",
+    "asset_type":                   "Gold",                                        "_comment_asset_type":                "Type of asset like Gold, silver , etc",
+    "product_quality":              "24K",                                         "_comment_product_quality":           "Metal purity or quality",
+    "approximate_weight":           10.0,                                          "_comment_approximate_weight":        "Approximate product weight",
+    "weight_unit":                  "gram",                                        "_comment_weight_unit":               "Weight unit",
+    "dimensions":                   "25mm x 15mm x 2mm",                           "_comment_dimensions":                "Physical dimensions",
+    "is_physical":                  true,                                          "_comment_is_physical":               "Indicates if product is physical",
+    "is_SliceAble":                 false,                                         "_comment_is_SliceAble":              "Indicates if product can be sliced",
+    "standard_price":               650.00,                                        "_comment_approximat_price":          "Approximate selling price",
+    "standard_premium":             15.00,                                         "_comment_standard_premium":          "Standard premium over spot",
+    "price_currency":               "USD",                                         "_comment_price_currency":            "Price currency",
+
+        
+    "applicable_taxes":[
+        { 
+        "tax_name":                 "Sales Tax",                                   "_comment_tax_name":                  "Applicable tax name",
+        "taxes_description":        "Some description of tax",                     "_comment_taxes_description":         "Tax details description",
+        "amount":                   5,                                             "_comment_amount":                    "Tax amount", 
+        "fixed or perecent":        "percentage",                                  "_comment_fixed_or_perecent":         "Is tax fixed amount or percentage" 
+        }
+    ],
+
+    "quantity_on_hand":             100,                                           "_comment_quantity_on_hand":          "Available stock quantity",
+    "minimum_order_quantity":       1,                                             "_comment_minimum_order_quantity":    "Minimum order quantity",
+    "total_sold":                   250,                                           "_comment_total_sold":                "Total units sold",
+    "offer_to_customer":            true,                                          "_comment_offer_to_customer":         "Is product available for sale",
+    "display_order":                1,                                             "_comment_display_order":             "Determines sorting order on the mobile app list. Lower numbers appear first.",
+    "Alert_on_low_stock":           true,                                          "_comment_Alert_on_low_stock":        "Low stock alert flag",
+
+    "media_library": [
+        {
+            "media_type":           "image",                                       "_comment_media_type":                "Type of media (image | video | document | certificate)",
+            "media_url":            "/media/products/gold_bar_10g_xl.png",         "_comment_media_url":                 "Media file path or URL",
+            "is_featured":          true,                                          "_comment_is_featured":               "featured display media"
+        },
+        {
+            "media_type":           "image",                                       
+            "media_url":            "/media/products/gold_bar_10g_sm.png",         
+            "is_featured":          true                                          
+        },
+        {
+            "media_type":           "certificate",
+            "media_url":            "/media/products/gold_bar_cert.pdf",
+            "is_featured":          false
+        }
+    ],
+
+    "transaction_fee": {
+        "fee_type":                 "percentage",                                  "_comment_fee_type":                  "Fee type (percentage/fixed)",
+        "fee_value":                1.5,                                           "_comment_fee_value":                 "Transaction fee value",
+        "fee_currency":             "USD",                                         "_comment_fee_currency":              "Currency for fixed fee",
+        "fee_description":          "Platform transaction charges",                "_comment_fee_description":           "Fee explanation"
+    }
+}

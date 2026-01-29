@@ -1,0 +1,112 @@
+{
+  "user_rec_id"                 : 0,                                          "_comment_user_rec_id"                 : "Auto-incremented unique user ID",
+  "parent_table_name"           : "customers",                                "_comment_parent_table_name"           : "The parent table this auth belongs to, e.g., customers or employees",
+  "parent_table_rec_id"         : 0,                                          "_comment_parent_table_rec_id"         : "The corresponding record ID in the parent table",
+  "user_name" 				          :"john@gmail.com",                            "_comment_user_name"                   : "Primary username or email for login",
+
+
+
+"latest_otp": {
+	  "latest_otp_code"         : "123456",                                    "_comment_latest_otp_code"             : "Most recent OTP sent to user",
+	  "latest_otp_sent_at"      : "NOW()",                                     "_comment_latest_otp_sent_at"          : "Timestamp when OTP was sent",
+	  "latest_otp_expires_at"   : "DATE_ADD(NOW(), INTERVAL 5 MINUTE)",        "_comment_latest_otp_expires_at"       : "Timestamp when OTP expires",
+	  "otp_retries"             : 0,                                           "_comment_otp_retries"                 : "Number of OTP retry attempts",
+	  "next_otp_in"             : 60,                                          "_comment_next_otp_in"                 : "Seconds before user can request next OTP"
+    },
+
+  "user_mfa" : {
+    "is_MFA"                    : true,                                       "_comment_is_2FA"                      : "Whether 2FA is enabled",
+    "MFA_method"                : "SMS",                                      "_comment_2FA_method"                  : "Method used for 2FA: SMS, Email, Authenticator app, etc.",
+    "MFA_method_value"          : "+1234567890",                              "_comment_2FA_method_value"            : "Value used for 2FA (phone, email, app secret)"
+  },
+
+  "login_attempts" : [
+      { 
+    "last_login_date"           : "NOW()",                                   "_comment_last_login_date"             : "Last login date of user",
+    "login_attempts_count"      : 1,                                         "_comment_login_attempts_count"        : "Number of login attempts",
+    "login_attempt_minutes"     : 0,                                         "_comment_login_attempt_minutes"       : "Minutes since last login attempt"
+     },
+    { 
+    "last_login_date"           : "2026-08-01 09:00",                        "_comment_last_login_date"             : "Last login date of user",
+    "login_attempts_count"      : 3,                                         "_comment_login_attempts_count"        : "Number of login attempts",
+    "login_attempt_minutes"     : 30,                                        "_comment_login_attempt_minutes"       : "Minutes since last login attempt"
+    }
+  ],
+
+  "current_session" : {
+    "latitude"                  : 24.8607,                                    "_comment_latitude"                    : "Latitude of current session login",
+    "device_id"                 : "device-001",                               "_comment_device_id"                   : "Device identifier of current session",
+    "longitude"                 : 67.0011,                                    "_comment_longitude"                   : "Longitude of current session login",
+    "ip_address"                : "192.168.1.1",                              "_comment_ip_address"                  : "IP address of current session",
+    "last_login_at"             : "NOW(3)",                                   "_comment_last_login_at"               : "Timestamp of last login in this session",
+    "session_status"            : "ACTIVE",                                   "_comment_session_status"              : "Current session status: ACTIVE, EXPIRED, LOGGED_OUT",
+    "user_auth-token"           : "abc123xyz456",                             "_comment_user_auth_token"             : "Authentication token for current session",
+    "user_session_id"           : "session-001",                              "_comment_user_session_id"             : "Unique session ID",
+    "last_login_device"         : "iPhone 14",                                "_comment_last_login_device"           : "Device used in last login",
+    "last_login_method"         : "Password + 2FA",                           "_comment_last_login_method"           : "Method used for last login",
+    "session_expires_at"        : "DATE_ADD(NOW(3), INTERVAL 1 HOUR)",        "_comment_session_expires_at"          : "Expiration timestamp for current session"
+  },
+
+"password_history" : [
+  {
+    "is_active"                 : false,                                      "_comment_is_active"                   : "Whether this password is currently active",
+    "password"                  : "StrongP@ssword1",                          "_comment_password"                    : "User's login password (hashed in database)",
+    "password_set_at"           : "2026-08-01 09:00",                         "_comment_password_set_at"             : "When password was initially set",
+    "password_changed_by"       : "SYSTEM",                                   "_comment_password_changed_by"         : "User ID who changed the password",
+    "password_change_reason"    : "Initial setup",                            "_comment_password_change_reason"      : "Reason for changing password",
+    "last_password_updated_at"  : "2026-08-01 09:00",                         "_comment_last_password_updated_at"    : "Timestamp of last password update",
+    "password_expiration_date"  : "2026-10-30 09:00",                         "_comment_password_expiration_date"    : "When password expires"
+  },
+  {
+    "is_active"                 : false,                                      "_comment_is_active"                   : "Whether this password is currently active",
+    "password"                  : "StrongP@ssword1",                          "_comment_password"                    : "User's login password (hashed in database)",
+    "password_set_at"           : "2026-10-15 14:22",                         "_comment_password_set_at"             : "When password was initially set",
+    "password_changed_by"       : "AZS_001",                                  "_comment_password_changed_by"         : "User ID who changed the password",
+    "password_change_reason"    : "Security rotation",                        "_comment_password_change_reason"      : "Reason for changing password",
+    "last_password_updated_at"  : "2026-10-15 14:22",                         "_comment_last_password_updated_at"    : "Timestamp of last password update",
+    "password_expiration_date"  : "2027-01-13 14:22",                         "_comment_password_expiration_date"    : "When password expires"
+  },
+  {
+    "is_active"                 : true,                                       "_comment_is_active"                   : "Whether this password is currently active",
+    "password"                  : "StrongP@ssword1",                          "_comment_password"                    : "User's login password (hashed in database)",
+    "password_set_at"           : "2026-12-01 08:10",                         "_comment_password_set_at"             : "When password was initially set",
+    "password_changed_by"       : "AZS_001",                                  "_comment_password_changed_by"         : "User ID who changed the password",
+    "password_change_reason"    : "User requested reset",                     "_comment_password_change_reason"      : "Reason for changing password",
+    "last_password_updated_at"  : "2026-12-01 08:10",                         "_comment_last_password_updated_at"    : "Timestamp of last password update",
+    "password_expiration_date"  : "2027-03-01 08:10",                         "_comment_password_expiration_date"    : "When password expires"
+  }
+],
+
+"login_credentials" : {
+  "pin"                       : "1234",                                     "_comment_pin"                         : "Optional PIN for login",
+  "password"                  : "StrongP@ssword1",                          "_comment_password"                    : "User's login password (hashed in database)",
+  "username"                  : "johndoe",                                  "_comment_username"                    : "Primary username for login",
+  "alternate_username"        : "john.doe",                                 "_comment_alternate_username"          : "Alternate username for login",
+  "is_force_password_change"  : false,                                      "_comment_is_force_password_change"    : "Whether user must change password at next login",
+  "password_policy" : {
+        "min_length"              : 8,                                      "_comment_min_length"                  : "Minimum password length",
+        "max_length"              : 64,                                     "_comment_max_length"                  : "Maximum password length",
+        "require_uppercase"       : true,                                   "_comment_require_uppercase"           : "Password must contain uppercase letter",
+        "require_lowercase"       : true,                                   "_comment_require_lowercase"           : "Password must contain lowercase letter",
+        "require_number"          : true,                                   "_comment_require_number"              : "Password must contain numeric digit",
+        "require_special_char"    : true,                                   "_comment_require_special_char"        : "Password must contain special character",
+        "password_expiry_days"    : 90,                                     "_comment_password_expiry_days"        : "Number of days before password expires",
+        "password_history_limit"  : 5,                                      "_comment_password_history_limit"      : "Number of previous passwords disallowed",
+        "lockout_attempts"        : 5,                                      "_comment_lockout_attempts"            : "Failed login attempts before lockout",
+        "lockout_duration_minutes": 30,                                     "_comment_lockout_duration_minutes"    : "Account lockout duration in minutes",
+        "allow_reuse"             : false,                                  "_comment_allow_reuse"                 : "Whether old passwords can be reused",
+        "password_strength_level" : "STRONG",                                "_comment_password_strength_level"    : "Password strength classification"
+  }
+},
+
+  "security_questions" :[
+    {
+    "auth_security_question"    : "What is your mother's maiden name?",       "_comment_auth_security_question"     : "User selected security question",
+    "auth_security_answer"      : "Khan",                                     "_comment_auth_security_answer"        : "Answer to security question (hashed in DB)"
+  },
+  {
+    "auth_security_question"    : "What is your mother's maiden name?",       "_comment_auth_security_question"     : "User selected security question",
+    "auth_security_answer"      : "Khan",                                     "_comment_auth_security_answer"        : "Answer to security question (hashed in DB)"
+  }
+  ]
+}

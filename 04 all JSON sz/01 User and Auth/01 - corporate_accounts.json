@@ -1,0 +1,74 @@
+{
+  "corporate_account_rec_id"        : 0,                                          "_comment_corporate_account_rec_id"         : "Auto-incremented unique corporate account ID",
+  "main_account_num"                : "000",                                      "_comment_account_num"                      : "Unique corporate account number",
+  "account_status"                  : "inactive",                                 "_comment_account_status"                   : "Current status: ACTIVE, INACTIVE, BLOCKED, etc.",
+
+// these are duplicate.
+  "main_account_name"               : "azs",                                      "_comment_account_name"                     : "corporate account name",
+  "main_account_title"              : "ABC Traders Main Account",                 "_comment_main_account_title"               : "Title of main corporate account",
+
+
+ // new section
+ status change history:
+	Change log: Arrary of date/time, change of status, notes.
+	11/11/2026 11:11 pm, SUBMITTED, Account is opened by the customer
+	11/11/2026 11:11 pm, APPROVED, Approved by Afzaal
+	11/11/2026 11:11 pm, OPEN, Approved by Afzaal
+	11/11/2026 11:11 pm, SUSPENDED,  by Afzaal
+	11/11/2026 11:11 pm, OPEN, REOPEND  by Afzaal
+	11/11/2026 11:11 pm, CLOSED, REOPEND  by Afzaal
+		`
+
+  "primary_contact_info" : {
+    "primary_email"                : "ali.raza@abctraders.com",                    "_comment_primary_email"                   : "Primary contact email",
+    "primary_phone"                : "+92-300-2223344",                            "_comment_primary_phone"                   : "Primary contact phone",
+    "primary_contact"              : "Ali Raza",                                   "_comment_primary_contact"                 : "Primary contact person name",
+    "designation_of_contact"       : "Finance Manager",                            "_comment_designation_of_contact"          : "Designation/title of primary contact"
+  },
+
+  "company" : {
+    "company_name"                 : "AZS Traders Pvt Ltd",                        "_comment_company_name"                    : "Full registered name of the company",
+    "company_email"                : "info@abctraders.com",                        "_comment_company_email"                   : "Official email of the company",
+    "company_phone"                : "+92-300-1234567",                            "_comment_company_phone"                   : "Official phone of the company",
+    "company_ntn_number"           : "1234567-8",                                  "_comment_company_ntn_number"              : "National Tax Number of company",
+    "company_date_of_incorporation": "2018-06-15",                                 "_comment_company_date_of_incorporation"   : "Date company was incorporated",
+
+    "owner_info" : {
+      "owner_name"                 : "Ahmed Khan",                                 "_comment_owner_name"                      : "Name of company owner",
+      "owner_email"                : "ahmed.khan@abctraders.com",                  "_comment_owner_email"                    : "Email of company owner",
+      "owner_phone"                : "+92-300-1112233",                            "_comment_owner_phone"                    : "Phone number of company owner"
+	// owner CNINC number
+    },
+
+
+// Address order should be proper while defining for reading purposes. How it will be stored in DB is something else.
+    "company_address" : {
+      "full_address"               : "Office 402, Business Plaza, Karachi",          "_comment_full_address"                  : "Complete full address",
+      "google_reference_number"    : "ChIJ123ABC",                                    "_comment_google_reference_number"      : "Google Maps reference ID"
+// store lat lng as string
+      "latitude"                   : 24.8607,                                         "_comment_latitude"                     : "Latitude coordinate",
+      "longitude"                  : 67.0011,                                         "_comment_longitude"                    : "Longitude coordinate",
+      "company_mailing_address"    : "PO Box 1234, Karachi",                           "_comment_company_mailing_address"     : "Mailing address for company",
+      "building_number"            : "402",                                           "_comment_building_number"              : "Building number",
+      "street_name"                : "Shahrah-e-Faisal",                               "_comment_street_name"                 : "Street name",
+      "street_address_2"           : "Business Plaza",                                 "_comment_street_address_2"            : "Additional street info",
+      "city"                       : "Karachi",                                       "_comment_city"                         : "City of company",
+      "state"                      : "Sindh",                                         "_comment_state"                        : "State of company",
+      "zip_code"                   : "75400",                                         "_comment_zip_code"                     : "Postal/zip code",
+      "directions"                 : "Near FTC Building",                              "_comment_directions"                  : "Directions to company location",
+    }
+  },
+
+  "account_stats" : {
+// total of all sub accounts.
+	total Cash Wallet
+	total Gold Wallet
+	totla Silver Wallet:
+    "total_orders"                : 1340,                                             "_comment_total_orders"                 : "Total orders placed by the company",
+    "total_assets"                : 85000000,                                          "_comment_total_assets"                : "Total assets of the company",
+    "open_tickets"                : 2,                                                "_comment_open_tickets"                 : "Number of open support tickets",
+    "num_of_tickets"              : 18,                                               "_comment_num_of_tickets"               : "Total number of support tickets",
+    "num_of_employees"            : 25,                                               "_comment_num_of_employees"             : "Total employees in company",
+    "year_to_date_orders"         : 215,                                              "_comment_year_to_date_orders"          : "Orders placed this year"
+  }
+}

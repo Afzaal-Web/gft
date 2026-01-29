@@ -1,0 +1,100 @@
+{
+    "inventory_rec_id":            0,                                              "_comment_inventory_rec_id":           "Auto-increment inventory record ID",
+    "product_rec_id":              0,                                              "_comment_product_rec_id":             "Linked product record ID",
+    "item_name":                   "Gold Bar - 1000g",                             "_comment_item_name":                  "Inventory item name",
+    "item_type":                   "Bar",                                          "_comment_item_type":                  "Inventory item type: Bar,Gold Ring, Bracelet, Locket, Jwellery etc",
+    "asset_type":                  "Gold",                                         "_comment_asset_type":                 "Type of asset like Gold, silver , etc",  
+    "availability_status":         "Available",                                    "_comment_availability_status":        "Current availability status: 'Available','Sold', 'redeemed', 'Slice Bought'",
+
+
+
+    "item_Size":                    "2 inches",                                    "_comment_Size":                       "like ring size",
+    "weight_adjustment":            0.5,                                           "_comment_weight_adjustment":          "Weight adjustment applied",
+    "net_weight":                   1000.0,                                        "_comment_net_weight":                 "Net usable weight",
+    "available_weight":             330.00,                                        "_comment_available_weight":           "Remaining available weight",
+    "item_quality":                 "24K",                                         "_comment_item_quality":               "Quality of the item",
+    "location_details":             "dollman ",                                    "_comment_location_details":           "Physical storage location details",
+ 
+    "pricing_adjustments": {
+        "item_margin_adjustment":    1.2,                                           "_comment_item_margin_adjustment":     "Margin adjustment percentage",
+        "Discount":                  0.5,                                           "_comment_Discount":                   "Discount percentage",
+        "Promotions":                "Ramadan Offer",                               "_comment_Promotions":                 "Active promotion details"
+    },
+
+    "media_library": [
+        {
+            "media_type":            "image",                                       "_comment_media_type":                 "Media type",
+            "media_url":             "/media/inventory/item1.png",                  "_comment_media_url":                  "Media file URL",
+            "is_featured":           true,                                          "_comment_is_featured":                "Primary media flag"
+        }
+    ],
+
+    "ownership_metrics": {
+        "weight_sold_so_far":       770.00,                                        "_comment_weight_sold":                "Total weight sold already",
+        "number_of_shareholders":    3,                                             "_comment_number_of_shareholders":     "Total shareholders",
+        "number_of_transactions":    12,                                            "_comment_number_of_transactions":     "Total transactions count"
+    },
+
+    "manufacturer_info": {
+        "manufacturing_country":     "Switzerland",                                 "_comment_manufacturing_country":      "Country of manufacture",
+        "manufacturer_name":         "Valcambi",                                    "_comment_manufacturer_name":          "Manufacturer name",
+        "manufacturing_date":        "2025-01-10",                                  "_comment_manufacturing_date":         "Manufacturing date",
+        "serial_number":             "VAL-1000G-001",                               "_comment_serial_number":              "Unique serial number",
+        "serial_verification_url":   "https://verify.valcambi.com/VAL-1000G-001",   "_comment_serial_verification_url":    "Verification URL",
+        "serial_verification_text":  "Verified",                                    "_comment_serial_verification_text":   "Verification status",
+        "dimensions":                "120mm x 55mm x 9mm",                          "_comment_dimensions":                 "Physical dimensions"
+    },
+
+    "purchase_from": {
+        "purchase_from_rec_id":      22,                                            "_comment_purchase_from_rec_id":       "Supplier record ID",
+        "receipt_number":            "RCPT-8899",                                   "_comment_receipt_number":             "Purchase receipt number",
+        "receipt_date":              "2025-10-05",                                  "_comment_receipt_date":               "Receipt date",
+        "from_name":                 "ABC Bullion Ltd",                             "_comment_from_name":                  "Supplier name",
+        "from_address":              "Dubai, UAE",                                  "_comment_from_address":               "Supplier address",
+        "from_phone":                "+971000000",                                  "_comment_from_phone":                 "Supplier phone",
+        "from_email":                "sales@abc.com",                               "_comment_from_email":                 "Supplier email",
+        "purchase_date":             "2025-10-05",                                  "_comment_purchase_date":              "Purchase date",
+        "packaging":                 "Sealed",                                      "_comment_packaging":                  "Packaging details",
+        "metal_rate":                63.5,                                          "_comment_metal_rate":                 "Metal rate at purchase",
+        "metal_weight":              10.0,                                          "_comment_metal_weight":               "Metal weight purchased",
+        "making_charges":            5.0,                                           "_comment_making_charges":             "Making charges",
+        "premium_paid":              10.0,                                          "_comment_premium_paid":               "Premium paid",
+        "total_tax_paid":            3.5,                                           "_comment_total_tax_paid":             "Total tax paid",
+        "tax_description":           "Import tax",                                  "_comment_tax_description":            "Tax description",
+        "total_price_paid":          650.0,                                         "_comment_total_price_paid":           "Total amount paid",
+        "mode_of_payment":           "Bank Transfer",                               "_comment_mode_of_payment":            "Payment method",
+        "check_or_transaction_no":   "TXN-778899",                                  "_comment_check_or_transaction_no":    "Payment reference"
+    },
+
+    "sold_to": [
+                {
+                    "order_date":             "2025-11-01",                                 "_comment_order_date":                 "Order date",
+                    "order_number":           "ORD-1001",                                   "_comment_order_number":               "Order number",
+                    "receipt_number":         "SR-1001",                                    "_comment_receipt_number":             "Sales receipt number",
+                    "sold_date":              "2025-11-02",                                 "_comment_sold_date":                  "Sold date",
+                    "sold_to_id":              501,                                         "_comment_sold_to_id":                 "Customer ID",
+                    "sold_to_name":            "Ali Khan",                                  "_comment_sold_to_name":               "Customer name",
+                    "sold_to_phone":           "+923001112233",                             "_comment_sold_to_phone":              "Customer phone",
+                    "sold_to_email":           "ali@email.com",                             "_comment_sold_to_email":              "Customer email",
+                    "sold_to_address":         "Karachi",                                   "_comment_sold_to_address":            "Customer address",
+                    "metal_rate":              65.0,                                        "_comment_metal_rate":                 "Metal rate at sale",
+                    "weight_sold":             2.5,                                         "_comment_weight_sold":                "Weight sold",
+                    "making_charges":          2.0,                                         "_comment_making_charges":             "Making charges",
+                    "premium_charged":         5.0,                                         "_comment_premium_charged":            "Premium charged",
+                    "taxes":                   1.2,                                         "_comment_taxes":                      "Taxes charged",
+                    "taxes_description":       "Sales tax",                                 "_comment_taxes_description":          "Tax description",
+                    "total_price_charged":     180.0,                                       "_comment_total_price_charged":        "Total charged amount",
+                    "transaction_details": 
+                    {
+                        "transaction_num":         "TXN-555666",                                  "_comment_transaction_num":            "Unique transaction number",
+                        "fee_type":                  "percentage",                                  "_comment_fee_type":                  "Fee type (percentage/fixed)",
+                        "fee_value":                 1.5,                                           "_comment_fee_value":                 "Transaction fee value",
+                        "fee_currency":              "USD",                                         "_comment_fee_currency":              "Currency for fixed fee",
+                        "fee_description":           "Platform transaction charges",                "_comment_fee_description":           "Fee explanation",
+                        "transaction_status":        "Completed",                                   "_comment_transaction_status":        "Transaction status"
+                }
+            }
+
+    ]
+
+}

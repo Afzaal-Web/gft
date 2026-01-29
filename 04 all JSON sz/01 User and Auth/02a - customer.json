@@ -1,0 +1,165 @@
+{
+  "customer_rec_id"                : 0,                                               "_comment_customer_rec_id"                : "Auto-incremented unique customer ID",
+  "customer_status"                : "ACTIVE",                                        "_comment_customer_status"                : "Possible values: Active, Pending, Suspended, etc.",
+  "customer_type"                  : "CORPORATE",                                     "_comment_customer_type"                  : "PERSONAL or CORPORATE",
+  "corporate_account_rec_id"       : 1,                                               "_comment_corporate_account_rec_id"       : "References corporate_accounts table if customer_type is CORPORATE",
+  "first_name"                     : "John",                                          "_comment_first_name"                     : "Customer's first name",
+  "last_name"                      : "Doe",                                           "_comment_last_name"                      : "Customer's last name",
+  "user_name"                      : "johndoe123",                                    "_comment_user_name"                      : "Unique username for login",
+  "email"                          : "john.doe@example.com",                          "_comment_email"                          : "Primary email of the customer",
+  "phone"                          : "+1234567890",                                   "_comment_phone"                          : "Primary phone number",
+  "whatsapp_number"                : "+1234567890",                                   "_comment_whatsapp_number"                : "WhatsApp contact number",
+  "national_id"                    : "331013434343433",                               "_comment_national_id"                    : "Government-issued national ID",
+  "main_account_number"            : "AZS-001",                                       "_comment_main_account_number"            : "Main account number for the customer",
+  "account_number"                 : "002",                                           "_comment_account_number"                 : "account number for the customer",
+
+
+
+  "cus_profile_pic"                : "https://example.com/profile_pic.jpg",           "_comment_cus_profile_pic"                : "URL to profile picture",
+  "is_verified"                    : true,                                            "_comment_is_verified"                    : "Boolean: whether the customer is verified",
+
+  "status_change_history":[
+        {
+        "changed_at"               : "2026-11-11 10:41",                               "_comment_changed_at"                    : "Timestamp when status was changed",
+        "new_status"               : "SUBMITTED",                                     "_comment_new_status"                    : "New status after change",
+        "notes"                    : "Account is opened by the customer",             "_comment_notes"                         : "Remarks related to status change"
+        },
+        {
+        "changed_at"               : "2026-11-11 10:41",                               "_comment_changed_at"                    : "Timestamp when status was changed",
+        "new_status"               : "APPROVED",                                      "_comment_new_status"                    : "New status after change",
+        "notes"                    : "Approved by Afzaal",                            "_comment_notes"                         : "Remarks related to status change"
+        },
+        {
+        "changed_at"               : "2026-11-11 10:41",                               "_comment_changed_at"                    : "Timestamp when status was changed",
+        "new_status"               : "OPEN",                                          "_comment_new_status"                    : "New status after change",
+        "notes"                    : "Approved by Afzaal",                            "_comment_notes"                         : "Remarks related to status change"
+        },
+        {
+        "changed_at"               : "2026-11-11 10:41",                               "_comment_changed_at"                    : "Timestamp when status was changed",
+        "new_status"               : "SUSPENDED",                                     "_comment_new_status"                    : "New status after change",
+        "notes"                    : "by Afzaal",                                    "_comment_notes"                         : "Remarks related to status change"
+        },
+        {
+        "changed_at"               : "2026-11-11 10:41",                               "_comment_changed_at"                    : "Timestamp when status was changed",
+        "new_status"               : "OPEN",                                          "_comment_new_status"                    : "New status after change",
+        "notes"                    : "REOPEND by Afzaal",                             "_comment_notes"                         : "Remarks related to status change"
+        },
+        {
+        "changed_at"               : "2026-11-11 10:41",                               "_comment_changed_at"                    : "Timestamp when status was changed",
+        "new_status"               : "CLOSED",                                        "_comment_new_status"                    : "New status after change",
+        "notes"                    : "REOPEND by Afzaal",                             "_comment_notes"                         : "Remarks related to status change"
+        }
+    ],
+
+  "documents": [
+        {
+            "document_rec_id"        : 1,                             "_comment_document_rec_id"        : "Auto-incremented unique document record ID",
+            "document_name"          : "CNIC",                        "_comment_document_name"          : "Name or type of document",
+            "is_verified"            : true,                          "_comment_is_verified"            : "Boolean: whether document is verified",
+            "uploaded_at"            : "2026-11-10 09:15",            "_comment_uploaded_at"            : "Timestamp when document was uploaded",
+            "verified_at"            : "2026-11-11 10:41",            "_comment_verified_at"            : "Timestamp when document was verified",
+            "verified_by"            : "Afzaal",                      "_comment_verified_by"            : "User who verified the document"
+        },
+        {
+            "document_rec_id"        : 2,                             "_comment_document_rec_id"        : "Auto-incremented unique document record ID",
+            "document_name"          : "Bank Statement",               "_comment_document_name"          : "Name or type of document",
+            "is_verified"            : false,                         "_comment_is_verified"            : "Boolean: whether document is verified",
+            "uploaded_at"            : "2026-11-10 11:00",            "_comment_uploaded_at"            : "Timestamp when document was uploaded",
+            "verified_at"            : null,                          "_comment_verified_at"            : "Timestamp when document was verified",
+            "verified_by"            : null,                           "_comment_verified_by"            : "User who verified the document"
+        }
+    ],
+
+  "additional_contacts" : [
+        {
+            "Additional_email_1"         : "j.doe.secondary@example.com",                  "_comment_Additional_email_1"            : "Secondary email for the customer",
+            "Additional_phone_1"         : "+1234567891",                                  "_comment_Additional_phone_1"            : "Emergency contact phone number"
+        },
+        {
+            "Additional_email_2"         : "j.doe.secondary@example.com",                  "_comment_Additional_email_2"            : "Secondary email for the customer",
+            "Additional_phone_2"         : "+1234567891",                                  "_comment_Additional_phone_2"            : "Emergency contact phone number"
+        }
+   ],
+
+  "residential_address" : {
+        "google_reference_number"       : "ChIJ1234567890",                             "_comment_google_reference_number"         : "Google Maps reference ID",
+        "full_address"                  : "123 Main St, Apt 4B, New York, USA",         "_comment_full_address"                    : "Complete full address",
+        "country"                       : "USA",                                        "_comment_country"                         : "Country name",
+        "building_number"               : "123",                                        "_comment_building_number"                 : "Building number or identifier",
+        "street_name"                   : "Main St",                                    "_comment_street_name"                     : "Street name",
+        "street_address_2"              : "Apt 4B",                                      "_comment_street_address_2"                : "Secondary street info or apartment number",
+        "city"                          : "New York",                                   "_comment_city"                            : "City name",
+        "state"                         : "New York",                                   "_comment_state"                           : "State or province",
+        "zip_code"                      : "10001",                                      "_comment_zip_code"                        : "Postal/zip code",
+        "directions"                    : "Near Central Park",                          "_comment_directions"                      : "Additional directions to the address",
+        "cross_street_1_name"           : "2nd Ave",                                    "_comment_cross_street_1_name"             : "Nearby cross street 1",
+        "cross_street_2_name"           : "3rd Ave",                                    "_comment_cross_street_2_name"             : "Nearby cross street 2",
+        "latitude"                      : "40.7128",                                    "_comment_latitude"                        : "Latitude coordinate",
+        "longitude"                     : "-74.006",                                    "_comment_longitude"                       : "Longitude coordinate"
+  },
+
+  "permissions" : {
+        "is_buy_allowed"                : true,                                         "_comment_is_buy_allowed"                 : "Boolean: whether buying is allowed",
+        "is_sell_allowed"               : true,                                         "_comment_is_sell_allowed"                : "Boolean: whether selling is allowed",
+        "is_redeem_allowed"             : false,                                        "_comment_is_redeem_allowed"              : "Boolean: whether redeeming is allowed",
+        "is_add_funds_allowed"          : true,                                         "_comment_is_add_funds_allowed"           : "Boolean: whether adding funds is allowed",
+        "is_withdrawl_allowed"          : true,                                         "_comment_is_withdrawl_allowed"           : "Boolean: whether withdrawing is allowed"
+  },
+
+  "app_preferences" : {
+        "time_zone"                     : "America/New_York",                           "_comment_time_zone"                      : "Preferred time zone",
+        "preferred_currency"            : "USD",                                        "_comment_preferred_currency"             : "Preferred currency",
+        "preferred_language"            : "en",                                         "_comment_preferred_language"             : "Preferred language",
+        "auto_logout_minutes"           : 15,                                           "_comment_auto_logout_minutes"            : "Minutes before automatic logout",
+        "remember_me_enabled"           : true,                                         "_comment_remember_me_enabled"            : "Boolean: remember me enabled",
+        "default_home_location"         : "New York",                                   "_comment_default_home_location"          : "Default home location in app",
+        "biometric_login_enabled"       : true,                                         "_comment_biometric_login_enabled"        : "Boolean: biometric login enabled",
+        "push_notifications_enabled"    : true,                                         "_comment_push_notifications_enabled"     : "Boolean: push notifications enabled",
+        "transaction_alerts_enabled"    : true,                                         "_comment_transaction_alerts_enabled"     : "Boolean: transaction alerts enabled",
+        "email_notifications_enabled"   : true,                                         "_comment_email_notifications_enabled"    : "Boolean: email notifications enabled",
+        "is_face_id_enabled"            : true,                                         "_comment_is_face_id_enabled"             : "Whether Face ID is enabled",
+        "is_fingerprint_enabled"        : true,                                         "_comment_is_fingerprint_enabled"         : "Whether fingerprint login is enabled"
+  },
+  
+"customer_wallets": [
+    {
+    "wallet_id"                  : 0,                               "_comment_wallet_id"                   : "Auto-incremented wallet ID",
+    "tradeable_asset_rec_id"      : 0,                               "_comment_tradeable_asset_rec_id"      : "Primary key to tradeable asset",                        
+    "wallet_title"                : "My Gold",                         "_comment_wallet_title"                : "Wallet title",
+
+    "asset_name"              : "Gold",                        "_comment_comm_name"                   : "Commodity name",
+    "asset_code"              : "GLD",                          "_comment_commodity_code"              : "Commodity code",
+    "wallet_type"             : "Metal",                     "_comment_wallet_type"                 : "Type of wallet",
+    "wallet_status"           : "Open",                         "_comment_wallet_status"               : "Status of wallet",
+    "wallet_balance"          : 312.7788,                       "_comment_wallet_balance"              : "Current wallet balance",
+    "balance_unit"            : "grams",                        "_comment_balance_unit"                : "Unit of balance",
+    "balance_last_updated_at" : "2026-01-16T06:00:00Z",         "_comment_balance_last_updated_at"          : "Last update timestamp",
+
+     "blockchain_info" : {
+        "blockchain_id"           : 1,                              "_comment_blockchain_id"               : "Blockchain record ID",
+        "blockchain_name"         : "Ethereum",                     "_comment_blockchain_name"             : "Name of blockchain",
+        "blockchain_url"          : "https://etherscan.io/",        "_comment_blockchain_url" : "Blockchain explorer URL"
+    }
+},
+   {
+    
+    "tradeable_asset_rec_id"      : 0,                               "_comment_tradeable_asset_rec_id"      : "Primary key to tradeable asset",                        
+    "wallet_title"                : "My Silver",                         "_comment_wallet_title"                : "Wallet title",
+
+    "asset_name"              : "Silver",                        "_comment_comm_name"                   : "Commodity name",
+    "asset_code"              : "GLD",                          "_comment_commodity_code"              : "Commodity code",
+    "wallet_type"             : "Metal",                     "_comment_wallet_type"                 : "Type of wallet",
+    "wallet_status"           : "Open",                         "_comment_wallet_status"               : "Status of wallet",
+    "wallet_balance"          : 312.7788,                       "_comment_wallet_balance"              : "Current wallet balance",
+    "balance_unit"            : "grams",                        "_comment_balance_unit"                : "Unit of balance",
+    "balance_last_updated_at" : "2026-01-16T06:00:00Z",         "_comment_balance_last_updated_at"          : "Last update timestamp",
+
+     "blockchain_info" : {
+        "blockchain_id"           : 1,                              "_comment_blockchain_id"               : "Blockchain record ID",
+        "blockchain_name"         : "Ethereum",                     "_comment_blockchain_name"             : "Name of blockchain",
+        "blockchain_url"          : "https://etherscan.io/",        "_comment_blockchain_url" : "Blockchain explorer URL"
+    }
+}
+]
+
+}

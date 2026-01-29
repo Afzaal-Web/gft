@@ -1,0 +1,26 @@
+{
+    "title":                     "Welcome Bonus",                           "_comment_title":                  "Promotion title",
+    "description":               "Get 10% off on your first transaction",   "_comment_description":            "Promotion description",
+    "promo_type":                "Percentage",                              "_comment_promo_type":             "Type of promotion (Percentage/Flat)",
+    "discount_value":            10,                                        "_comment_discount_value":         "Discount value",
+    "max_discount":              50,                                        "_comment_max_discount":           "Maximum discount applicable",
+    "min_transaction_amount":    100,                                       "_comment_min_transaction_amount": "Minimum transaction required",
+    "start_date":                "2026-01-15",                              "_comment_start_date":             "Promotion start date",
+    "end_date":                  "2026-12-31",                              "_comment_end_date":               "Promotion end date",
+    "usage_limit_global":        1000,                                      "_comment_usage_limit_global":     "Global usage limit",
+    "usage_limit_per_user":      5,                                         "_comment_usage_limit_per_user":   "Usage limit per user",
+    "status":                    "Active",                                   "_comment_status":                 "Promotion status",
+    "is_first_purchase":         true,                                       "_comment_is_first_purchase":      "Applicable only on first purchase?",
+    "is_zero_fee":               false,                                      "_comment_is_zero_fee":            "Is zero fee promotion?",
+    "referral_id":               null,                                       "_comment_referral_id":            "Referral ID if applicable",
+    "referral_discount":         5,                                          "_comment_referral_discount":      "Referral discount value",
+    "referral_discount_type":    "Percentage",                              "_comment_referral_discount_type": "Referral discount type",
+    "referral_rate":             2,                                          "_comment_referral_rate":          "Referral reward rate",
+
+    "row_metadata": {
+        "created_at":            "2026-01-17T12:00:00.000Z",
+        "created_by":            "SYSTEM",
+        "updated_at":            null,
+        "updated_by":            null
+    }
+}

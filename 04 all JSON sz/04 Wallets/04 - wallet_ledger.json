@@ -1,0 +1,44 @@
+{
+    "wallet_ledger_rec_id"        : 0,                              "_comment_wallet_ledger_rec_id"        : "Auto-incremented ledger ID",
+    "customer_rec_id"             : 0,                              "_comment_customer_wallet_rec_id"      : "Foreign key to customer_wallets",
+    "account_number"              : null,                           "_comment_customer_name"               : "customer account number",
+    "wallet_id"                  :  0,                              "_comment_wallet_id"                   : "sequence number",
+    "wallet_title"                : null,                           "_comment_wallet_title"                : "Wallet title",
+    "asset_code"                  : null,                           "_comment_asset_code"                  : "Asset code LIKE gld",
+    "asset_name"                  : null,                           "_comment_asset_name"                  : "Asset name like Gold",
+    "order_rec_id"                : null,                           "_comment_order_rec_id"                : "Foreign key to orders table",
+    "order_number"                : null,                           "_comment_order_number"                : "order number: Sequence number",  
+    "transaction_type"            : "debit",                        "_comment_transaction_type"            : "debit or credit or open",
+
+    "ledger_transaction" : {
+        "transaction_number"      : null,                           "_comment_transaction_number"          : "Unique transaction number: Sequence number",
+        "transaction_at"          : null,                           "_comment_transaction_at"              : "Timestamp of transaction",
+        "transaction_reason"      : null,                           "_comment_transaction_reason"          : "Reason for transaction",
+        "balance_before"         : null,                            "_comment_opening_balance"             : "Balance before transaction",
+        "debit_amount"            : null,                           "_comment_debit"                       : "Debited amount",
+        "credit_amount"           : null,                           "_comment_credit"                      : "Credited amount",
+        "balance_after"         : null,                             "_comment_current_balance"             : "Balance after transaction"
+    },
+
+    "initiated_by_info" : {
+        "initiated_by"            : null,                           "_comment_initiated_by"                : "User who initiated transaction",
+        "initiated_by_name"       : null,                           "_comment_initiated_by_name"          : "Name of initiator"
+    },
+
+    "approval_info" : {
+        "approved_at"             : null,                           "_comment_approved_at"                 : "Timestamp of approval",
+        "approved_by_rec_id"      : null,                           "_comment_approved_by_rec_id"          : "Approver ID",
+        "approved_by_name"        : null,                           "_comment_approved_by_name"            : "Approver name",
+        "approval_number"         : null,                           "_comment_approval_number"             : "Approval reference number"
+    },
+
+    "contract_info" : {
+        "contract_number"         : null,                           "_comment_contract_number"             : "Contract reference number"
+    },
+
+    "blockchain_info" : {
+        "blockchain_id"           : null,                           "_comment_blockchain_id"               : "Blockchain record ID",
+        "blockchain_name"         : null,                           "_comment_blockchain_name"             : "Blockchain name",
+        "blockchain_url"          : null,                           "_comment_blockchain_url"              : "Blockchain explorer URL"
+    }
+}

@@ -1,0 +1,81 @@
+{
+    "log_rec_id":            0,                             "_comment_log_rec_id":            "Log record ID",
+    "customer_rec_id":       0,                             "_comment_customer_rec_id":       "Customer reference",
+    "employee_rec_id":       0,                             "_comment_employee_rec_id":       "Employee reference",
+    "db_username":           "gft_app_user",                "_comment_db_username":           "Database username",
+    "logged_by":             "SYSTEM",                      "_comment_logged_by":              "Who generated the log",
+    "application_name":      "GFT Web App",                 "_comment_application_name":      "Source application",
+
+    "application_context": {
+        "module_name":       "Orders",                     "_comment_module_name":           "Application module",
+        "view_name":         "OrderDetails",               "_comment_view_name":             "UI view or screen",
+        "section_name":      "PaymentSection",             "_comment_section_name":          "UI section",
+        "event_action":      "CLICK",                      "_comment_event_action":          "User action",
+        "element_id":        "btnPayNow",                  "_comment_element_id":            "UI element ID",
+        "element_value":     "Pay Now",                    "_comment_element_value":         "Element value",
+        "action_time":       "NOW()",                      "_comment_action_time":           "Action timestamp",
+        "action_code":       "ORD_PAY_CLICK",              "_comment_action_code":           "Business action code",
+        "log_type":          "INFO",                       "_comment_log_type":              "INFO / WARN / ERROR"
+    },
+
+    "database_activity": {
+        "db_procedure_name": "sp_create_order",            "_comment_db_procedure_name":     "Stored procedure",
+
+        "input_params": {                                   "_comment_input_params":          "Procedure inputs",
+            "order_number":  "ORD-2026-0001"             
+        },                                                  
+
+        "environment_variables": {
+            "env":           "PROD",
+            "region":        "ME"
+        },                                                  "_comment_environment_variables": "Runtime environment",
+
+        "db_sql_query":     "INSERT INTO orders ...",      "_comment_db_sql_query":          "Executed SQL",
+        "db_response":      "SUCCESS",                     "_comment_db_response":           "DB response"
+    },
+
+    "user_device_location": {
+        "user_device_category": "Desktop",                "_comment_user_device_category": "Desktop / Mobile",
+        "user_device_type":     "Chrome Browser",         "_comment_user_device_type":     "Device type",
+        "user_device_id":       "DEV-88392",              "_comment_user_device_id":       "Device identifier",
+        "user_ip_address":      "192.168.1.25",           "_comment_user_ip_address":      "IP address",
+        "country":              "Pakistan",               "_comment_country":              "Country",
+        "city":                 "Karachi",                "_comment_city":                 "City",
+        "latitude":             24.860735,                "_comment_latitude":             "Latitude",
+        "longitude":            67.001137,                "_comment_longitude":            "Longitude"
+    },
+
+    "navigation_tracking": {
+        "url_hit":              "/orders/checkout",       "_comment_url_hit":              "Visited URL",
+        "url_method":           "POST",                   "_comment_url_method":           "HTTP method",
+        "session_id":           "SES-998877",             "_comment_session_id":           "Session identifier",
+        "time_spent":           12.45,                    "_comment_time_spent":           "Time spent (seconds)"
+    },
+
+    "error_details": {
+        "error_type":           null,                     "_comment_error_type":           "Exception type",
+        "error_code":           null,                     "_comment_error_code":           "Error code",
+        "error_message":        null,                     "_comment_error_message":        "Error message",
+        "stack_trace":          null,                     "_comment_stack_trace":          "Stack trace"
+    },
+
+    "external_api_logs": {
+        "external_api_logs_rec_id": 77,                   "_comment_external_api_logs_rec_id": "External log ID",
+        "interface_id":              "PAY-GATEWAY-01",    "_comment_interface_id":             "Integration interface",
+        "endpoint":                  "/api/payments/charge", "_comment_endpoint":             "API endpoint",
+        "http_method":               "POST",              "_comment_http_method":              "HTTP method",
+
+        "request_payload": {
+            "amount":                45838.50,
+            "currency":              "USD"
+        },                                                  "_comment_request_payload":        "Request payload",
+
+        "response_payload": {
+            "status":                "APPROVED"
+        },                                                  "_comment_response_payload":       "Response payload",
+
+        "status_code":               200,                 "_comment_status_code":            "HTTP status",
+        "execution_time_ms":         842,                 "_comment_execution_time_ms":      "Execution time",
+        "correlation_id":            "CORR-2026-00045",   "_comment_correlation_id":         "Trace ID"
+    }
+}

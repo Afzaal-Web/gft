@@ -1,0 +1,27 @@
+{
+
+    "asset_rate_rec_id"          : 0,                                 "_comment_commodity_rate_rec_id"      : "Auto-incremented asset_rate record ID",
+    "tradable_assets_rec_id"     : 0,                                 "_comment_commodity_rec_id"           : "Primary key to tradeable asset",
+    "asset_code"                 : "GLD",                             "_comment_internal_code"              : "Internal asset code",
+
+    "spot_rate"                  : 4433.85,                           "_comment_spot_rate"                  : "Spot market rate",
+    "weight_unit"                : "gram",                            "_comment_weight_unit"                : "Unit of weight for the rate",
+    "currency_unit"              : "USD",                             "_comment_currency_unit"              : "Currency of the rate",
+    "rate_timestamp"             : "2026-01-16T06:00:00",             "_comment_rate_timestamp"             : "Timestamp when rate was recorded",
+    "effective_date"             : "2026-01-16",                      "_comment_effective_date"             : "Date when rate becomes effective",
+    "valid_until"                : "2026-01-17",                      "_comment_valid_until"                : "Expiry date of this rate",
+
+    "source_info"                : 
+        {
+        "rate_source"            : "metals-api",                       "_comment_rate_source"                : "API or source name",
+        "source_url"             : "https://metals-api.com/",          "_comment_source_url"                 : "Source URL",
+        "market_status"          : "Open",                             "_comment_market_status"              : "Market status",
+        "update_frequency"       : "Daily",                            "_comment_update_frequency"           : "Frequency of updates"
+        },
+
+    "foreign_exchange"           : 
+        {
+        "foreign_exchange_rate"  : 278.50,                             "_comment_foreign_exchange_rate"     : "FX conversion rate",
+        "foreign_exchange_source": "OpenExchange",                     "_comment_foreign_exchange_source"   : "FX rate source"
+        }
+}

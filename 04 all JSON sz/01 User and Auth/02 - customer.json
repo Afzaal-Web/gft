@@ -1,0 +1,79 @@
+{
+  "customer_rec_id"                : 0,                                               "_comment_customer_rec_id"                : "Auto-incremented unique customer ID",
+  "customer_status"                : "ACTIVE",                                        "_comment_customer_status"                : "Possible values: Active, Pending, Suspended, etc.",
+  "customer_type"                  : "CORPORATE",                                     "_comment_customer_type"                  : "PERSONAL or CORPORATE",
+  "corporate_account_rec_id"       : 1,                                               "_comment_corporate_account_rec_id"       : "References corporate_accounts table if customer_type is CORPORATE",
+  "first_name"                     : "John",                                          "_comment_first_name"                     : "Customer's first name",
+  "last_name"                      : "Doe",                                           "_comment_last_name"                      : "Customer's last name",
+  "national_id"                    : "331013434343433",                               "_comment_national_id"                    : "Government-issued national ID",
+  "email"                          : "john.doe@example.com",                          "_comment_email"                          : "Primary email of the customer",
+  "phone"                          : "+1234567890",                                   "_comment_phone"                          : "Primary phone number",
+  "cus_profile_pic"                : "https://example.com/profile_pic.jpg",           "_comment_cus_profile_pic"                : "URL to profile picture",
+  "whatsapp_number"                : "+1234567890",                                   "_comment_whatsapp_number"                : "WhatsApp contact number",
+
+	// is_verified:
+	// user name -- login id
+	// main account number	-- we had created this column.
+	// account number		-- we had created these columns here. Please keep everything whatever is discussed before so we don't have to think twice about it.
+
+
+	// add status change log here also including documents verified.
+
+
+
+  "additional_contacts" : [
+	// ARRAY OF type, vale
+	EMAIL, J@J.COM
+	EMAIL, J222@J.COM
+	PHONE, 09790789879878
+	WHATSAPP, 078089080
+
+    {
+      "Additional_email_1"         : "j.doe.secondary@example.com",                  "_comment_secondary_email"               : "Secondary email for the customer",
+      "Additional_phone_1"         : "+1234567891",                                  "_comment_emergency_contact"             : "Emergency contact phone number"
+    },
+    {
+      "Additional_email_2"         : "j.doe.secondary@example.com",                  "_comment_secondary_email"               : "Secondary email for the customer",
+      "Additional_phone_2"         : "+1234567891",                                  "_comment_emergency_contact"             : "Emergency contact phone number"
+    }
+  ],
+
+	// THIS address order is correct.
+  "residential_address" : {
+    "google_reference_number"       : "ChIJ1234567890",                             "_comment_google_reference_number"         : "Google Maps reference ID",
+    "full_address"                  : "123 Main St, Apt 4B, New York, USA",         "_comment_full_address"                  : "Complete full address",
+    "country"                       : "USA",                                        "_comment_country"                        : "Country name",
+    "building_number"               : "123",                                        "_comment_building_number"                : "Building number or identifier",
+    "street_name"                   : "Main St",                                    "_comment_street_name"                    : "Street name",
+    "street_address_2"              : "Apt 4B",                                      "_comment_street_address_2"               : "Secondary street info or apartment number",
+    "city"                          : "New York",                                   "_comment_city"                           : "City name",
+    "state"                         : "New York",                                   "_comment_state"                          : "State or province",
+    "zip_code"                      : "10001",                                      "_comment_zip_code"                       : "Postal/zip code",
+    "directions"                    : "Near Central Park",                          "_comment_directions"                     : "Additional directions to the address",
+    "cross_street_1_name"            : "2nd Ave",                                    "_comment_cross_street_1_name"             : "Nearby cross street 1",
+    "cross_street_2_name"            : "3rd Ave",                                    "_comment_cross_street_2_name"             : "Nearby cross street 2",
+    "latitude"                      : 40.7128,                                      "_comment_latitude"                       : "Latitude coordinate",
+    "longitude"                     : -74.006,                                      "_comment_longitude"                      : "Longitude coordinate"
+  },
+
+  "permissions" : {
+    "is_buy_allowed"                : true,                                           "_comment_is_buy_allowed"                 : "Boolean: whether buying is allowed",
+    "is_sell_allowed"               : true,                                           "_comment_is_sell_allowed"                : "Boolean: whether selling is allowed",
+    "is_redeem_allowed"             : false,                                          "_comment_is_redeem_allowed"              : "Boolean: whether redeeming is allowed",
+    "is_add_funds_allowed"          : true,                                           "_comment_is_add_funds_allowed"           : "Boolean: whether adding funds is allowed",
+    "is_withdrawl_allowed"          : true,                                           "_comment_is_withdrawl_allowed"           : "Boolean: whether withdrawing is allowed"
+  },
+
+  "app_preferences" : {
+    "time_zone"                     : "America/New_York",                             "_comment_time_zone"                      : "Preferred time zone",
+    "preferred_currency"            : "USD",                                          "_comment_preferred_currency"             : "Preferred currency",
+    "preferred_language"            : "en",                                           "_comment_preferred_language"             : "Preferred language",
+    "auto_logout_minutes"           : 15,                                             "_comment_auto_logout_minutes"            : "Minutes before automatic logout",
+    "remember_me_enabled"           : true,                                           "_comment_remember_me_enabled"            : "Boolean: remember me enabled",
+    "default_home_location"         : "New York",                                     "_comment_default_home_location"          : "Default home location in app",
+    "biometric_login_enabled"       : true,                                           "_comment_biometric_login_enabled"        : "Boolean: biometric login enabled",
+    "push_notifications_enabled"    : true,                                           "_comment_push_notifications_enabled"     : "Boolean: push notifications enabled",
+    "transaction_alerts_enabled"    : true,                                           "_comment_transaction_alerts_enabled"     : "Boolean: transaction alerts enabled",
+    "email_notifications_enabled"   : true,                                           "_comment_email_notifications_enabled"    : "Boolean: email notifications enabled"
+  }
+}
