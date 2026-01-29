@@ -20,6 +20,11 @@ BEGIN
 		/* ================ VARIABLE DECLARATIONS ================ */
 
 		DECLARE v_product_rec_id         	INT;
+        DECLARE v_tradable_assets_rec_id	INT;
+        DECLARE v_asset_code				VARCHAR(50);
+        DECLARE v_product_code				VARCHAR(100);
+        DECLARE v_product_type				VARCHAR(255);
+        DECLARE v_product_name				VARCHAR(255);
 		DECLARE v_products_json          	JSON;
 		DECLARE v_row_metadata           	JSON;
     
@@ -43,56 +48,71 @@ BEGIN
 	 main_block: BEGIN
 
     /* =============== VALIDATIONS ================ */
+    
+    IF isFalsy(getJval(pjReqObj,'product_rec_id')) THEN
 
-    IF isFalsy(getJval(pjReqObj,'tradable_assets_rec_id')) THEN
-        SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','tradable_assets_rec_id is required');
-    END IF;
+		IF isFalsy(getJval(pjReqObj,'tradable_assets_rec_id')) THEN
+			SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','tradable_assets_rec_id is required');
+		END IF;
+		
+		IF isFalsy(getJval(pjReqObj,'asset_code')) THEN
+			SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','asset_code is required');
+		END IF;
+		
+		IF isFalsy(getJval(pjReqObj,'product_code')) THEN
+			 SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','product_code is required');
+		END IF;
+		
+		IF isFalsy(getJval(pjReqObj,'product_name')) THEN
+			 SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','product_name is required');
+		END IF;
     
-	IF isFalsy(getJval(pjReqObj,'asset_code')) THEN
-        SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','asset_code is required');
-    END IF;
+     /* =============== Duplicate check (INSERT) ================ */
+       IF EXISTS (
+					SELECT 1
+					FROM products
+					WHERE product_code = getJval(pjReqObj,'product_code')
+				) 	THEN
+		SET v_errors = JSON_ARRAY_APPEND(v_errors,'$',
+			CONCAT('Product already exists with product_code: ', getJval(pjReqObj,'product_code')));
+	   END IF;
+	
+    ELSE
     
-	IF isFalsy(getJval(pjReqObj,'product_code')) THEN
-         SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','product_code is required');
-    END IF;
+      /* =============== UPDATE must target existing record ================ */
+      
+		IF getJval(pjReqObj,'product_rec_id') IS NOT NULL
+		   AND NOT EXISTS (
+								SELECT 1
+								FROM products
+								WHERE product_rec_id = getJval(pjReqObj,'product_rec_id')
+						   ) THEN
+			SET v_errors = JSON_ARRAY_APPEND(
+				v_errors,'$','Invalid product_rec_id: record does not exist'
+			);
+		END IF;
+        
+    /* =============== Duplicate check (Update) ================ */  
     
-	IF isFalsy(getJval(pjReqObj,'product_name')) THEN
-         SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','product_name is required');
-    END IF;
-    
-     /* =============== Duplicate check (INSERT + UPDATE) ================ */
-       
-	IF EXISTS (
-		SELECT 1
-		FROM products
-		WHERE product_code = getJval(pjReqObj,'product_code')
-		  AND (getJval(pjReqObj,'product_rec_id') IS NULL
-			   OR product_rec_id <> getJval(pjReqObj,'product_rec_id'))
-	) THEN
+        IF EXISTS (
+					SELECT 1
+					FROM products
+					WHERE product_code = getJval(pjReqObj,'product_code')
+					AND product_rec_id <> getJval(pjReqObj,'product_rec_id')
+					) THEN
 		SET v_errors = JSON_ARRAY_APPEND(v_errors,'$',
 			CONCAT('Product already exists with product_code: ', getJval(pjReqObj,'product_code')));
 	END IF;	
     
-	  /* =============== UPDATE must target existing record ================ */
-      
-    IF getJval(pjReqObj,'product_rec_id') IS NOT NULL
-       AND NOT EXISTS (
-            SELECT 1
-            FROM products
-            WHERE product_rec_id = getJval(pjReqObj,'product_rec_id')
-       ) THEN
-        SET v_errors = JSON_ARRAY_APPEND(
-            v_errors,'$','Invalid product_rec_id: record does not exist'
-        );
-    END IF;
+		IF JSON_LENGTH(v_errors) > 0 THEN
+			SET psResObj = JSON_OBJECT(
+									   'status', 		 'error',
+									   'status_code', 	 '1',
+									   'errors',	 	 v_errors
+										);
+		LEAVE main_block;
+		END IF;
     
-    IF JSON_LENGTH(v_errors) > 0 THEN
-        SET psResObj = JSON_OBJECT(
-								   'status', 		 'error',
-								   'status_code', 	 '1',
-								   'errors',	 	 v_errors
-									);
-        LEAVE main_block;
     END IF;
 
     /* ============= JSON PREPARATION ================== */
@@ -137,13 +157,12 @@ BEGIN
         
         SET v_product_rec_id = getJval(pjReqObj,'product_rec_id');
         
-		SELECT row_metadata, products_json
-		INTO v_row_metadata, v_products_json
+		SELECT 	tradable_assets_rec_id, 	asset_code, 	product_code, 	product_type, 	product_name,	row_metadata, 	products_json
+		INTO 	v_tradable_assets_rec_id, 	v_asset_code,	v_product_code, v_product_type, v_product_name, v_row_metadata, v_products_json
 		FROM products
 		WHERE product_rec_id = v_product_rec_id
 		FOR UPDATE;
 
-		
         SET v_row_metadata = JSON_SET(
 										v_row_metadata,
 										'$.updated_by', 	'SYSTEM',
@@ -154,11 +173,11 @@ BEGIN
         SET v_products_json 	= fillTemplate(pjReqObj, v_products_json);
         
         UPDATE products
-        SET tradable_assets_rec_id		= getJval(pjReqObj,	 'tradable_assets_rec_id'),
-			asset_code					= getJval(pjReqObj,	  'asset_code'),
-            product_code				= getJval(pjReqObj,	  'product_code'),
-            product_type				= getJval(pjReqObj,	  'product_type'),
-            product_name				= getJval(pjReqObj,	  'product_name'),
+        SET tradable_assets_rec_id		= COALESCE(getJval(pjReqObj, 'tradable_assets_rec_id'),		v_tradable_assets_rec_id),
+			asset_code					= COALESCE(getJval(pjReqObj, 'asset_code'), 				v_asset_code),
+            product_code				= COALESCE(getJval(pjReqObj, 'product_code'),				v_product_code),
+            product_type				= COALESCE(getJval(pjReqObj, 'product_type'),				v_product_type),
+            product_name				= COALESCE(getJval(pjReqObj, 'product_name'),				v_product_name),
             products_json				= v_products_json,
 			row_metadata				= v_row_metadata
 		WHERE product_rec_id			= v_product_rec_id;
@@ -175,8 +194,11 @@ BEGIN
     SET psResObj = JSON_OBJECT(
 								'status', 		 'success',
 								'status_code',   '0',
-								'message',       'Product saved successfully'
-							  );
+								'message',        IF(isFalsy(getJval(pjReqObj,'product_rec_id')),
+												   'Product saved successfully',
+												   'Product updated successfully'
+													)
+							);
     
     
      END main_block;
