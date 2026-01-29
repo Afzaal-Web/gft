@@ -3,10 +3,10 @@
 SET @pjReqObj = JSON_OBJECT(
  'inventory_rec_id',           2,
     'product_rec_id',             6,  
-    'item_name',                  'Gold Ring 10g',
+    'item_name',                  'Silver Ring 10g',
     'item_type',                  'Ring',
-    'asset_type',                 'Gold',
-    'availability_status',        'Available'
+    'asset_type',                 'Metal',
+    'availability_status',        'out of stock'
 );
 
 -- Call the stored procedure
