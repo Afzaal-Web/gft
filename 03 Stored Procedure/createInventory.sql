@@ -19,8 +19,14 @@ CREATE PROCEDURE createInventory(
 							  )
 BEGIN
     /* ================ VARIABLE DECLARATIONS ================ */
-
-    DECLARE v_inventory_rec_id      INT;
+    
+	DECLARE v_inventory_rec_id      INT;
+    DECLARE v_product_rec_id 		INT;
+    DECLARE v_item_name 			VARCHAR(255);
+    DECLARE v_item_type 			VARCHAR(255);
+    DECLARE v_asset_type 			VARCHAR(255);
+    DECLARE v_availability_status 	VARCHAR(255); 
+    
     DECLARE v_inventory_json        JSON;
     DECLARE v_product_json			JSON;
     DECLARE v_row_metadata          JSON;
@@ -45,35 +51,39 @@ BEGIN
     main_block: BEGIN
 
     /* ============== VALIDATIONS ============== */
-
-    IF isFalsy(getJval(pjReqObj,'product_rec_id')) THEN
-        SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','product_rec_id is required');
-    END IF;
-
-    IF isFalsy(getJval(pjReqObj,'item_name')) THEN
-        SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','item_name is required');
-    END IF;
-
-    IF isFalsy(getJval(pjReqObj,'item_type')) THEN
-        SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','item_type is required');
-    END IF;
-
-    IF isFalsy(getJval(pjReqObj,'availability_status')) THEN
-        SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','availability_status is required');
-    END IF;
     
+    IF isFalsy(getJval(pjReqObj,'inventory_rec_id')) THEN
+
+		IF isFalsy(getJval(pjReqObj,'product_rec_id')) THEN
+			SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','product_rec_id is required');
+		END IF;
+
+		IF isFalsy(getJval(pjReqObj,'item_name')) THEN
+			SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','item_name is required');
+		END IF;
+
+		IF isFalsy(getJval(pjReqObj,'item_type')) THEN
+			SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','item_type is required');
+		END IF;
+
+		IF isFalsy(getJval(pjReqObj,'availability_status')) THEN
+			SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','availability_status is required');
+		END IF;
+    
+    ELSE
 	 /* ============== UPDATE must target existing record ============== */
      
-    IF getJval(pjReqObj,'inventory_rec_id') IS NOT NULL
-			   AND NOT EXISTS (
-								SELECT 1
-								FROM inventory
-								WHERE inventory_rec_id = getJval(pjReqObj,'inventory_rec_id')
-							  ) THEN
-			   SET v_errors = JSON_ARRAY_APPEND(
-				   v_errors,'$','Invalid inventory_rec_id: record does not exist'
-			);
-    END IF;
+		IF getJval(pjReqObj,'inventory_rec_id') IS NOT NULL
+												AND NOT EXISTS (
+																SELECT 1
+																FROM inventory
+																WHERE inventory_rec_id = getJval(pjReqObj,'inventory_rec_id')
+															  ) THEN
+											   SET v_errors = JSON_ARRAY_APPEND(
+												   v_errors,'$','Invalid inventory_rec_id: record does not exist'
+											);
+									END IF;
+	END IF;
     
     IF JSON_LENGTH(v_errors) > 0 THEN
         SET psResObj = JSON_OBJECT(
@@ -86,10 +96,15 @@ BEGIN
 
     /* ============= JSON PREPARATION =========== */
 
-    SET v_inventory_json = getTemplate('inventory');
-    SET v_inventory_json = fillTemplate(pjReqObj, v_inventory_json);
+    SET v_inventory_json 	= getTemplate('inventory');
+    
+    SET v_row_metadata   	= getTemplate('row_metadata');
+    
+    -- fill template from reqJson
+    
+    SET v_inventory_json 	= fillTemplate(pjReqObj, v_inventory_json);
 
-    SET v_row_metadata = getTemplate('row_metadata');
+    
 
     /* =============== TRANSACTION ============= */
        
@@ -104,7 +119,6 @@ BEGIN
                                         '$.created_at', DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i:%s')
                                       );
 	
-     
         INSERT INTO inventory
         SET product_rec_id       = getJval(pjReqObj,'product_rec_id'),
             item_name            = getJval(pjReqObj,'item_name'),
@@ -124,21 +138,22 @@ BEGIN
         FROM    products
         WHERE   product_rec_id = getJval(pjReqObj, 'product_rec_id');
         
-		SET v_inventory_json = mergeIfMissing( v_inventory_json,
-												JSON_ARRAY(
-															'product_quality',
-															'approximate_weight',
-															'weight_unit',
-															'dimensions',
-															'is_physical',
-															'is_SliceAble'
-															),
-												v_product_json
-											);
+        -- Copy missing keys from product
+		SET v_inventory_json 	= mergeIfMissing( v_inventory_json,
+													JSON_ARRAY(
+																'product_quality',
+																'approximate_weight',
+																'weight_unit',
+																'dimensions',
+																'is_physical',
+																'is_SliceAble'
+																),
+													v_product_json
+												);
 
-        UPDATE inventory
-        SET inventory_json = v_inventory_json
-        WHERE inventory_rec_id = v_inventory_rec_id;
+        UPDATE  inventory
+        SET 	inventory_json = v_inventory_json
+        WHERE  inventory_rec_id = v_inventory_rec_id;
 
     
     /* =============== UPDATE EXISITING ROW ============= */
@@ -146,8 +161,8 @@ BEGIN
     ELSE
         SET v_inventory_rec_id = getJval(pjReqObj,'inventory_rec_id');
 
-        SELECT  row_metadata, inventory_json
-        INTO 	v_row_metadata, v_inventory_json
+        SELECT  product_rec_id, 	item_name,		item_type,		asset_type,		availability_status,	 row_metadata,	 inventory_json
+        INTO 	v_product_rec_id,	v_item_name,	v_item_type,	v_asset_type,	v_availability_status,	 v_row_metadata,  v_inventory_json
         FROM 	inventory
         WHERE 	inventory_rec_id = v_inventory_rec_id
         FOR UPDATE;
@@ -160,11 +175,11 @@ BEGIN
         SET v_inventory_json = fillTemplate(pjReqObj, v_inventory_json);
 
         UPDATE inventory
-        SET product_rec_id       = getJval(pjReqObj,'product_rec_id'),
-            item_name            = getJval(pjReqObj,'item_name'),
-            item_type            = getJval(pjReqObj,'item_type'),
-            asset_type           = getJval(pjReqObj,'asset_type'),
-            availability_status  = getJval(pjReqObj,'availability_status'),
+        SET product_rec_id       = COALESCE(getJval(pjReqObj,'product_rec_id'),			v_product_rec_id),
+            item_name            = COALESCE(getJval(pjReqObj,'item_name'), 				v_item_name),
+            item_type            = COALESCE(getJval(pjReqObj,'item_type'), 				v_item_type),
+            asset_type           = COALESCE(getJval(pjReqObj,'asset_type'), 			v_asset_type),
+            availability_status  = COALESCE(getJval(pjReqObj,'availability_status'), 	v_availability_status),
             inventory_json       = v_inventory_json,
             row_metadata         = v_row_metadata
         WHERE inventory_rec_id = v_inventory_rec_id;
@@ -181,7 +196,10 @@ BEGIN
     SET psResObj = JSON_OBJECT(
                                 'status',      'success',
                                 'status_code', '0',
-                                'message',     'Inventory saved successfully'
+                                'message',     IF(isFalsy(getJval(pjReqObj,'inventory_rec_id')),
+												   'Inventory saved successfully',
+												   'Inventory updated successfully'
+													)
                               );
 
     END main_block;
