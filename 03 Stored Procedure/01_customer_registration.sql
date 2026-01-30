@@ -330,6 +330,7 @@ BEGIN
 				row_metadata    			= v_row_metadata
 				WHERE customer_rec_id		= v_customer_rec_id;
 				
+                
 			/* =============== get existed AuthJson ============= */
                 
             SET v_auth_json			= getAuth(v_customer_rec_id);
@@ -340,7 +341,7 @@ BEGIN
 														'$.login_credentials.username',				getJval(v_customer_json, 'email')                                               
 													);
 												   
-			
+			/* ---------- Update password if provided  ---------- */
             IF NOT isFalsy(getJval(pjReqObj,'password')) THEN
             
 					SET v_password_plain  		= getJval(pjReqObj,'password');
