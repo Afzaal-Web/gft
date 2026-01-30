@@ -79,10 +79,9 @@ BEGIN
 																FROM inventory
 																WHERE inventory_rec_id = getJval(pjReqObj,'inventory_rec_id')
 															  ) THEN
-											   SET v_errors = JSON_ARRAY_APPEND(
-												   v_errors,'$','Invalid inventory_rec_id: record does not exist'
-											);
-									END IF;
+                                                              
+			   SET v_errors = JSON_ARRAY_APPEND( v_errors,'$','Invalid inventory_rec_id: record does not exist');
+		END IF;
 	END IF;
     
     IF JSON_LENGTH(v_errors) > 0 THEN
@@ -153,7 +152,7 @@ BEGIN
 
         UPDATE  inventory
         SET 	inventory_json = v_inventory_json
-        WHERE  inventory_rec_id = v_inventory_rec_id;
+        WHERE  inventory_rec_id = v_inventory_rec_id; 
 
     
     /* =============== UPDATE EXISITING ROW ============= */

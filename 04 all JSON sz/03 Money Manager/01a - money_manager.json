@@ -6,10 +6,12 @@
     "request_type"          : "Deposit",                    "_comment_request_type"          : "Type of money manager request",  
     "transaction_type"      : "Bank Transfer",              "_comment_transaction_type"      : "Type of transaction",
 
-    "transaction_change_log": {
+    "transaction_change_log": [
+        {
         "transaction_posted_at" : "2026-01-16 06:00:00",        "_comment_transaction_posted_at" : "Timestamp when transaction was posted", 
         "back_office_post_num"  : "GFT-2026-0001",              "_comment_back_office_post_num"  : "Back office posting number"
-},
+}
+    ],
     "company_log": {
         "processed_by"          : "Zain Ahmed",                 "_comment_processed_by"          : "Name of the processor",
         "reviewed_by"           : "Sara Khan",                  "_comment_reviewed_by"           : "Name of the reviewer",

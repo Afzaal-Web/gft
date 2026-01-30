@@ -2,7 +2,7 @@
 -- FUNCTION Name:  getTemplate()
 -- Purpose: template of the JSON for the table column with data type json
 -- parameter values: 'corporate_account', 'customer', 'auth', 'customer_wallets', 'tradable_assets', 'asset_rate_history', 
--- 					  'wallet_ledger', ,'products', 'inventory' 'row_metadata',
+-- 					  'wallet_ledger', ,'products', 'inventory', 'password_history', 'row_metadata',
 --
 --
 --
@@ -266,18 +266,6 @@ BEGIN
 						"last_login_method"        				  : null,
 						"session_expires_at"       				  : null
 					},
-
-					"password_history": [
-						{
-							"is_active"                			  : null,
-							"password"                 			  : null,
-							"password_set_at"          			  : null,
-							"password_changed_by"     			  : null,
-							"password_change_reason"  			  : null,
-							"last_password_updated_at"			  : null,
-							"password_expiration_date"			  : null
-						}
-					],
 
 					"login_credentials":  {
 						"pin"                         			  : null,
@@ -614,6 +602,22 @@ BEGIN
 							]
 						}' AS JSON);
 
+-- =======================================================================
+-- row_metadta for all tables
+-- =======================================================================
+		WHEN 'password_history' THEN
+			RETURN CAST(
+				'{
+					"password": null,
+					"is_active": null,
+					"password_set_at": null,
+					"password_changed_by": null,
+					"password_change_reason": null,
+					"last_password_updated_at": null,
+					"password_expiration_date": null
+
+				}' AS JSON);
+	
 -- =======================================================================
 -- row_metadta for all tables
 -- =======================================================================

@@ -327,36 +327,6 @@ BEGIN
 					"session_expires_at"        : "DATE_ADD(NOW(3), INTERVAL 1 HOUR)",        "_comment_session_expires_at"          : "Expiration timestamp for current session"
 				},
 
-				"password_history" : [
-				{
-					"is_active"                 : false,                                      "_comment_is_active"                   : "Whether this password is currently active",
-					"password"                  : "StrongP@ssword1",                          "_comment_password"                    : "User\'s login password (hashed in database)",
-					"password_set_at"           : "2026-08-01 09:00",                         "_comment_password_set_at"             : "When password was initially set",
-					"password_changed_by"       : "SYSTEM",                                   "_comment_password_changed_by"         : "User ID who changed the password",
-					"password_change_reason"    : "Initial setup",                            "_comment_password_change_reason"      : "Reason for changing password",
-					"last_password_updated_at"  : "2026-08-01 09:00",                         "_comment_last_password_updated_at"    : "Timestamp of last password update",
-					"password_expiration_date"  : "2026-10-30 09:00",                         "_comment_password_expiration_date"    : "When password expires"
-				},
-				{
-					"is_active"                 : false,                                      "_comment_is_active"                   : "Whether this password is currently active",
-					"password"                  : "StrongP@ssword1",                          "_comment_password"                    : "User\'s login password (hashed in database)",
-					"password_set_at"           : "2026-10-15 14:22",                         "_comment_password_set_at"             : "When password was initially set",
-					"password_changed_by"       : "AZS_001",                                  "_comment_password_changed_by"         : "User ID who changed the password",
-					"password_change_reason"    : "Security rotation",                        "_comment_password_change_reason"      : "Reason for changing password",
-					"last_password_updated_at"  : "2026-10-15 14:22",                         "_comment_last_password_updated_at"    : "Timestamp of last password update",
-					"password_expiration_date"  : "2027-01-13 14:22",                         "_comment_password_expiration_date"    : "When password expires"
-				},
-				{
-					"is_active"                 : true,                                       "_comment_is_active"                   : "Whether this password is currently active",
-					"password"                  : "StrongP@ssword1",                          "_comment_password"                    : "User\'s login password (hashed in database)",
-					"password_set_at"           : "2026-12-01 08:10",                         "_comment_password_set_at"             : "When password was initially set",
-					"password_changed_by"       : "AZS_001",                                  "_comment_password_changed_by"         : "User ID who changed the password",
-					"password_change_reason"    : "User requested reset",                     "_comment_password_change_reason"      : "Reason for changing password",
-					"last_password_updated_at"  : "2026-12-01 08:10",                         "_comment_last_password_updated_at"    : "Timestamp of last password update",
-					"password_expiration_date"  : "2027-03-01 08:10",                         "_comment_password_expiration_date"    : "When password expires"
-				}
-				],
-
 				"login_credentials" : {
 				"pin"                       	: "1234",                                     "_comment_pin"                         : "Optional PIN for login",
 				"password"                  	: "StrongP@ssword1",                          "_comment_password"                    : "User\'s login password (hashed in database)",

@@ -217,9 +217,49 @@ CREATE TABLE seq_num (
 ) ENGINE=InnoDB;
 
 CREATE TABLE seq_num (
-    seq_rec_id        INT AUTO_INCREMENT PRIMARY KEY,
-    column_name       VARCHAR(255) NOT NULL,
-    sequence_value    VARCHAR(255) NOT NULL,
-    requested_by	  VARCHAR(255) NOT NULL,
-    created_at        DATETIME DEFAULT CURRENT_TIMESTAMP
+    seq_rec_id        INT 					AUTO_INCREMENT PRIMARY KEY,
+    column_name       VARCHAR(255) 			NOT NULL,
+    sequence_value    VARCHAR(255) 			NOT NULL,
+    requested_by	  VARCHAR(255) 			NOT NULL,
+    created_at        DATETIME 				DEFAULT CURRENT_TIMESTAMP
 );
+
+-- ===============================================
+-- password-history table started
+-- ===============================================
+
+DROP TABLE IF EXISTS password_history;
+
+CREATE TABLE password_history (
+    password_history_rec_id     	INT 				AUTO_INCREMENT PRIMARY KEY,
+    parent_table_name				VARCHAR(255),
+    parent_table_rec_id             INT,
+    password_hash                	VARCHAR(255),		
+    password_set_at            		DATETIME			DEFAULT CURRENT_TIMESTAMP,
+    password_changed_by         	VARCHAR(50),
+    password_change_reason      	VARCHAR(255),
+    last_password_updated_at    	DATETIME			DEFAULT CURRENT_TIMESTAMP		ON UPDATE CURRENT_TIMESTAMP,
+    password_expiration_date    	DATETIME,
+    is_active                   	BOOLEAN
+);
+
+
+INSERT INTO password_history
+SET
+    password_history_rec_id   	= 0,
+    parent_table_name         	= 'customer',
+    parent_table_rec_id         = 0,
+    password_hash       		= 'K9QpZzZxXxYyAaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRr',
+    password_set_at				=  NOW(),
+	password_changed_by   		= 'SYSTEM',
+    password_change_reason      = 'Initial password setup',
+    password_expiration_date    = DATE_ADD(NOW(), INTERVAL 90 DAY),
+    is_active				  	= TRUE;
+
+ 
+-- ===============================================
+-- Restore default strict mode
+-- ===============================================
+SET SESSION sql_mode='STRICT_TRANS_TABLES';
+
+
