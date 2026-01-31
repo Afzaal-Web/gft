@@ -170,11 +170,12 @@ SET @pjReqObj = JSON_OBJECT(
 -- for update
 
 SET @pjReqObj = JSON_OBJECT(
-    'product_rec_id', 1,
-    'asset_code', 'GLD-001',
-    'product_code', 'P-GOLD-50G',
-    'product_type', 'GOLD',
-    'product_name', '24K Gold Bar 50g'
+	'product_rec_id', 3,
+    'tradable_assets_rec_id', 3,
+    'asset_code', 'PLAT-001',
+    'product_code', 'P-PLAT-20G',
+    'product_type', 'PLATINUM',
+    'product_name', 'Platinum Bar 20g'
 );
 
 CALL upsertProduct(@pjReqObj, @psResObj);
