@@ -405,3 +405,13 @@ DELIMITER ;
 
 
 
+ALTER TABLE password_history
+ADD INDEX idx_password_history_parent (parent_table_name, parent_table_rec_id, is_active);
+
+ALTER TABLE auth
+ADD UNIQUE INDEX uk_auth_parent (parent_table_name, parent_table_rec_id);
+
+SELECT @@SQL_SAFE_UPDATES;
+
+
+

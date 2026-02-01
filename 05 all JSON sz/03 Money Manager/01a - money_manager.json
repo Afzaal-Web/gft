@@ -10,15 +10,13 @@
         {
         "transaction_posted_at" : "2026-01-16 06:00:00",        "_comment_transaction_posted_at" : "Timestamp when transaction was posted", 
         "back_office_post_num"  : "GFT-2026-0001",              "_comment_back_office_post_num"  : "Back office posting number"
-}
+        }
     ],
     "company_log": {
         "processed_by"          : "Zain Ahmed",                 "_comment_processed_by"          : "Name of the processor",
         "reviewed_by"           : "Sara Khan",                  "_comment_reviewed_by"           : "Name of the reviewer",
         "approved_by"           : "Kamran Iqbal",               "_comment_approved_by"           : "Name of the approver"
 },
-
-
     "sender_info" : {
         "initiated_by"          : "Ali Raza",               "_comment_initiated_by"          : "Company employee who initiated the transaction",   
         "institution_name"       : "Bank Al Habib",         "_comment_institution_name"        : "Name of sending institution",

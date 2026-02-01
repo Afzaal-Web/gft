@@ -1,19 +1,20 @@
 -- ==================================================================================================
--- Procedure: 					createInventory
+-- Procedure: 					upsertInventory
 -- Purpose:   					get inventory data and insert into inventory table
 -- Functions used in this SP:
 								-- isFalsy(): validate the values come from reqObj
 								-- getJval(): get value from req object
 								-- getTemplate(): template of JSON column used in tables
 								-- fillTemplate(): used to insert values from reqObj in template json
-                                -- mergeIfMissing(): merge missing keys in inventory from products 
+                                -- getInventory(): gets the existed json of the inventory table row
+                                -- getProduct();  gets the existed json of the prodcuts table row
 -- ===================================================================================================
 
-DROP PROCEDURE IF EXISTS createInventory;
+DROP PROCEDURE IF EXISTS upsertInventory;
 
 DELIMITER $$
 
-CREATE PROCEDURE createInventory(
+CREATE PROCEDURE upsertInventory(
 								IN  pjReqObj JSON,
 								OUT psResObj JSON
 							  )
@@ -21,15 +22,11 @@ BEGIN
     /* ================ VARIABLE DECLARATIONS ================ */
     
 	DECLARE v_inventory_rec_id      INT;
-    DECLARE v_product_rec_id 		INT;
-    DECLARE v_item_name 			VARCHAR(255);
-    DECLARE v_item_type 			VARCHAR(255);
-    DECLARE v_asset_type 			VARCHAR(255);
-    DECLARE v_availability_status 	VARCHAR(255); 
+    DECLARE v_mode 					VARCHAR(20);
     
     DECLARE v_inventory_json        JSON;
-    DECLARE v_product_json			JSON;
     DECLARE v_row_metadata          JSON;
+	DECLARE v_product_json			JSON;
 
     DECLARE v_errors                JSON DEFAULT JSON_ARRAY();
     DECLARE v_err_msg               VARCHAR(1000);
@@ -39,7 +36,6 @@ BEGIN
     -- EXIT HANDLER for any SQL exception
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
-        ROLLBACK;
         GET STACKED DIAGNOSTICS CONDITION 1 v_err_msg = MESSAGE_TEXT;
         SET psResObj = JSON_OBJECT(
                                 'status', 'error',
@@ -49,10 +45,20 @@ BEGIN
     END;
 
     main_block: BEGIN
-
-    /* ============== VALIDATIONS ============== */
     
-    IF isFalsy(getJval(pjReqObj,'inventory_rec_id')) THEN
+    SET v_mode =
+                CASE
+                    WHEN isFalsy(getJval(pjReqObj,'inventory_rec_id')) THEN
+                    'INSERT'
+                    ELSE
+                    'UPDATE'
+				END;
+                    
+	CASE v_mode
+    
+    WHEN 'INSERT' THEN
+
+    /* =============== INVENTORTY Insert VALIDATIONS : If required fields are missing in reqObj ================ */
 
 		IF isFalsy(getJval(pjReqObj,'product_rec_id')) THEN
 			SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','product_rec_id is required');
@@ -69,20 +75,96 @@ BEGIN
 		IF isFalsy(getJval(pjReqObj,'availability_status')) THEN
 			SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','availability_status is required');
 		END IF;
+
+		IF JSON_LENGTH(v_errors) > 0 THEN
+			SET psResObj = JSON_OBJECT(
+									   'status',      'error',
+									   'status_code', '1',
+									   'errors',      v_errors
+									);
+        LEAVE main_block;
+        END IF;
+
+        /* =============== CREATE INVENTORY: Inventory Insertation started ================ */
+
+        /* ============= JSON PREPARATION =========== */
+
+        SET v_inventory_json 	= getTemplate('inventory');
+
+            -- fill template from reqJson
     
-    ELSE
-	 /* ============== UPDATE must target existing record ============== */
+        SET v_inventory_json 	= fillTemplate(pjReqObj, v_inventory_json);
+        
+        SET v_row_metadata   	= getTemplate('row_metadata');
+
+        SET v_row_metadata      = JSON_SET(v_row_metadata,
+                                            '$.created_by', 'SYSTEM',
+											'$.created_at', DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i:%s')
+                                         );
+
+        INSERT INTO inventory
+        SET product_rec_id       = getJval(pjReqObj,'product_rec_id'),
+            item_name            = getJval(pjReqObj,'item_name'),
+            item_type            = getJval(pjReqObj,'item_type'),
+            asset_type           = getJval(pjReqObj,'asset_type'),
+            availability_status  = getJval(pjReqObj,'availability_status'),
+            inventory_json       = v_inventory_json,
+            row_metadata         = v_row_metadata;
+
+        SET v_inventory_rec_id   = LAST_INSERT_ID();
+
+        -- Sync REC ID back into Inventory JSON
+        SET v_inventory_json = JSON_SET(v_inventory_json,'$.inventory_rec_id', v_inventory_rec_id);
+
+        -- get json of existed product from product table
+        
+         SET v_product_json     = getProduct(getJval(pjReqObj,'product_rec_id'));
+
+		-- fill the inventory json from product json
+		SET v_inventory_json 	= mergeIfMissing( v_inventory_json,
+													JSON_ARRAY(
+																'product_quality',
+																'approximate_weight',
+																'weight_unit',
+																'is_physical',
+																'is_SliceAble',
+																'standard_price',
+																'standard_premium',
+																'price_currency',
+																'applicable_taxes',
+																'quantity_on_hand',
+																'minimum_order_quantity',
+																'total_sold',
+																'offer_to_customer',
+																'display_order',
+																'Alert_on_low_stock',
+																'transaction_fee'
+																),
+													v_product_json
+												);
+
+        UPDATE  inventory
+        SET 	inventory_json = v_inventory_json
+        WHERE  inventory_rec_id = v_inventory_rec_id; 
+
+
+    /* =============== UPDATE Inventory: Product UPDATION started ================ */
+
+    WHEN 'UPDATE' THEN
+        
+        /* =============== Inventory Insert VALIDATIONS: UPDATE must target existing record ================ */
+        SET v_inventory_rec_id = getJval(pjReqObj,'inventory_rec_id');
      
-		IF getJval(pjReqObj,'inventory_rec_id') IS NOT NULL
-												AND NOT EXISTS (
-																SELECT 1
-																FROM inventory
-																WHERE inventory_rec_id = getJval(pjReqObj,'inventory_rec_id')
-															  ) THEN
+		IF v_inventory_rec_id IS NOT NULL
+		AND NOT EXISTS (
+                          SELECT 1
+                          FROM   inventory
+                          WHERE  inventory_rec_id = getJval(pjReqObj,'inventory_rec_id')
+                        ) THEN
                                                               
 			   SET v_errors = JSON_ARRAY_APPEND( v_errors,'$','Invalid inventory_rec_id: record does not exist');
 		END IF;
-	END IF;
+
     
     IF JSON_LENGTH(v_errors) > 0 THEN
         SET psResObj = JSON_OBJECT(
@@ -93,104 +175,37 @@ BEGIN
         LEAVE main_block;
     END IF;
 
-    /* ============= JSON PREPARATION =========== */
+             /* =============== Update started: update the existed row ================ */   
 
-    SET v_inventory_json 	= getTemplate('inventory');
-    
-    SET v_row_metadata   	= getTemplate('row_metadata');
-    
-    -- fill template from reqJson
-    
-    SET v_inventory_json 	= fillTemplate(pjReqObj, v_inventory_json);
+        SET v_inventory_json = getInventory(v_inventory_rec_id);
 
-    
+        SET v_inventory_json = fillTemplate(pjReqObj,v_inventory_json);
 
-    /* =============== TRANSACTION ============= */
-       
-	START TRANSACTION;
-
-    /* =============== INSERT NEW ROW IF REC ID NOT EXISTS ============= */
-    
-    IF isFalsy(getJval(pjReqObj,'inventory_rec_id')) THEN
-
-        SET v_row_metadata = JSON_SET(v_row_metadata,
-                                        '$.created_by', 'SYSTEM',
-                                        '$.created_at', DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i:%s')
-                                      );
-	
-        INSERT INTO inventory
-        SET product_rec_id       = getJval(pjReqObj,'product_rec_id'),
-            item_name            = getJval(pjReqObj,'item_name'),
-            item_type            = getJval(pjReqObj,'item_type'),
-            asset_type           = getJval(pjReqObj,'asset_type'),
-            availability_status  = getJval(pjReqObj,'availability_status'),
-            inventory_json       = v_inventory_json,
-            row_metadata         = v_row_metadata;
-
-        SET v_inventory_rec_id = LAST_INSERT_ID();
-
-        -- Sync ID back into JSON
-        SET v_inventory_json = JSON_SET(v_inventory_json,'$.inventory_rec_id', v_inventory_rec_id);
-        
-        SELECT  products_json
-        INTO    v_product_json
-        FROM    products
-        WHERE   product_rec_id = getJval(pjReqObj, 'product_rec_id');
-        
-        -- Copy missing keys from product
-		SET v_inventory_json 	= mergeIfMissing( v_inventory_json,
-													JSON_ARRAY(
-																'product_quality',
-																'approximate_weight',
-																'weight_unit',
-																'dimensions',
-																'is_physical',
-																'is_SliceAble'
-																),
-													v_product_json
-												);
-
-        UPDATE  inventory
-        SET 	inventory_json = v_inventory_json
-        WHERE  inventory_rec_id = v_inventory_rec_id; 
-
-    
-    /* =============== UPDATE EXISITING ROW ============= */
-    
-    ELSE
-        SET v_inventory_rec_id = getJval(pjReqObj,'inventory_rec_id');
-
-        SELECT  product_rec_id, 	item_name,		item_type,		asset_type,		availability_status,	 row_metadata,	 inventory_json
-        INTO 	v_product_rec_id,	v_item_name,	v_item_type,	v_asset_type,	v_availability_status,	 v_row_metadata,  v_inventory_json
+        SELECT  row_metadata
+        INTO 	v_row_metadata
         FROM 	inventory
-        WHERE 	inventory_rec_id = v_inventory_rec_id
-        FOR UPDATE;
+        WHERE 	inventory_rec_id = v_inventory_rec_id;
 
         SET v_row_metadata = JSON_SET( v_row_metadata,
 										'$.updated_by', 'SYSTEM',
 										'$.updated_at', DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i:%s')
                                   );
 
-        SET v_inventory_json = fillTemplate(pjReqObj, v_inventory_json);
-
         UPDATE inventory
-        SET product_rec_id       = COALESCE(getJval(pjReqObj,'product_rec_id'),			v_product_rec_id),
-            item_name            = COALESCE(getJval(pjReqObj,'item_name'), 				v_item_name),
-            item_type            = COALESCE(getJval(pjReqObj,'item_type'), 				v_item_type),
-            asset_type           = COALESCE(getJval(pjReqObj,'asset_type'), 			v_asset_type),
-            availability_status  = COALESCE(getJval(pjReqObj,'availability_status'), 	v_availability_status),
+        SET product_rec_id       = getJval(v_inventory_json,'product_rec_id'),	
+            item_name            = getJval(v_inventory_json,'item_name'), 		
+            item_type            = getJval(v_inventory_json,'item_type'), 		
+            asset_type           = getJval(v_inventory_json,'asset_type'), 		
+            availability_status  = getJval(v_inventory_json,'availability_status'),
             inventory_json       = v_inventory_json,
             row_metadata         = v_row_metadata
-        WHERE inventory_rec_id = v_inventory_rec_id;
+        WHERE inventory_rec_id   = v_inventory_rec_id;
 
         IF ROW_COUNT() = 0 THEN
             SIGNAL SQLSTATE '45000'
             SET MESSAGE_TEXT = 'Update failed: no rows affected';
         END IF;
-
-    END IF;
-
-    COMMIT;
+	END CASE;
 
     SET psResObj = JSON_OBJECT(
                                 'status',      'success',

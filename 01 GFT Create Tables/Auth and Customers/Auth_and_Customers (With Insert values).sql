@@ -256,7 +256,20 @@ SET
     password_expiration_date    = DATE_ADD(NOW(), INTERVAL 90 DAY),
     is_active				  	= TRUE;
 
- 
+ -- ===============================================
+-- password-history table started
+-- ===============================================
+
+DROP TABLE IF EXISTS update_logs;
+
+CREATE TABLE update_logs (
+    log_id				INT AUTO_INCREMENT PRIMARY KEY,
+    table_name 			VARCHAR(100),
+    row_rec_id 			INT,
+    prev_row_json 		JSON,
+    next_row_json 		JSON,
+    updated_at 			DATETIME
+);
 -- ===============================================
 -- Restore default strict mode
 -- ===============================================
