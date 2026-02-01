@@ -263,12 +263,13 @@ SET
 DROP TABLE IF EXISTS update_logs;
 
 CREATE TABLE update_logs (
-	update_logs_rec_id     			INT 				AUTO_INCREMENT PRIMARY KEY,
-    table_name						VARCHAR(255),
-    row_rec_id						INT,
-    prev_row_json            		JSON,
-    nex_row_json                	JSON
-    );
+    log_id				INT AUTO_INCREMENT PRIMARY KEY,
+    table_name 			VARCHAR(100),
+    row_rec_id 			INT,
+    prev_row_json 		JSON,
+    next_row_json 		JSON,
+    updated_at 			DATETIME
+);
 -- ===============================================
 -- Restore default strict mode
 -- ===============================================
