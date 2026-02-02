@@ -2,7 +2,7 @@
 -- FUNCTION Name:  getTemplate()
 -- Purpose: template of the JSON for the table column with data type json
 -- parameter values: 'corporate_account', 'customer', 'auth', 'customer_wallets', 'tradable_assets', 'asset_rate_history', 
--- 					  'wallet_ledger', ,'products', 'inventory', 'password_history', 'row_metadata',
+-- 					  'wallet_ledger', ,'products', 'inventory', 'money_manager', 'credit_card', 'row_metadata',
 --
 --
 --
@@ -603,21 +603,99 @@ BEGIN
 						}' AS JSON);
 
 -- =======================================================================
--- row_metadta for all tables
+-- money_manager.money_manager_json
 -- =======================================================================
-		WHEN 'password_history' THEN
+		WHEN 'money_manager' THEN
 			RETURN CAST(
-				'{
-					"password": null,
-					"is_active": null,
-					"password_set_at": null,
-					"password_changed_by": null,
-					"password_change_reason": null,
-					"last_password_updated_at": null,
-					"password_expiration_date": null
+						'{
+							"money_manager_rec_id"      : null,
+							"customer_rec_id"           : null,
+							"account_number"            : null,
+							"request_type"              : null,
+							"transaction_type"          : null,
 
-				}' AS JSON);
-	
+							"transaction_change_log"    : [
+								{
+									"transaction_posted_at" : null,
+									"back_office_post_num"  : null
+								}
+							],
+
+							"company_log" : {
+								"processed_by"          : null,
+								"reviewed_by"           : null,
+								"approved_by"           : null
+							},
+
+							"sender_info" : {
+								"initiated_by"          : null,
+								"institution_name"      : null,
+								"account_holder_name"   : null,
+								"account_number"        : null,
+								"amount_sent"           : null,
+								"transaction_id"        : null,
+								"receipt_number"        : null,
+								"receipt_picture_rec_id": null,
+								"trans_at"              : null
+							},
+
+							"receiver_info" : {
+								"institution_name"      : null,
+								"account_holder_name"   : null,
+								"account_number"        : null,
+								"amount_received"       : null,
+								"received_at"           : null,
+								"processing_fee"        : null
+							}
+						}' AS JSON);
+
+-- =======================================================================
+-- credit_card.credit_card_json
+-- =======================================================================
+		WHEN 'credit_card' THEN
+			RETURN CAST(
+						'{
+							"credit_card_rec_id"       : null,
+							"money_manager_rec_id"     : null,
+
+							"account_number"           : null,
+							"trans_posted_at"          : null,
+							"backoffice_post_number"   : null,
+							"processor_name"           : null,
+							"processor_token"          : null,
+							"card_last_4"              : null,
+
+							"card_info" : {
+								"card_type"            : null,
+								"card_number"          : null,
+								"card_holder_name"     : null,
+								"card_expiration_date" : null,
+								"cvv2"                 : null
+							},
+
+							"billing_address" : {
+								"billing_country"      : null,
+								"billing_address1"     : null,
+								"billing_address2"     : null,
+								"billing_city"         : null,
+								"billing_state"        : null,
+								"billing_zip_code"     : null
+							},
+
+							"bank_approval" : {
+								"approval_number"      : null,
+								"approval_at"          : null,
+								"settlement_amount"    : null,
+								"settlement_date"      : null
+							},
+
+							"company_log" : {
+								"processed_by"         : null,
+								"reviewed_by"          : null,
+								"approved_by"          : null
+							}
+						}' AS JSON);
+		
 -- =======================================================================
 -- row_metadta for all tables
 -- =======================================================================
