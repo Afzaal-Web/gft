@@ -151,13 +151,15 @@ BEGIN
     /* ==============================
        UPDATE WALLET BALANCE
     ============================== */
+    IF v_new_balance <> v_wallet_balance THEN
     UPDATE customer
     SET customer_json = JSON_SET(customer_json,
 								  CONCAT('$.customer_wallets[', v_wallet_index, '].wallet_balance'), v_new_balance,
 								  CONCAT('$.customer_wallets[', v_wallet_index, '].balance_last_updated_at'), NOW()
 								)
     WHERE customer_rec_id = p_customer_rec_id;
-
+    END IF;
+    
     COMMIT;
 
 END $$

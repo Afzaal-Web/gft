@@ -260,9 +260,9 @@ SET
 -- password-history table started
 -- ===============================================
 
-DROP TABLE IF EXISTS update_logs;
+DROP TABLE IF EXISTS row_audit_logs;
 
-CREATE TABLE update_logs (
+CREATE TABLE row_audit_logs (
     log_id				INT AUTO_INCREMENT PRIMARY KEY,
     table_name 			VARCHAR(100),
     row_rec_id 			INT,

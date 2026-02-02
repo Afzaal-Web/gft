@@ -1,13 +1,13 @@
 -- ===================== Step 1: Prepare JSON request =====================
 SET @pjReqObj = JSON_OBJECT(
- 'first_name', 'john',
+ 'first_name', 'asad',
   'last_name', 'Khan',
-  'user_name', 'asad.khan@finapp.com',
-  'email', 'asad.khan@finapp.com',
-  'phone', '+971501234567',
-  'whatsapp_number', '+971501234567',
-  'national_id', '4546DFGRT',
-  'password', 'asad123'
+  'email', 'khan@gmail.com',
+  'phone', '321-12121',
+   "national_id", "4546DF565465GRT",
+   "whatsapp_number", "+971501234567",
+  
+  'password', 'ASAQW4545'
 );
 
 
