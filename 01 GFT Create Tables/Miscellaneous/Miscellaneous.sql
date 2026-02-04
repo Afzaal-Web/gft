@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS outbound_messages (
 
     out_msg_json                 		JSON,
     row_metadata                 		JSON
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 
 -- ===============================================
@@ -129,7 +129,7 @@ CREATE TABLE IF NOT EXISTS logs (
 
     logs_json               JSON,
     row_metadata            JSON
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 ALTER TABLE logs
 ADD CONSTRAINT fk_logs_customer
@@ -272,7 +272,7 @@ CREATE TABLE IF NOT EXISTS app_preferences (
 
     app_preferences_json    JSON,
     row_metadata            JSON
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 
 -- ===============================================
@@ -335,7 +335,7 @@ CREATE TABLE IF NOT EXISTS document_management (
 
     document_management_json     JSON,
     row_metadata                 JSON
-)ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
    
 ALTER TABLE document_management
@@ -435,7 +435,7 @@ CREATE TABLE IF NOT EXISTS organization_info (
 
     organizational_info_json     JSON,
     row_metadata                 JSON
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- ===============================================
 -- Demo row log_rec_id :  = 0
@@ -536,7 +536,7 @@ CREATE TABLE IF NOT EXISTS org_employees (
 
     employee_json                 JSON,
     row_metadata                  JSON
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- ===============================================
 -- Demo row log_rec_id :  = 0
@@ -602,7 +602,7 @@ CREATE TABLE IF NOT EXISTS promotions (
     
     promotions_json         JSON,
     row_metadata            JSON
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- ===============================================
 -- Demo row log_rec_id :  = 0
@@ -657,7 +657,7 @@ CREATE TABLE IF NOT EXISTS gft_ui_metadata (
 
     gft_ui_metadata_json     JSON,
     row_meta_data            JSON
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- ===============================================
 -- Demo row log_rec_id :  = 0
@@ -713,7 +713,7 @@ CREATE TABLE IF NOT EXISTS external_interfaces (
     
     external_interface_json     JSON,
     row_metadata                JSON
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- ===============================================
 -- Demo row log_rec_id :  = 0
@@ -797,7 +797,7 @@ CREATE TABLE IF NOT EXISTS company_bank (
     
     company_bank_json            JSON,
     row_metadata                 JSON
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- ===============================================
 -- Demo row log_rec_id :  = 0

@@ -1,14 +1,16 @@
 {
   "order_rec_id"              : 0,
+  "customer_rec_id"           : 101,                                           "_comment_customer_rec_id"            : "Unique customer record ID", 
+  "account_number"            : "CUS-001",                                     "_comment_account_number"             : "Customer account number",
   "order_number"              : "ORD-2026-0001",
   "receipt_number"            : "RCT-2026-0001",
   "order_date"                : "NOW()",
-  "order_status"              : "Pending",
+  "order_status"              : "Pending",                                    "_comment_order_status"               : "Order status: Pending, Completed, Cancelled, etc",
+  "order_type"                : "GTC",                                        "_comment_order_type"                 : "Order type: DO: DAY ORDER, IOC: Immediate or cancel, GTC = Good till cancelled. etc",
+  "transaction_type"          : "Buy",                                        "_comment_transaction_type"           : "Transaction type: Buy, Sell, redeem, exchange",     
 
-  // add comments for order type
-  "order_type"                : "GTC",
-  "transaction_type"          : "Buy",
 
+  
   "notes"                     : "Initial buy order placed by customer",
   "customer_ip_address"       : "192.168.1.25",
   "latitude"                  : 24.860735,

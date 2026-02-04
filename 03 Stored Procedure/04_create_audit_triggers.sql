@@ -16,13 +16,13 @@ BEGIN
 SELECT
 		CONCAT(
 				'DELIMITER $$
-
+				
 				CREATE TRIGGER after_update_', tbl_name, '
 				AFTER UPDATE ON ', tbl_name, '
 				FOR EACH ROW
 				BEGIN
                 
-					  INSERT INTO update_logs
+					  INSERT INTO row_audit_logs
                       SET table_name		= ''', tbl_name, ''',
 						  row_rec_id		= OLD.', pk_col, ',
                           prev_row_json		= OLD.', json_col, ',
@@ -42,7 +42,7 @@ SELECT
 				FOR EACH ROW
 				BEGIN
 					 
-					  INSERT INTO update_logs
+					  INSERT INTO row_audit_logs
                       SET table_name		= ''', tbl_name, ''',
 						  row_rec_id		= OLD.', pk_col, ',
                           prev_row_json		= OLD.', json_col, ',
@@ -372,6 +372,93 @@ BEGIN
 		
 END$$
 DELIMITER ;
+
+-- ======================== FOR MONEY MANAGER =============================
+
+CALL generate_audit_triggers_sql('money_manager', 'money_manager_rec_id', 'money_manager_json');
+
+# update_trigger_sql
+DELIMITER $$
+
+CREATE TRIGGER after_update_money_manager
+AFTER UPDATE ON money_manager
+FOR EACH ROW
+BEGIN
+
+	  INSERT INTO update_logs
+	  SET table_name		= 'money_manager',
+		  row_rec_id		= OLD.money_manager_rec_id,
+		  prev_row_json		= OLD.money_manager_json,
+		  next_row_json		= NEW.money_manager_json,
+		  updated_at		= NOW();
+		
+END$$
+				
+DELIMITER ;
+
+# delete_trigger_sql
+DELIMITER $$
+
+CREATE TRIGGER after_delete_money_manager
+AFTER DELETE ON money_manager
+FOR EACH ROW
+BEGIN
+	 
+	  INSERT INTO update_logs
+	  SET table_name		= 'money_manager',
+		  row_rec_id		= OLD.money_manager_rec_id,
+		  prev_row_json		= OLD.money_manager_json,
+		  next_row_json		= NULL,
+		  updated_at		= NOW();
+		
+END$$
+
+DELIMITER ;
+
+-- ======================== FOR CREDIT_CARD =============================
+
+CALL generate_audit_triggers_sql('credit_card', 'credit_card_rec_id', 'credit_card_json');
+
+# update_trigger_sql
+DELIMITER $$
+
+CREATE TRIGGER after_update_credit_card
+AFTER UPDATE ON credit_card
+FOR EACH ROW
+BEGIN
+
+	  INSERT INTO update_logs
+	  SET table_name		= 'credit_card',
+		  row_rec_id		= OLD.credit_card_rec_id,
+		  prev_row_json		= OLD.credit_card_json,
+		  next_row_json		= NEW.credit_card_json,
+		  updated_at		= NOW();
+		
+END$$
+
+DELIMITER ;
+
+# delete_trigger_sql
+DELIMITER $$
+
+CREATE TRIGGER after_delete_credit_card
+AFTER DELETE ON credit_card
+FOR EACH ROW
+BEGIN
+	 
+	  INSERT INTO update_logs
+	  SET table_name		= 'credit_card',
+		  row_rec_id		= OLD.credit_card_rec_id,
+		  prev_row_json		= OLD.credit_card_json,
+		  next_row_json		= NULL,
+		  updated_at		= NOW();
+		
+END$$
+
+DELIMITER ;
+
+
+
 
 
 

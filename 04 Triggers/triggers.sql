@@ -313,13 +313,93 @@ BEGIN
 END$$
 DELIMITER ;
 
+-- ======================== FOR Money Manager =============================
 
 
+# update_trigger_sql
+DELIMITER $$
+
+CREATE TRIGGER after_update_money_manager
+AFTER UPDATE ON money_manager
+FOR EACH ROW
+BEGIN
+
+	  INSERT INTO row_audit_logs
+	  SET table_name		= 'money_manager',
+		  row_rec_id		= OLD.money_manager_rec_id,
+		  prev_row_json		= OLD.money_manager_json,
+		  next_row_json		= NEW.money_manager_json,
+		  updated_at		= NOW();
+		
+END$$
+				
+DELIMITER ;
+
+# delete_trigger_sql
+DELIMITER $$
+
+CREATE TRIGGER after_delete_money_manager
+AFTER DELETE ON money_manager
+FOR EACH ROW
+BEGIN
+	 
+	  INSERT INTO row_audit_logs
+	  SET table_name		= 'money_manager',
+		  row_rec_id		= OLD.money_manager_rec_id,
+		  prev_row_json		= OLD.money_manager_json,
+		  next_row_json		= NULL,
+		  updated_at		= NOW();
+		
+END$$
+
+DELIMITER ;
+
+
+-- ======================== FOR CREDIT_CARD =============================
+# update_trigger_sql
+DELIMITER $$
+
+CREATE TRIGGER after_update_credit_card
+AFTER UPDATE ON credit_card
+FOR EACH ROW
+BEGIN
+
+	  INSERT INTO row_audit_logs
+	  SET table_name		= 'credit_card',
+		  row_rec_id		= OLD.credit_card_rec_id,
+		  prev_row_json		= OLD.credit_card_json,
+		  next_row_json		= NEW.credit_card_json,
+		  updated_at		= NOW();
+		
+END$$
+
+DELIMITER ;
+
+# delete_trigger_sql
+DELIMITER $$
+
+CREATE TRIGGER after_delete_credit_card
+AFTER DELETE ON credit_card
+FOR EACH ROW
+BEGIN
+	 
+	  INSERT INTO row_audit_logs
+	  SET table_name		= 'credit_card',
+		  row_rec_id		= OLD.credit_card_rec_id,
+		  prev_row_json		= OLD.credit_card_json,
+		  next_row_json		= NULL,
+		  updated_at		= NOW();
+		
+END$$
+
+DELIMITER 
 # CHECK TOTAL TRIGGERS IN DB
 
 SELECT TRIGGER_NAME, EVENT_MANIPULATION, EVENT_OBJECT_TABLE
 FROM information_schema.TRIGGERS
 WHERE TRIGGER_SCHEMA = DATABASE()
 ORDER BY EVENT_OBJECT_TABLE;
+
+
 
 

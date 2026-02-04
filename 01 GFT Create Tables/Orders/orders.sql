@@ -16,7 +16,7 @@ DROP TABLE IF EXISTS orders;
 CREATE TABLE IF NOT EXISTS orders (	
     order_rec_id					INT 																PRIMARY KEY AUTO_INCREMENT,
     customer_rec_id					INT,
-    customer_number					VARCHAR(50),
+    account_number					VARCHAR(50),
     order_number					VARCHAR(50)															UNIQUE,
     receipt_number 					VARCHAR(50)															UNIQUE,
     
@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS orders (
     
     order_json			 			JSON,
     row_metadata 					JSON
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- ===============================================
 -- Demo row: order_rec_id = 0

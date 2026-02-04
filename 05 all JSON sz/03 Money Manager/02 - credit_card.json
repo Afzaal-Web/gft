@@ -1,41 +1,67 @@
 {
     "credit_card_rec_id"       : 0,
     "money_manager_rec_id"     : 0,
-
+    "status"                   : "INITIATED",                  	"_comment_status"                   : "Current status of the transaction",                   
     "account_number"           : "CUS-001",                     "_comment_account_number"           : "Unique customer account identifier",
-    "trans_posted_at"          : "2026-01-16T06:00:00",         "_comment_trans_posted_at"          : "Transaction posting timestamp",
-    "backoffice_post_number"   : "BOP-2026-0005",               "_comment_backoffice_post_number"   : "Backoffice posting reference number",
     "processor_name"           : "Visa Processor",              "_comment_processor_name"           : "Name of the payment processor",
     "processor_token"          : "tok_1A2B3C4D5E6F",            "_comment_processor_token"          : "Token provided by the payment processor",
     "card_last_4"              : "1234",                        "_comment_card_last_4"              : "Last 4 digits of the card number",
+    "trans_posted_at"          : "2026-01-16T06:00:00",         "_comment_trans_posted_at"          : "Transaction posting timestamp",
+    "backoffice_post_number"   : "BOP-2026-0005",               "_comment_backoffice_post_number"   : "Backoffice posting reference number",
+    
 
     "card_info": {
         "card_type"             : "Visa",                       "_comment_card_type"                : "Type of card: Visa, Mastercard, etc.",
         "card_number"           : "**** **** **** 1234",        "_comment_card_number"              : "Masked card number",
         "card_holder_name"      : "Ali Raza",                   "_comment_card_holder_name"         : "Name on card",
         "card_expiration_date"  : "12/2028",                    "_comment_card_expiration_date"     : "Card expiry date",
-        "cvv2"                  : "932",                        "_comment_cvv2"                     : "Masked CVV2"
-    },
+        "cvv2"                  : "932",                        "_comment_cvv2"                     : "Masked CVV2",
 
-    "billing_address": {
-        "billing_country"       : "Pakistan",              "_comment_billing_country"      : "Country for billing",
-        "billing_address1"      : "Shahrah-e-Faisal",      "_comment_billing_address1"     : "Primary billing address line",
-        "billing_address2"      : "Business Plaza",        "_comment_billing_address2"     : "Secondary billing address line",
-        "billing_city"          : "Karachi",               "_comment_billing_city"         : "Billing city",
-        "billing_state"         : "Sindh",                 "_comment_billing_state"        : "Billing state or province",
-        "billing_zip_code"      : "75400",                 "_comment_billing_zip_code"     : "Billing postal code"
+        "billing_address": {
+            "billing_country"       : "Pakistan",                   "_comment_billing_country"          : "Country for billing",
+            "billing_address1"      : "Shahrah-e-Faisal",           "_comment_billing_address1"         : "Primary billing address line",
+            "billing_address2"      : "Business Plaza",             "_comment_billing_address2"         : "Secondary billing address line",
+            "billing_city"          : "Karachi",                    "_comment_billing_city"             : "Billing city",
+            "billing_state"         : "Sindh",                      "_comment_billing_state"            : "Billing state or province",
+            "billing_zip_code"      : "75400",                      "_comment_billing_zip_code"         : "Billing postal code"
+        }
     },
 
     "bank_approval": {
-        "approval_number"       : "APR-00077",             "_comment_approval_number"      : "Bank approval reference",
-        "approval_at"           : "2026-01-16T06:00:00",   "_comment_approval_at"          : "Approval timestamp",
-        "settlement_amount"     : 45838.50,                "_comment_settlement_amount"    : "Settled amount",
-        "settlement_date"       : "2026-01-16T06:00:00",   "_comment_settlement_date"      : "Settlement date"
+        "approval_number"       : "APR-00077",                  "_comment_approval_number"          : "Bank approval reference",
+        "approval_at"           : "2026-01-16T06:00:00",        "_comment_approval_at"              : "Approval timestamp",
+        "settlement_amount"     : 45838.50,                     "_comment_settlement_amount"        : "Settled amount",
+        "settlement_date"       : "2026-01-16T06:00:00",        "_comment_settlement_date"          : "Settlement date"
     },
 
- "company_log": {
-        "processed_by"          : "Zain Ahmed",                 "_comment_processed_by"          : "Name of the processor",
-        "reviewed_by"           : "Sara Khan",                  "_comment_reviewed_by"           : "Name of the reviewer",
-        "approved_by"           : "Kamran Iqbal",               "_comment_approved_by"           : "Name of the approver"
-}
+    "life_cycle": [
+        {
+            "status":    "INITIATED",                      "_comment_status"                : "Initial status when transaction is created",
+            "user_name": "ali.raza@gmail.com",             "_comment_user_name"             : "login id of user who created the transaction",
+            "action_by": "Ali Raza",                       "_comment_action_by"             : "name of user who initiated the transaction: CUSTOMER",
+            "action_at": "2026-01-14 14:04:39",            "_comment_action_at"             : "Timestamp when the action was taken",
+            "Notes":      null,                            "_comment_Notes"                 : "Additional notes or comments"
+        },
+        {
+            "status":    "PROCESSED",                      "_comment_status"                : "Status when transaction is processed",
+            "user_name": "zain.ahmad@gmail.com",           "_comment_user_name"             : "login id of user who processed the transaction",
+            "action_by": "Zain Ahmed",                     "_comment_action_by"             : "name of user who processed the transaction: CUSTOMER",
+            "action_at": "2026-01-14 16:10:00",            "_comment_action_at"             : "Timestamp when the action was taken",
+            "Notes":     null,                             "_comment_Notes"                 : "Additional notes or comments"
+        },
+        {
+            "status":    "REVIEWED",                       "_comment_status"                : "Status when transaction is reviewed",
+            "user_name": "sara.khan@gmail.com",            "_comment_user_name"             : "login id of user who review the transaction",
+            "action_by": "Sara Khan",                      "_comment_action_by"             : "name of user who reviewed the transaction: MANAGER REVIEW",
+            "action_at": "2026-01-14 16:10:00",            "_comment_action_at"             : "Timestamp when the action was taken",
+            "Notes":     null,                             "_comment_Notes"                 : "Additional notes or comments"
+        },
+        {
+            "status":    "APPROVED / REJECTED",            "_comment_status"                : "Status when transaction is approved OR rejected: FINAL APPROVAL BY MANAGER",
+            "user_name": "sara.khan@gmail.com",            "_comment_user_name"             : "login id of user who approved or reject the transaction",
+            "action_by": "Kamran Iqbal",                   "_comment_action_by"             : "name of user who approved the transaction",
+            "action_at": "2026-01-14 16:10:00",            "_comment_action_at"             : "Timestamp when the action was taken",
+            "Notes":     "approved: all data correct",     "_comment_Notes"                 : "Additional notes or comments"
+        }
+    ]
 }
