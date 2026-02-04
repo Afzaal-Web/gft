@@ -13,9 +13,9 @@ DROP PROCEDURE IF EXISTS createMoneyTransaction;
 DELIMITER $$
 
 CREATE PROCEDURE createMoneyTransaction(
-										IN  pjReqObj JSON,
-										OUT psResObj JSON
-									)
+										 IN  pjReqObj JSON,
+										 OUT psResObj JSON
+									   )
 BEGIN
 
 	/* =============== Variable Declarations ============= */
