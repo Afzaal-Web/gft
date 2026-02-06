@@ -85,7 +85,7 @@ BEGIN
 		END IF;
 
 	 /* =============== Amount Validation ============= */
-		IF isFalsy(getJval(pjReqObj,'sender_info.amount_sent') AND getJval(pjReqObj,'receiver_info.amount_received')) THEN
+		IF isFalsy(getJval(pjReqObj,'sender_info.amount_sent') OR getJval(pjReqObj,'receiver_info.amount_received')) THEN
 			SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','amount is required');
 			
 		ELSEIF CAST(getJval(pjReqObj,'sender_info.amount_sent') AS DECIMAL(18,2)) 	   <= 0  OR 
@@ -207,7 +207,7 @@ BEGIN
 				processor_name			 = getJval(pjReqObj,'processor_name'),
 				processor_token			 = getJval(pjReqObj,'processor_token'),
 				card_last_4				 = RIGHT(getJval(pjReqObj,'card_info.card_number'),4),
-				card_json				 = v_cc_json,
+				credit_card_json		 = v_cc_json,
 				row_metadata			 = v_row_metadata;
 		
 			SET v_cc_rec_id 			= LAST_INSERT_ID();
@@ -221,7 +221,7 @@ BEGIN
 												);
 		
 			UPDATE credit_card
-			SET    card_json 	= v_cc_json
+			SET    credit_card_json 	= v_cc_json
 			WHERE  credit_card_rec_id 	= v_cc_rec_id;
     
 		END IF;
