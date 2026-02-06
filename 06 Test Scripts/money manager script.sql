@@ -33,7 +33,6 @@ SET @reqObj = JSON_OBJECT(
     )
 );
 
-
 SET @reqObj = CAST('{
 						  "customer_rec_id":          1,
 						  "request_type":            "deposit",
@@ -75,12 +74,7 @@ SET @reqObj = CAST('{
 							"user_name": "Kamran.iqbal@gmail.com",        
 							"action_by": "Kamran Iqbal",               
 							"action_at": "2026-01-14 16:10:00",        
-							"notes":     "transaction is posted"
-							
-							
-							
-							            
-									
+							"notes":     "transaction is posted"		
 						}' AS JSON);
 
 CALL updateMoneyTransaction(@reqObj, @resObj);
@@ -95,7 +89,6 @@ SELECT @resObj AS response;
 SET @reqObj = JSON_OBJECT(
     'customer_rec_id', 1,
     'status', NULL,
-    'account_number', 'MM-ACC-WD-EW-1003',
     'request_type', 'withdraw',
     'transaction_type', 'e wallets',
     'backoffice_post_number', NULL,
@@ -109,7 +102,7 @@ SET @reqObj = JSON_OBJECT(
         'institution_name', 'GFT Wallet',
         'account_holder_name', 'Bilal Raza',
         'account_number', 'MM-ACC-WD-EW-1003',
-        'amount_sent', 8000.00,
+        'amount_received', 8000.00,
         'transaction_id', 'WD-EW-2026-003',
         'receipt_number', NULL,
         'receipt_picture_rec_id', NULL,
