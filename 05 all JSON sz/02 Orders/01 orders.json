@@ -10,11 +10,11 @@
   "transaction_type"          : "Buy",                                        "_comment_transaction_type"           : "Transaction type: Buy, Sell, redeem, exchange",     
 
 
-  
-  "notes"                     : "Initial buy order placed by customer",
   "customer_ip_address"       : "192.168.1.25",
-  "latitude"                  : 24.860735,
-  "longitude"                 : 67.001137,
+    "latitude"                  : 24.860735,
+    "longitude"                 : 67.001137
+  "notes"                     : "Initial buy order placed by customer",
+  
 
 
 
@@ -25,10 +25,9 @@
     "customer_phone"          : "+92-300-9876543",                       "_comment_customer_phone"              : "Primary phone number",
     "whatsapp"                : "+92-300-9876543",                       "_comment_whatsapp"                    : "WhatsApp contact number",
     "customer_email"          : "ali.raza@email.com",                    "_comment_customer_email"              : "Customer email address",
-    "customer_address"        : "Karachi, Pakistan",                     "_comment_customer_address"            : "Residential or billing address"
+    "customer_address"        : "Karachi, Pakistan",                     "_comment_customer_address"            : "Residential or billing address",
+    
   },
-
-
 
 
   "rate_info" : {
