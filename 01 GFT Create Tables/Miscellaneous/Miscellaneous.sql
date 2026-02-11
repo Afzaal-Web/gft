@@ -9,106 +9,38 @@ SET SESSION sql_mode='NO_AUTO_VALUE_ON_ZERO';
 -- outbound_messages Table Started
 -- ===============================================
 
-DROP TABLE IF EXISTS outbound_messages;
+DROP TABLE IF EXISTS outbound_msgs;
 -- ===============================================
 -- Create outbound_messages Table
 -- ===============================================
-CREATE TABLE IF NOT EXISTS outbound_messages (
-    outbound_messages_rec_id     		INT                                  PRIMARY KEY AUTO_INCREMENT,
-    message_guid                 		VARCHAR(100)                         NOT NULL UNIQUE,
+CREATE TABLE IF NOT EXISTS outbound_msgs (
+    outbound_msgs_rec_id     		INT                            PRIMARY KEY AUTO_INCREMENT,
+    message_guid                 		VARCHAR(100)                   NOT NULL UNIQUE,
     parent_message_table_name    		VARCHAR(100),           
-     parent_message_table_rec_id      	INT,                                  
-    object_name                  		VARCHAR(100)                         NOT NULL,
+	parent_message_table_rec_id      	INT,                                  
+    object_name                  		VARCHAR(100)                   NOT NULL,
 
-    out_msg_json                 		JSON,
+    outbound_msgs_json                 	JSON,
     row_metadata                 		JSON
 );
-
 
 -- ===============================================
 -- Demo row: out_messages_rec_id = 0
 -- ===============================================
 
-INSERT INTO outbound_messages
+INSERT INTO outbound_msgs
 SET
-    outbound_messages_rec_id 			= 0,
+    outbound_msgs_rec_id 			= 0,
     message_guid             			= 'MSG-2026-0001',
     parent_message_table_name			= 'Orders',
-    parent_message_table_rec_id        = 0,
+    parent_message_table_rec_id        	= 0,
     object_name              			= 'orders',
 
-	out_msg_json = JSON_OBJECT(
-    
-    'outbound_messages_rec_id', 0,                          '_comment_outbound_messages_rec_id', 'Message record ID',
-    'message_guid', 'MSG-2026-0001',                        '_comment_message_guid', 'Unique message GUID',
-    'parent_message_table_name', 'Orders',
-	'parent_message_table_rec_id', 0,
-    'object_name', 'orders',                                '_comment_object_name', 'Related business object',
-
-    /* ===================== Application / Business Context ===================== */
-    'business_context', JSON_OBJECT(
-        'module_name', 'Order Management',                  '_comment_module_name', 'Application module',
-        'message_name', 'Order Confirmation',               '_comment_message_name', 'Message name',
-        'message_type', 'Email',                             '_comment_message_type', 'Email / SMS / Push',
-        'notes', 'Order placed successfully',               '_comment_notes', 'Internal notes',
-        'login_id', 101,                                     '_comment_login_id', 'User login ID'
-    ),
-
-    /* ===================== Channel & Delivery Configuration ===================== */
-    'delivery_config', JSON_OBJECT(
-        'channel_number', 1,                                '_comment_channel_number', 'Channel identifier',
-        'priority_level', 'High',                            '_comment_priority_level', 'Message priority',
-        'is_need_tracking', TRUE,                             '_comment_is_need_tracking', 'Delivery tracking flag'
-    ),
-
-    /* ===================== Sender Information ===================== */
-    'sender_info', JSON_OBJECT(
-        'from_name', 'GFT System',                           '_comment_from_name', 'Sender display name',
-        'from_address', 'no-reply@gft.com',                   '_comment_from_address', 'Sender address'
-    ),
-
-    /* ===================== Recipient Information ===================== */
-    'recipient_info', JSON_OBJECT(
-        'to_address', 'ali.raza@email.com',                  '_comment_to_address', 'Primary recipient',
-        'cc_list', JSON_ARRAY('support@gft.com'),            '_comment_cc_list', 'CC recipients',
-        'bcc_list', JSON_ARRAY(),                            '_comment_bcc_list', 'BCC recipients',
-        'is_email_verified', TRUE,                           '_comment_is_email_verified', 'Recipient verification status'
-    ),
-
-    /* ===================== Message Content ===================== */
-    'message_content', JSON_OBJECT(
-        'message_subject', 'Order Confirmation - ORD-2026-0001',		'_comment_message_subject', 'Email subject',
-        'message_body', 'Your order has been placed successfully.',		'_comment_message_body', 'Email body',
-        'attachment_list', JSON_ARRAY('invoice.pdf'),        			'_comment_attachment_list', 'Attachments'
-    ),
-
-    /* ===================== Scheduling & Timing ===================== */
-    'scheduling', JSON_OBJECT(
-        'scheduled_at', NOW(),                               '_comment_scheduled_at', 'Scheduled send time',
-        'retry_interval', 15,                                '_comment_retry_interval', 'Retry interval in minutes'
-    ),
-
-    /* ===================== Status & Lifecycle Tracking ===================== */
-    'lifecycle_status', JSON_OBJECT(
-        'current_status', 'Queued',                          '_comment_current_status', 'Queued / Sent / Failed',
-        'delivery_status', 'Pending',                        '_comment_delivery_status', 'Delivery state',
-        'send_attempts', 0,                                  '_comment_send_attempts', 'Send attempt count',
-        'number_of_retries', 3,                               '_comment_number_of_retries', 'Max retry attempts'
-    )
-),
-
-    row_metadata = JSON_OBJECT(
-        'created_at', NOW(3),
-        'created_by', NULL,
-        'updated_at', NULL,
-        'updated_by', NULL,
-        'started_at', 'Active',
-        'ended_at', 'Active'
-    );
-
+	outbound_msgs_json					= castJson('outbound_msgs'),
+    row_metadata						= castJson('row_metadata');
 
 -- ===============================================
--- commodity table ended
+-- outbound_messages table ended
 -- ===============================================
 
 -- ===============================================
@@ -120,15 +52,15 @@ DROP TABLE IF EXISTS logs;
 -- Create money_manager table
 -- ===============================================
 CREATE TABLE IF NOT EXISTS logs (
-    log_rec_id              INT                                  PRIMARY KEY AUTO_INCREMENT,
-    customer_rec_id         INT                                  NULL,
-    org_employee_rec_id     INT                                  NULL,
-    db_username             VARCHAR(100)                         NULL,
-    logged_by               VARCHAR(100)                         NOT NULL,
-    application_name        VARCHAR(100)                         NOT NULL,
+    log_rec_id              	INT                                  PRIMARY KEY AUTO_INCREMENT,
+    customer_rec_id         	INT                                  NULL,
+    org_employee_rec_id     	INT                                  NULL,
+    db_username             	VARCHAR(100)                         NULL,
+    logged_by               	VARCHAR(100)                         NOT NULL,
+    application_name        	VARCHAR(100)                         NOT NULL,
 
-    logs_json               JSON,
-    row_metadata            JSON
+    logs_json               	JSON,
+    row_metadata            	JSON
 );
 
 ALTER TABLE logs
@@ -156,7 +88,7 @@ INSERT INTO logs
 SET
     log_rec_id          = 0,
     customer_rec_id     = 0,
-    org_employee_rec_id     = 0,
+    org_employee_rec_id = 0,
     db_username         = 'gft_app_user',
     logged_by           = 'SYSTEM',
     application_name    = 'GFT Web App',

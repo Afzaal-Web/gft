@@ -198,14 +198,82 @@ WHERE auth_rec_id = 0;
 -- Auth table ended
 -- ===============================================
 
+-- ===============================================
+-- OTP table Started
+-- ===============================================
+
+DROP TABLE IF EXISTS otp;
 
 -- ===============================================
--- Restore default strict mode
+-- Create otp table
 -- ===============================================
-SET SESSION sql_mode='STRICT_TRANS_TABLES';
+CREATE TABLE IF NOT EXISTS otp (
+    otp_rec_id 					INT 				PRIMARY KEY AUTO_INCREMENT,
+    contact_type	 			ENUM('email', 'phone', 'loginid'),
+    otp_code					CHAR(6),
+    destination					VARCHAR(255),
+    created_at					DATETIME 			DEFAULT CURRENT_TIMESTAMP,
+    expires_at 					DATETIME,
+    otp_retries					INT DEFAULT 5,
+    next_otp_in_secs			INT,
+    purpose						TEXT
+);
+
+-- ===============================================
+-- Insert Demo row: otp_rec_id = 0
+-- ===============================================
+INSERT INTO otp
+SET
+    otp_rec_id          	= 0,
+    contact_type        	= 'email',
+    otp_code            	= '123456',
+    destination         	= 'jhon@gmail.com',
+    created_at          	= CURRENT_TIMESTAMP,
+    expires_at          	= DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 5 MINUTE),
+    otp_retries				= 5,
+    next_otp_in_secs    	= 60,
+    purpose					= 'For Phone verification';
 
 
+-- ===============================================
+-- Lookup table Started
+-- ===============================================
 
+DROP TABLE IF EXISTS marketing;
+
+-- ===============================================
+-- Create Lookup table
+-- ===============================================
+CREATE TABLE marketing (
+    marketing_rec_id  		INT 				AUTO_INCREMENT PRIMARY KEY,
+    phone         			VARCHAR(20) ,
+    first_name     			VARCHAR(100),
+    last_name      			VARCHAR(100),
+    email          			VARCHAR(150),
+    address        			VARCHAR(255),
+    city           			VARCHAR(100),
+    state          			VARCHAR(100),
+    zip_code       			VARCHAR(20)
+);
+
+
+-- ===============================================
+-- Insert Demo row: marketing_rec_id = 0
+-- ===============================================
+INSERT INTO marketing
+SET
+    marketing_rec_id 	= 0,
+    phone        		= '9876543210',
+    first_name   		= 'John',
+    last_name    		= 'Doe',
+    email        		= 'john.doe@gmail.com',
+    address     		= '123 Main Street',
+    city         		= 'New York',
+    state        		= 'NY',
+    zip_code     		= '10001';
+
+
+  
 -- ===============================================
 -- account_seq table started
 -- ===============================================
@@ -270,9 +338,22 @@ CREATE TABLE row_audit_logs (
     next_row_json 		JSON,
     updated_at 			DATETIME
 );
+
+
+
 -- ===============================================
 -- Restore default strict mode
 -- ===============================================
 SET SESSION sql_mode='STRICT_TRANS_TABLES';
 
 
+
+
+
+SET @a = CAST('{
+"P_PHONE_NUM": "0321-0241212"
+}' AS JSON);
+SET @b = '';
+
+CALL verifiyExistingNumber(@a,@b);
+SELECT @B;

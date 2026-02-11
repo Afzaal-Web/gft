@@ -2,7 +2,7 @@
 -- FUNCTION Name:  castJson()
 -- Purpose: Cast the sample json to row 0
 -- parameter values: 'corporate_account', 'customer', 'auth', 'customer_wallets', 'tradable_assets', 'asset_rate_history', 
--- 					  'wallet_ledger', 'products', 'inventory', 'money_manager', 'credit_card', 'row_metadata',
+-- 					  'wallet_ledger', 'products', 'inventory', 'money_manager', 'credit_card', 'outbound_messages', 'row_metadata',
 --
 --
 --
@@ -285,15 +285,6 @@ BEGIN
 					"user_name" 				    :"john@gmail.com",                            "_comment_user_name"                   : "Primary username or email for login",
 
 
-
-				"latest_otp": {
-					"latest_otp_code"         : "123456",                                    "_comment_latest_otp_code"             : "Most recent OTP sent to user",
-					"latest_otp_sent_at"      : "NOW()",                                     "_comment_latest_otp_sent_at"          : "Timestamp when OTP was sent",
-					"latest_otp_expires_at"   : "DATE_ADD(NOW(), INTERVAL 5 MINUTE)",        "_comment_latest_otp_expires_at"       : "Timestamp when OTP expires",
-					"otp_retries"             : 0,                                           "_comment_otp_retries"                 : "Number of OTP retry attempts",
-					"next_otp_in"             : 60,                                          "_comment_next_otp_in"                 : "Seconds before user can request next OTP"
-					},
-
 				"user_mfa" : {
 					"is_MFA"                    : true,                                       "_comment_is_2FA"                      : "Whether 2FA is enabled",
 					"MFA_method"                : "SMS",                                      "_comment_2FA_method"                  : "Method used for 2FA: SMS, Email, Authenticator app, etc.",
@@ -384,7 +375,12 @@ BEGIN
 							"max_order"                  : 10000.0,                       "_comment_max_order_weight"            : "Maximum order weight",
 							"minimum_reedem_level"       : "1 g",                         "_comment_minimum_reedem_level"        : "Minimum redeem level",
 							"max_reedem_level"           : "10 toz",                      "_comment_max_reedem_level"            : "Max Redeem Level",
-
+                            
+                               "transaction_fee":{
+									"buy":                  230.00,                          "_comment_buy_fee"                    : "Transaction fee for buying per unit",
+									"sell":                 150.00,                          "_comment_sell_fee"                   : "Transaction fee for selling per unit",
+									"redeem":               100.00,                          "_comment_redeem_fee"                 : "Transaction fee for redeeming per unit"
+								},
 							"taxes" : {
 								"GST"                    : "18%",                         "_comment_GST"                         : "Goods and Service Tax in percent",
 								"withholding_tax"        : "10%",                         "_comment_withholding_tax"             : "Withholding tax in percent",
@@ -821,7 +817,64 @@ BEGIN
 								}
 							]
 						}' AS JSON);
-	
+
+-- =======================================================================
+-- outbound_msgs.outbound_msgs_json
+-- =======================================================================
+		WHEN 'outbound_msgs' THEN
+			RETURN CAST(
+						'{
+							"outbound_msgs_rec_id":        0,                                           "_comment_outbound_messages_rec_id":       "Message record ID",
+							"message_guid":                    "MSG-2026-0001",                             "_comment_message_guid":                   "Unique message GUID",
+							"parent_message_table_name":       "Orders",
+							"parent_message_table_rec_id":     0,
+							"object_name":                     "orders",                                   "_comment_object_name":                    "Related business object",
+
+							"business_context": {
+								"module_name":                 "Order Management",                          "_comment_module_name":                    "Application module",
+								"message_name":                "Order Confirmation",                        "_comment_message_name":                   "Message name",
+								"message_type":                "Email",                                     "_comment_message_type":                    "Email / SMS / Push",
+								"notes":                       "Order placed successfully",                 "_comment_notes":                           "Internal notes",
+								"login_id":                    101,                                         "_comment_login_id":                       "User login ID"
+							},
+
+							"delivery_config": {
+								"channel_number":              1,                                           "_comment_channel_number":                "Channel identifier",
+								"priority_level":              "High",                                      "_comment_priority_level":                  "Message priority",
+								"is_need_tracking":            true,                                        "_comment_is_need_tracking":                "Delivery tracking flag"
+							},
+
+							"sender_info": {
+								"from_name":                   "GFT System",                                "_comment_from_name":                       "Sender display name",
+								"from_address":                "no-reply@gft.com",                          "_comment_from_address":                    "Sender address"
+							},
+
+							"recipient_info": {
+								"to_address":                  "ali.raza@email.com",                        "_comment_to_address":                      "Primary recipient",
+								"cc_list":                     ["support@gft.com"],                         "_comment_cc_list":                         "CC recipients",
+								"bcc_list":                    [],                                          "_comment_bcc_list":                        "BCC recipients",
+								"is_email_verified":           true,                                        "_comment_is_email_verified":               "Recipient verification status"
+							},
+
+							"message_content": {
+								"message_subject":             "Order Confirmation - ORD-2026-0001",        "_comment_message_subject":                 "Email subject",
+								"message_body":                "Your order has been placed successfully.",  "_comment_message_body":                    "Email body",
+								"attachment_list":             ["invoice.pdf"],                             "_comment_attachment_list":                 "Attachments"
+							},
+
+							"scheduling": {
+								"scheduled_at":                "NOW()",                                    "_comment_scheduled_at":                    "Scheduled send time",
+								"retry_interval":              15,                                         "_comment_retry_interval":                  "Retry interval in minutes"
+							},
+
+							"lifecycle_status": {
+								"current_status":              "Queued",                                   "_comment_current_status":                  "Queued / Sent / Failed",
+								"delivery_status":             "Pending",                                  "_comment_delivery_status":                 "Delivery state",
+								"send_attempts":               0,                                          "_comment_send_attempts":                   "Send attempt count",
+								"number_of_retries":            3,                                          "_comment_number_of_retries":               "Max retry attempts"
+							}
+						}' AS JSON);
+		
 -- =======================================================================
 -- row_metadta for all tables
 -- =======================================================================

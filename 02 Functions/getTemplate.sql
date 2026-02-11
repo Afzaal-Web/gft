@@ -231,13 +231,6 @@ BEGIN
 					"parent_table_rec_id"          				  : null,
 					"user_name"                    				  : null,
 
-					"latest_otp":  {
-						"latest_otp_code"          				  : null,
-						"latest_otp_sent_at"       				  : null,
-						"latest_otp_expires_at"    				  : null,
-						"otp_retries"              				  : null,
-						"next_otp_in"              				  : null
-					},
 
 					"user_mfa":  {
 						"is_MFA"                   				  : null,
@@ -320,7 +313,12 @@ BEGIN
 							"max_order"               : null,
 							"minimum_reedem_level"    : null,
 							"max_reedem_level"        : null,
-
+                            
+                               "transaction_fee":{
+									"buy"			  : null,   
+									"sell"			  : null,                
+									"redeem"		  : null             
+								},
 							"taxes" : {
 								"GST"                 : null,
 								"withholding_tax"     : null,
@@ -697,6 +695,64 @@ BEGIN
 						  "notes":                null
 						}' AS JSON);
 
+
+-- =======================================================================
+-- outbound_msgs.outbound_msgs_json
+-- =======================================================================
+		WHEN 'outbound_msgs' THEN
+			RETURN CAST(
+						'{
+							"outbound_msgs_rec_id":        null,
+							"message_guid":                    null,
+							"parent_message_table_name":       null,
+							"parent_message_table_rec_id":     null,
+							"object_name":                     null,
+
+							"business_context": {
+								"module_name":                 null,
+								"message_name":                null,
+								"message_type":                null,
+								"notes":                       null,
+								"login_id":                    null
+							},
+
+							"delivery_config": {
+								"channel_number":              null,
+								"priority_level":              null,
+								"is_need_tracking":            null
+							},
+
+							"sender_info": {
+								"from_name":                   null,
+								"from_address":                null
+							},
+
+							"recipient_info": {
+								"to_address":                  null,
+								"cc_list":                     null,
+								"bcc_list":                    null,
+								"is_email_verified":           null
+							},
+
+							"message_content": {
+								"message_subject":             null,
+								"message_body":                null,
+								"attachment_list":             null
+							},
+
+							"scheduling": {
+								"scheduled_at":                null,
+								"retry_interval":              null
+							},
+
+							"lifecycle_status": {
+								"current_status":              null,
+								"delivery_status":             null,
+								"send_attempts":               null,
+								"number_of_retries":           null
+							}
+						}' AS JSON);
+	
 -- =======================================================================
 -- row_metadta for all tables
 -- =======================================================================

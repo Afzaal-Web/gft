@@ -10,13 +10,18 @@
     "tradeable_json"            : "{}",                           "_comment_tradeable_json"              : " tradeable assets all columns json",
     "row_metadata"              : "{}",
 
+    "how_to_measure"             : "by_weight",                  "_comment_how_to_measure"              : "by_weight, by number",
+    "standard_units"             : "gram",                       "_comment_standard_weight_units"       : "grams, QTY etc",
+    "min_order"                  : 1.0,                          "_comment_minimum_order_weight"        : "Minimum order weight",
+    "max_order"                  : 10000.0,                      "_comment_max_order_weight"            : "Maximum order weight",
+    "minimum_reedem_level"       : "1 g",                        "_comment_minimum_reedem_level"        : "Minimum redeem level",
+    "max_reedem_level"           : "10 toz",                     "_comment_max_reedem_level"            : "Max Redeem Level",
 
-    "how_to_measure"             : "by_weight",                   "_comment_how_to_measure"              : "by_weight, by number",
-    "standard_units"             : "gram",                        "_comment_standard_weight_units"       : "grams, QTY etc",
-    "min_order"                  : 1.0,                           "_comment_minimum_order_weight"        : "Minimum order weight",
-    "max_order"                  : 10000.0,                       "_comment_max_order_weight"            : "Maximum order weight",
-    "minimum_reedem_level"       : "1 g",                         "_comment_minimum_reedem_level"        : "Minimum redeem level",
-    "max_reedem_level"           : "10 toz",                      "_comment_max_reedem_level"            : "Max Redeem Level",
+    "transaction_fee":{
+        "buy":                  230.00,                          "_comment_buy_fee"                    : "Transaction fee for buying per unit",
+        "sell":                 150.00,                          "_comment_sell_fee"                   : "Transaction fee for selling per unit",
+        "redeem":               100.00,                          "_comment_redeem_fee"                 : "Transaction fee for redeeming per unit"
+    },
 
     "taxes" : {
         "GST"                    : "18%",                         "_comment_GST"                         : "Goods and Service Tax in percent",
