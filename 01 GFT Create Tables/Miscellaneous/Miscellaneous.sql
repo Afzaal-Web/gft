@@ -581,11 +581,11 @@ DROP TABLE IF EXISTS gft_ui_metadata;
 -- Create gft_ui_metadata table
 -- ===============================================
 CREATE TABLE IF NOT EXISTS gft_ui_metadata (
-    gft_rec_id               INT         	PRIMARY KEY AUTO_INCREMENT,
-    app_name                 VARCHAR(100) 	NULL,
-    view_name                VARCHAR(100) 	NULL,
-    object_key               VARCHAR(100) 	NULL,
-    object_value             VARCHAR(100) 	NULL,
+    gft_rec_id               INT         		PRIMARY KEY AUTO_INCREMENT,
+    app_name                 VARCHAR(100) 		NULL,
+    view_name                VARCHAR(100) 		NULL,
+    object_key               VARCHAR(100) 		NULL,
+    object_value             VARCHAR(100) 		NULL,
 
     gft_ui_metadata_json     JSON,
     row_meta_data            JSON
@@ -628,23 +628,23 @@ DROP TABLE IF EXISTS external_interfaces;
 -- Create external_interfaces table
 -- ===============================================
 CREATE TABLE IF NOT EXISTS external_interfaces (
-    external_interface_rec_id   INT         	PRIMARY KEY AUTO_INCREMENT,
-    `description`                 VARCHAR(255), 	
-    provider_name               VARCHAR(100), 	
-    short_name                  VARCHAR(50),  
-    category                    VARCHAR(50),  
-    billing_info                JSON,
-    access_control              JSON,
-    start_date                  DATETIME,       
-    end_date                    DATETIME,        
-    quota                       VARCHAR(20),         
-    current_status              ENUM('active', 'inactive', 'expire'),
-    is_required_vpn             BOOLEAN   ,  
-    request_parameters          JSON,
-    output                      JSON,
+    external_interface_rec_id   	INT         								PRIMARY KEY AUTO_INCREMENT,
+    `description`                 	VARCHAR(255), 	
+    provider_name               	VARCHAR(100), 	
+    short_name                  	VARCHAR(50),  
+    category                    	VARCHAR(50),  
+    billing_info                	JSON,
+    access_control              	JSON,
+    start_date                  	DATETIME,       
+    end_date                    	DATETIME,        
+    quota                       	VARCHAR(20),         
+    current_status              	ENUM('active', 'inactive', 'expire'),
+    is_required_vpn             	BOOLEAN   ,  
+    request_parameters          	JSON,
+    output                      	JSON,
     
-    external_interface_json     JSON,
-    row_metadata                JSON
+    external_interface_json     	JSON,
+    row_metadata                	JSON
 );
 
 -- ===============================================
