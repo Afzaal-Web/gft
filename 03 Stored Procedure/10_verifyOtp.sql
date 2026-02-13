@@ -8,7 +8,7 @@ DROP PROCEDURE IF EXISTS verifyOtp;
 DELIMITER $$
 
 CREATE PROCEDURE verifyOtp(
-                            IN pReqJson 		JSON,
+                            IN pReqObj 		JSON,
 							OUT psResObj     	JSON
 						 )
 BEGIN
@@ -17,6 +17,7 @@ BEGIN
     DECLARE v_expiry        DATETIME;
     DECLARE v_retries       INT;
     DECLARE v_status        VARCHAR(20);
+    DECLARE v_otp_token		VARCHAR(100);
     
 	DECLARE vContactType    ENUM('email','phone','loginid');
     DECLARE vDestination    VARCHAR(255);
@@ -31,9 +32,9 @@ BEGIN
         -- Extract values from JSON
 	-- =========================
 	SET vContactType 		= getJval(pjReqObj, 'P_CONTACT_TYPE');
+    SET vDestination 		= getJval(pjReqObj, 'P_DESTINATION');
 	SET vOtpCode     		= getJval(pjReqObj, 'P_OTP_CODE');
 	SET vPurpose    		= getJval(pReqJson, 'P_PURPOSE');
-	SET vOtpCode     		= getJval(pReqJson, 'P_OTP_CODE');
 
     -- =========================
     -- Get latest OTP
@@ -52,12 +53,8 @@ BEGIN
     -- No OTP found
     -- =========================
     IF v_otp_rec_id IS NULL THEN
-        SET v_status = 'NOT_FOUND';
-         
-        SET psResObj = JSON_OBJECT(
-									'status', v_status,
-									'remaining_retries', NULL
-								);
+        SET psResObj = JSON_OBJECT('status','NOT_FOUND');
+        
         LEAVE main_block;
     END IF;
 
@@ -65,12 +62,8 @@ BEGIN
     -- OTP expired
     -- =========================
     IF NOW() > v_expiry THEN
-        SET v_status = 'EXPIRED';
+        SET psResObj = JSON_OBJECT('status','EXPIRED');
         
-        SET psResObj = JSON_OBJECT(
-									'status', v_status,
-									'remaining_retries', v_retries
-								);
         LEAVE main_block;
     END IF;
 
@@ -78,7 +71,7 @@ BEGIN
     -- OTP mismatch
     -- =========================
     IF v_actual_otp <> pOtpCode THEN
-        IF v_retries >= 1 THEN
+        IF v_retries > 1 THEN
             UPDATE  otp
             SET 	otp_retries = otp_retries - 1
             WHERE 	otp_rec_id 	= v_otp_rec_id;
@@ -104,7 +97,7 @@ BEGIN
     END IF;
 
     -- =========================
-    -- OTP match
+    -- OTP SUCCESS
     -- =========================
     UPDATE 	otp
     SET 	expires_at 		= NOW(),
@@ -115,7 +108,7 @@ BEGIN
 	-- Call Success Otp SP
 	-- =========================
     
-    CALL handleOtpSuccess(vContactType, vDestination, vPurpose);
+    CALL handleOtpSuccess(vContactType, vDestination, vPurpose, v_otp_token);
     
     
         -- =========================
@@ -123,7 +116,7 @@ BEGIN
         -- =========================
         SET psResObj = JSON_OBJECT(
             'status', 'SUCCESS',
-            'remaining_retries', 0
+            'token', v_otp_token
         );
         
     END main_block;
