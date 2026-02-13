@@ -1,4 +1,9 @@
 {
+    "promotions_rec_id": 0,
+    "promo_code": "WELCOME10",  
+    
+
+    
     "title":                     "Welcome Bonus",                           "_comment_title":                  "Promotion title",
     "description":               "Get 10% off on your first transaction",   "_comment_description":            "Promotion description",
     "promo_type":                "Percentage",                              "_comment_promo_type":             "Type of promotion (Percentage/Flat)",
