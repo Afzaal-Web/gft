@@ -32,10 +32,10 @@ BEGIN
 
         -- Build response
         SET pResObj = JSON_OBJECT(
-            'status', 'success',
-            'message', CONCAT('Promotions retrieved for user ', v_loginId),
-            'promotions', v_promotions
-        );
+									'status', 'success',
+									'message', CONCAT('Promotions retrieved for user ', v_loginId),
+									'promotions', v_promotions
+								);
 
     END main_block;
 END $$

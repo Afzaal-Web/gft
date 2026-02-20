@@ -3,26 +3,50 @@ DROP PROCEDURE IF EXISTS getCreditCard;
 DELIMITER $$
 
 CREATE PROCEDURE getCreditCard(
-    IN  pMmRecId        INT,
-    OUT p_cc_json       JSON
-)
+								IN  pReqObj JSON,
+								OUT pResObj JSON
+							)
 BEGIN
-    -- Fetch credit card JSON
-    SELECT credit_card_json
-    INTO p_cc_json
-    FROM credit_card
-    WHERE money_manager_rec_id = pMmRecId
-    LIMIT 1;
 
-    -- If not found
-    IF p_cc_json IS NULL THEN
-        SET p_cc_json = JSON_OBJECT(
-            'status', 'error',
-            'message', 'Record does not exist',
-            'money_manager_rec_id', pMmRecId
-        );
-    END IF;
-
+	DECLARE v_mm_rec_id INT;
+    DECLARE v_cc_json   JSON;
+    
+	-- =========================
+    -- Extract Money Manager ID
+    -- =========================
+    SET v_mm_rec_id = getJval(pReqObj, 'P_MM_REC_ID');
+    
+    main_block: BEGIN
+    
+		 -- Validation
+		IF v_mm_rec_id IS NULL THEN
+			SET pResObj = JSON_OBJECT(
+				'status', 'error',
+				'message', 'Missing money_manager_rec_id'
+			);
+			LEAVE main_block;
+		END IF;
+        
+		-- =========================
+		-- Response Handling
+		-- =========================
+		IF v_cc_json IS NULL THEN
+			SET pResObj = JSON_OBJECT(
+				'status', 'error',
+				'message', 'Record does not exist',
+				'money_manager_rec_id', v_mm_rec_id
+			);
+		ELSE
+			SET pResObj = JSON_OBJECT(
+				'status', 'success',
+				'data', v_cc_json
+			);
+		END IF;
+        
+	END main_block;
+    
+    -- logging
+    
 END $$
 
 DELIMITER ;

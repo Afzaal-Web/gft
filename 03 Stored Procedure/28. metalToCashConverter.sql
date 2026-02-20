@@ -24,12 +24,12 @@ BEGIN
     main_block: BEGIN
 
         -- Extract values from JSON
-        SET v_asset_code 	= getJval(pReqObj, 'metal_code');
-        SET v_unit       	= getJval(pReqObj, 'unit');
+        SET v_asset_code 	= getJval(pReqObj, 'P_METAL_CODE');
+        SET v_unit       	= getJval(pReqObj, 'P_UNIT');
 
         -- Extract either weight or amount
-        SET v_weight     = CAST(getJval(pReqObj, 'weight') AS DECIMAL(24,10));
-        SET v_amount     = CAST(getJval(pReqObj, 'amount') AS DECIMAL(24,10));
+        SET v_weight     = CAST(getJval(pReqObj, 'P_WEIGHT') AS DECIMAL(24,10));
+        SET v_amount     = CAST(getJval(pReqObj, 'P_AMOUNT') AS DECIMAL(24,10));
 
         -- Validate metal code
         IF v_asset_code IS NULL THEN
@@ -77,9 +77,9 @@ BEGIN
 
         IF v_json IS NULL THEN
             SET pResObj = JSON_OBJECT(
-                'status','error',
-                'message','Rate not found'
-            );
+									'status','error',
+									'message','Rate not found'
+								);
             LEAVE main_block;
         END IF;
 
@@ -88,9 +88,9 @@ BEGIN
 
         IF v_spot IS NULL OR v_spot <= 0 THEN
             SET pResObj = JSON_OBJECT(
-                'status','error',
-                'message','Invalid spot rate'
-            );
+										'status','error',
+										'message','Invalid spot rate'
+									);
             LEAVE main_block;
         END IF;
 

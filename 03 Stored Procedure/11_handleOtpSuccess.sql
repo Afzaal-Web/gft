@@ -83,9 +83,9 @@ BEGIN
 			WHERE customer_rec_id = v_customer_id;
 						
 			SET pResObj = JSON_OBJECT(
-										'status','SUCCESS',
-										'reset_token', v_reset_token,
-										'expires_in_minutes', 10
+										'status',				'SUCCESS',
+										'reset_token', 			v_reset_token,
+										'expires_in_minutes', 	10
 									);
 
 

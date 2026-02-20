@@ -15,19 +15,19 @@ CREATE PROCEDURE verifiyExistingNumber(
 										OUT psResObj JSON
 									  )
 BEGIN
-    DECLARE v_phone          	VARCHAR(20);
-    DECLARE v_err_msg        	TEXT;
-    DECLARE v_marketingObj   	JSON;
+    DECLARE v_phone          			VARCHAR(20);
+    DECLARE v_err_msg        			TEXT;
+    DECLARE v_reverser_lookup_json   	JSON;
 
     /* ===================== Error Handler ===================== */
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         GET STACKED DIAGNOSTICS CONDITION 1 v_err_msg = MESSAGE_TEXT;
         SET psResObj = JSON_OBJECT(
-									'status',        'error',
-									'status_code',   '1',
-									'message',       'Verification failed',
-									'system_error',  v_err_msg
+									'status',        	'error',
+									'status_code',   	'1',
+									'message',       	'Verification failed',
+									'system_error',  	v_err_msg
 								);
     END;
 
@@ -63,7 +63,7 @@ BEGIN
         /* ===================== 2. Reverse Lookup in Marketing Table ===================== */
         IF EXISTS (
 					SELECT 1
-					FROM marketing
+					FROM reverse_lookup
 					WHERE phone = v_phone
 		  ) THEN
 
@@ -77,22 +77,18 @@ BEGIN
 								'state',      	state,
 								'zip_code',   	zip_code
 							)
-            INTO	v_marketingObj
-            FROM 	marketing
+            INTO	v_reverser_lookup_json
+            FROM 	reverse_lookup
             WHERE 	phone = v_phone
             LIMIT 	1;
 
             -- Generate OTP 
-            CALL genOtp(
-                'loginid',
-                v_phone,
-                'For phone number verification at the time of signup'
-            );
+            CALL genOtp('loginid', v_phone, 'For phone number verification at the time of signup');
 
             SET psResObj = JSON_OBJECT(
 										'status',      		'success',
 										'status_code', 		'0',
-										'data',        		v_marketingObj
+										'data',        		v_reverser_lookup_json
             );
 
             LEAVE main_block;
@@ -101,11 +97,7 @@ BEGIN
         /* ===================== 3. NEW USER ===================== */
 
         -- Generate OTP 
-        CALL genOtp(
-            'loginid',
-            v_phone,
-             'PHONE REGISTRATION'
-        );
+        CALL genOtp( 'loginid', v_phone, 'PHONE REGISTRATION');
 
         SET psResObj = JSON_OBJECT(
 									'status',      'success',

@@ -1,19 +1,19 @@
-DROP PROCEDURE request_handler;
+DROP PROCEDURE requestHandler;
 
 DELIMITER $$
 
-CREATE PROCEDURE request_handler(
-								  IN 	p_client_ip 		varchar(45),
-								  IN 	p_aff_num 		varchar(16),
-								  IN 	p_app_name 		varchar(32),
-								  IN 	p_action_code 	varchar(50),
-								  IN 	p_json_request 	text,
-								  OUT 	p_json_response text
+CREATE PROCEDURE requestHandler(
+								  IN 	pClientIp 		varchar(45),
+								  IN 	pAffNum 		varchar(16),
+								  IN 	pAppName 		varchar(32),
+								  IN 	pActionCode 	varchar(50),
+								  IN 	pJsonRequest 	text,
+								  OUT 	pJsonResponse text
 							   )
 BEGIN
   -- constants
   DECLARE vdStart 					timestamp 			DEFAULT 		CURRENT_TIMESTAMP;
-  DECLARE vThisObj 					VARCHAR(32) 		DEFAULT 		'request_handler';
+  DECLARE vThisObj 					VARCHAR(32) 		DEFAULT 		'requestHandler';
   DECLARE vAccessToken 				VARCHAR(64) 		DEFAULT 		'fad9017e31bd0927a6bc42996df9e22708b736112f3ef801fd30d7213c146a03';
   DECLARE vAccessKey 				VARCHAR(64) 		DEFAULT 		'0f5aac120ac2746e8548dcdb565b06d9772248b51ab669f45c08dc51a4291f16';
 
@@ -30,37 +30,37 @@ BEGIN
   DECLARE vjLogObj 					JSON;
   DECLARE vjResponse 				JSON 				DEFAULT getResponseTemplate();
 
-  DECLARE v_request_id 				bigint;
-  DECLARE v_response 				json;
-  DECLARE v_action 					varchar(50);
-  DECLARE v_response_time 			timestamp;
-  DECLARE v_duration 				int;
-  DECLARE v_is_known_action 		boolean 			DEFAULT TRUE;
-  DECLARE v_failure_reason 			varchar(100) 		DEFAULT NULL;
-  DECLARE v_jTemp 					json;
+  DECLARE vRequestId 				bigint;
+  DECLARE vResponse 				json;
+  DECLARE vAction 					varchar(50);
+  DECLARE vResponseTime 			timestamp;
+  DECLARE vDuration 				int;
+  DECLARE vIsKnownAction 			boolean 			DEFAULT TRUE;
+  DECLARE vFailureReason 			varchar(100) 		DEFAULT NULL;
+  DECLARE vjTemp 					json;
 
 
   -- Exception handler
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
-    SET v_response_time 	= NOW();
-    SET v_duration 			= TIMESTAMPDIFF(SECOND, vdStart, v_response_time);
-    SET v_failure_reason 	= 'unexpected_error';
+    SET vResponseTime 	= NOW();
+    SET vDuration 			= TIMESTAMPDIFF(SECOND, vdStart, vResponseTime);
+    SET vFailureReason 	= 'unexpected_error';
 
-    SET v_jTemp 			= JSON_OBJECT('error', 					'*** Error ***: Unexpected error occurred',
-										   'failure_reason', 		v_failure_reason,
-										   'action_code', 			p_action_code,
-										   'client_ip', 			p_client_ip,
+    SET vjTemp 			= JSON_OBJECT('error', 					'*** Error ***: Unexpected error occurred',
+										   'failure_reason', 		vFailureReason,
+										   'action_code', 			pActionCode,
+										   'client_ip', 			pClientIp,
 										   'request_time', 			vdStart,
-										   'response_time', 		v_response_time,
-										   'execution_duration', 	v_duration
+										   'response_time', 		vResponseTime,
+										   'execution_duration', 	vDuration
                                            );
 
     UPDATE  activity_log
-	SET 	json_response	 = v_jTemp,
-			response_time 	 = v_response_time,
-			failure_reason 	 = v_failure_reason
-    WHERE row_id 			 = v_request_id;
+	SET 	json_response	 = vjTemp,
+			response_time 	 = vResponseTime,
+			failure_reason 	 = vFailureReason
+    WHERE row_id 			 = vRequestId;
 
     RESIGNAL;
   END;
@@ -76,8 +76,8 @@ BEGIN
   -- ---------------------------    House Keeping    -------------------------------------- 
   -- --------------------------------------------------------------------------------------
 
-  SET vjLogObj	 = buildJSON(NULL, "loggingObject", vThisObj);
-  SET vjLogObj	 = buildJSON(vjLogObj, "requestTime", vdStart);
+  SET vjLogObj	= 	buildJSON(NULL, 		 "loggingObject", 	vThisObj);
+  SET vjLogObj	= 	buildJSON(vjLogObj, 	 "requestTime", 		vdStart);
 
   CALL debugLog(vThisObj, 'Create Temp Table');
     -- Create the temporary tables for static data
@@ -89,8 +89,8 @@ BEGIN
 
     thisProc:BEGIN
 
-    IF NOT isValidIP(p_client_ip) THEN
-      SET vTemp = CONCAT('Unauthorized hit. IP: ', p_client_ip);
+    IF NOT isValidIP(pClientIp) THEN
+      SET vTemp = CONCAT('Unauthorized hit. IP: ', pClientIp);
       CALL debugLog(vThisObj, vTemp);
 
       SET vjResponse 		= buildJSON(vjResponse, 'jHeader.responseCode', 1);
@@ -103,7 +103,7 @@ BEGIN
     END IF;
 
     -- Validate request JSON 
-    IF JSON_VALID(p_json_request) = 0 THEN
+    IF JSON_VALID(pJsonRequest) = 0 THEN
       SET vTemp = 'request is not a JSON object';
 
       SET vjResponse = buildJSON(vjResponse, 'jHeader.responseCode', 2);
@@ -117,7 +117,7 @@ BEGIN
       LEAVE thisProc;
     END IF;
 
-    -- convert request to JSON object
+  -- convert request to JSON object
     SET vjReqObj = CONVERT(p_json_request, json);
 
     IF 		STRCMP(getJKeyValue(vjReqObj, 'jHeader.accessToken'), 	vAccessToken) 	<> 0
@@ -153,27 +153,27 @@ BEGIN
     --  Service: Common 
     -- ---------------------------------------------------------
     -- Process action_code for meta data
-    CASE p_action_code
+    CASE pActionCode
       WHEN 'CMN.S.GETVIEW' THEN
 
           -- Gets the entire json response doc 
           CALL debugLog(vThisObj, 'Calling getViewJSON');
 
-          SET vjResponse = getViewJSON(getJKeyValue(vjReqObj, 'jData.P_APP_NAME'),
-          getJKeyValue(vjReqObj, 'jData.P_VIEW_NAME'));
+          SET vjResponse = getViewJSON(getJKeyValue(vjReqObj, 'jData.PAPPNAME'),
+						   getJKeyValue(vjReqObj, 'jData.P_VIEW_NAME'));
 
       --          SET vjResponse = buildJSON(vjResponse, 'jData', vjTemp);
 
 
 
 
-      WHEN 'CMN.U.UPSERT_CONTENT' 					THEN CALL upsert_content(p_aff_num, p_app_name, vjReqObj, vjResponse);
+      WHEN 'CMN.U.UPSERT_C ONTENT' 					THEN CALL upsert_content(pAffNum, pAppName, vjReqObj, vjResponse);
 
-      WHEN 'CMN.D.DELETE_CONTENT' 					THEN CALL delete_content(p_aff_num, p_app_name, vjReqObj, vjResponse);
+      WHEN 'CMN.D.DELETE_CONTENT' 					THEN CALL delete_content(pAffNum, pAppName, vjReqObj, vjResponse);
 
-      WHEN 'CMN.S.VIEW_CONTENT' 					THEN CALL get_view_content(p_aff_num, p_app_name, vjReqObj, vjResponse);
+      WHEN 'CMN.S.VIEW_CONTENT' 					THEN CALL get_view_content(pAffNum, pAppName, vjReqObj, vjResponse);
 
-      WHEN 'CMN.S.APP_CONTENT' 						THEN CALL get_app_content(p_aff_num, p_app_name, vjReqObj, vjResponse);
+      WHEN 'CMN.S.APP_CONTENT' 						THEN CALL get_app_content(pAffNum, pAppName, vjReqObj, vjResponse);
 
       WHEN 'CMN.S.FORGOT_PASSWORD_OTP' 				THEN CALL get_forgot_password_otp(vjReqObj, vjResponse);
 
@@ -189,9 +189,9 @@ BEGIN
       
       WHEN 'CMN.S.HEATMAP_COORDINATES' 				THEN CALL get_heat_map_coordinates(vjReqObj, vjResponse);
 
-      WHEN 'CMN.request7'							THEN SET v_action = 'request5';
+      WHEN 'CMN.request7'							THEN SET vAction = 'request5';
       
-      ELSE SET v_action = 'request5';
+      ELSE SET vAction = 'request5';
     END CASE;
 
 
@@ -201,16 +201,16 @@ BEGIN
     --  Service: Trip 
     -- ---------------------------------------------------------
     -- Process action_code for Trip
-    CASE p_action_code
-      WHEN 'TRP.S.TRIP_BY_ID' 					THEN CALL get_trip_by_id(p_aff_num, p_app_name, vjReqObj, vjResponse);
+    CASE pActionCode
+      WHEN 'TRP.S.TRIP_BY_ID' 					THEN CALL get_trip_by_id(pAffNum, pAppName, vjReqObj, vjResponse);
 
-      WHEN 'TRP.S.TRIP_BY_NUMBER'				THEN CALL get_trip_by_number(p_aff_num, p_app_name, vjReqObj, vjResponse);
+      WHEN 'TRP.S.TRIP_BY_NUMBER'				THEN CALL get_trip_by_number(pAffNum, pAppName, vjReqObj, vjResponse);
 
       WHEN 'TRP.S.TRIP_OFFER_IDS_BY_DRIVER_ID' 	THEN CALL get_trip_offer_ids_by_driver_id(vjReqObj, vjResponse);
 
-      WHEN 'TRP.U.TRIP_STATUS' 					THEN CALL update_trip_status(p_aff_num, p_app_name, vjReqObj, vjResponse);
+      WHEN 'TRP.U.TRIP_STATUS' 					THEN CALL update_trip_status(pAffNum, pAppName, vjReqObj, vjResponse);
 
-      WHEN 'TRP.I.NEW_TRIP' 					THEN CALL trip_db.new_trip(p_aff_num, p_app_name, vjReqObj, vjResponse);
+      WHEN 'TRP.I.NEW_TRIP' 					THEN CALL trip_db.new_trip(pAffNum, pAppName, vjReqObj, vjResponse);
 
       WHEN 'TRP.I.BID' 							THEN CALL create_trip_bid(vjReqObj, vjResponse);
       
@@ -220,13 +220,13 @@ BEGIN
 
       WHEN 'TRP.U.CANCEL' 						THEN CALL cancel_trip(vjReqObj, vjResponse);
 
-      WHEN 'TRP.U.TRIP_TYPE_PREFERENCE' 		THEN CALL update_trip_type_preference(p_aff_num, p_app_name, vjReqObj, vjResponse);
+      WHEN 'TRP.U.TRIP_TYPE_PREFERENCE' 		THEN CALL update_trip_type_preference(pAffNum, pAppName, vjReqObj, vjResponse);
 
-      WHEN 'TRP.U.TRIP_PREFERENCE' 				THEN CALL update_trip_preference(p_aff_num, p_app_name, vjReqObj, vjResponse);
+      WHEN 'TRP.U.TRIP_PREFERENCE' 				THEN CALL update_trip_preference(pAffNum, pAppName, vjReqObj, vjResponse);
 
-      WHEN 'TRP.I.CUSTOMER_TRIP' 				THEN CALL create_customer_trip(p_aff_num, p_app_name, vjReqObj, vjResponse);
+      WHEN 'TRP.I.CUSTOMER_TRIP' 				THEN CALL create_customer_trip(pAffNum, pAppName, vjReqObj, vjResponse);
 
-      WHEN 'TRP.U.CUSTOMER_TRIP' 				THEN CALL update_customer_trip(p_aff_num, p_app_name, vjReqObj, vjResponse);
+      WHEN 'TRP.U.CUSTOMER_TRIP' 				THEN CALL update_customer_trip(pAffNum, pAppName, vjReqObj, vjResponse);
 
       WHEN 'TRP.I.TRIP_OFFERS' 					THEN CALL save_trip_offers_in_driver_activity_logs(vjReqObj, vjResponse);
 
@@ -234,9 +234,9 @@ BEGIN
             
       WHEN 'TRP.S.CHAT' 						THEN CALL get_chat_messages_by_trip_rec_id(vjReqObj, vjResponse);
 
-      WHEN 'TRP.S.GET_TRIP_DETAILS' 			THEN SET v_action = 'request5';
+      WHEN 'TRP.S.GET_TRIP_DETAILS' 			THEN SET vAction = 'request5';
       
-      ELSE SET v_action = 'request5';
+      ELSE SET vAction = 'request5';
     END CASE;
 
     CALL debugLog(vThisObj, 'Check if a procedure was sucessfully executed');
@@ -245,7 +245,7 @@ BEGIN
     --  Service: Driver 
     -- ---------------------------------------------------------
     -- Process action_code for Trip
-    CASE p_action_code
+    CASE pActionCode
 
       WHEN 'DRV.I.DRIVER' 								THEN CALL create_driver(vjReqObj, vjResponse);
       WHEN 'DRV.D.DRIVER' 								THEN CALL delete_driver(vjReqObj, vjResponse);
@@ -261,7 +261,7 @@ BEGIN
       WHEN 'DRV.U.DESIRED_DESTINATION' 					THEN CALL update_driver_desired_destination(vjReqObj, vjResponse);
       WHEN 'DRV.D.DESIRED_DESTINATION' 					THEN CALL delete_driver_desired_destination(vjReqObj, vjResponse);
 
-      WHEN 'DRV.U.SETTINGS' 							THEN CALL update_driver_settings(p_aff_num, p_app_name, vjReqObj, vjResponse);
+      WHEN 'DRV.U.SETTINGS' 							THEN CALL update_driver_settings(pAffNum, pAppName, vjReqObj, vjResponse);
       WHEN 'DRV.S.SETTINGS' 							THEN CALL get_driver_settings(vjReqObj, vjResponse);
 
       WHEN 'DRV.I.OTP_TO_PHONE_NUMBER' 					THEN CALL send_otp_to_phone_number(vjReqObj, vjResponse);
@@ -321,16 +321,16 @@ BEGIN
             
       WHEN 'DRV.U.ETA' 												THEN CALL update_driver_eta(vjReqObj, vjResponse);
 
-      WHEN 'action n' 												THEN SET v_action = 'request5';
+      WHEN 'action n' 												THEN SET vAction = 'request5';
       
-      ELSE SET v_action = 'request5';
+      ELSE SET vAction = 'request5';
     END CASE;
 
     -- ---------------------------------------------------------
     --  Service: Customer 
     -- ---------------------------------------------------------
     -- Process action_code for Customer
-    CASE p_action_code
+    CASE pActionCode
 
       WHEN 'CUS.I.CUSTOMER' 					THEN CALL create_customer(vjReqObj, vjResponse);
 
@@ -338,9 +338,9 @@ BEGIN
 
       WHEN 'CUS.S.CUSTOMER_BY_REC_ID' 			THEN CALL get_customer_by_customer_rec_id(vjReqObj, vjResponse);
 
-      WHEN 'action n' 							THEN SET v_action = 'request5';
+      WHEN 'action n' 							THEN SET vAction = 'request5';
       
-      ELSE SET v_action = 'request5';
+      ELSE SET vAction = 'request5';
     END CASE;
 
 
@@ -351,7 +351,7 @@ BEGIN
     -- ---------------------------------------------------------
     IF getJKeyValue(vjResponse, 'jHeader.message') = 'default_error' THEN
       -- action code was NOT valid and none of the procedures were executed. 
-      SET vTemp 		= CONCAT('----- Unknown Action Code is called.   -----: ', p_action_code);
+      SET vTemp 		= CONCAT('----- Unknown Action Code is called.   -----: ', pActionCode);
       CALL debugLog(vThisObj, vTemp);
 
       SET vjResponse 	= buildJSON(vjResponse, 	'jHeader.responseCode', 4);
@@ -370,13 +370,13 @@ BEGIN
   END thisProc;
 
   -- Send response
-  SET p_json_response = vjResponse;
+  SET pJsonResponse = vjResponse;
 
   -- Log request and response
   SET vjLogObj 		= buildJSON(vjLogObj, 'reqeustStatus', 	vLogReqStatus);
   SET vjLogObj 		= buildJSON(vjLogObj, 'failReason',		vLogFailReason);
   SET vjLogObj 		= buildJSON(vjLogObj, 'procDuration',   TIMESTAMPDIFF(SECOND, NOW(), vdStart));
-  CALL activityLog(vThisObj, p_action_code, 'End of logging object', vjLogObj);
+  CALL activityLog(vThisObj, pActionCode, 'End of logging object', vjLogObj);
 
   -- Temp: debug info
   CALL debugLog(vThisObj, CAST(vjResponse AS char));

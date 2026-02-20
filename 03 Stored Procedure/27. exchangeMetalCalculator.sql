@@ -31,10 +31,10 @@ BEGIN
     main_block: BEGIN
     
 	-- Extract values from JSON
-	SET v_from_asset_code 		=  getJval(pReqObj,       'metal_to_exchange');
-	SET v_to_asset_code   		=  getJval(pReqObj, 	  'metal_to_acquire');
-    SET v_quantity   	  		=  CAST(getJval(pReqObj,   'quantity') AS DECIMAL(18,6));
-    SET v_unit            		=  getJval(pReqObj,        'unit');
+	SET v_from_asset_code 		=  getJval(pReqObj,        'P_METAL_TO_EXCHANGE');
+	SET v_to_asset_code   		=  getJval(pReqObj, 	   'P_METAL_TO_EXCHANGE_ACQUIRE'); 
+    SET v_quantity   	  		=  CAST(getJval(pReqObj,   'P_QUANTITY') AS DECIMAL(18,6));
+    SET v_unit            		=  getJval(pReqObj,        'P_UNIT');
     
      -- Validate asset codes
         IF v_from_asset_code IS NULL OR v_to_asset_code IS NULL THEN

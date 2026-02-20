@@ -11,7 +11,7 @@ BEGIN
 	DECLARE v_customer_rec_id 	INT;
     DECLARE v_customer_json 	JSON;
     
-    SET v_customer_rec_id = getJval(pReqObj, 'customer_rec_id');
+    SET v_customer_rec_id = getJval(pReqObj, 'P_CUSTOMER_REC_ID');
     
     -- Get customer JSON
     SELECT 	customer_json

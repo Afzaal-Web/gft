@@ -31,8 +31,10 @@ BEGIN
         -- =========================
         IF v_input LIKE '%@%' THEN
             SET v_input_type = 'email';
+            
         ELSEIF v_input REGEXP '^[0-9]+$' THEN
             SET v_input_type = 'phone';
+            
         ELSE
             SET v_input_type = 'username';
         END IF;

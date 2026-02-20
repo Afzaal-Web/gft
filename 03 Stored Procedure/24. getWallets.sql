@@ -7,19 +7,19 @@ DROP PROCEDURE IF EXISTS getWallets;
 DELIMITER $$
 
 CREATE PROCEDURE getWallets (
-    IN  pReqObj JSON,
-    OUT pResObj JSON
-)
+								IN  pReqObj JSON,
+								OUT pResObj JSON
+							)
 BEGIN
 
-    DECLARE v_customer_rec_id INT;
-    DECLARE v_customer_json   JSON;
-    DECLARE v_wallets_json    JSON;
+    DECLARE v_customer_rec_id 	INT;
+    DECLARE v_customer_json   	JSON;
+    DECLARE v_wallets_json    	JSON;
 
     main_block: BEGIN
 
         -- Extract customer_rec_id from request
-        SET v_customer_rec_id = getJval(pReqObj, 'customer_rec_id');
+        SET v_customer_rec_id = getJval(pReqObj, 'P_CUSTOMER_REC_ID');
 
         -- Fetch customer JSON
         CALL getCustomer(pReqObj, v_customer_json);
@@ -29,10 +29,10 @@ BEGIN
         -- If customer not found
         IF v_customer_json IS NULL THEN
             SET pResObj = JSON_OBJECT(
-                'status', 'error',
-                'message', 'Customer does not exist',
-                'customer_rec_id', v_customer_rec_id
-            );
+										'status', 			'error',
+										'message', 			'Customer does not exist',
+										'customer_rec_id', 	v_customer_rec_id
+									);
             LEAVE main_block;
         END IF;
 
@@ -52,12 +52,14 @@ BEGIN
 
         -- Build response
         SET pResObj = JSON_OBJECT(
-            'status', 'success',
-            'message', 'Wallets retrieved successfully',
-            'wallets', v_wallets_json
-        );
+									'status', 		'success',
+									'message', 		'Wallets retrieved successfully',
+									'wallets', 		v_wallets_json
+								);
 
     END main_block;
+    
+    -- logging
 
 END $$
 
