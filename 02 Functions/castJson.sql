@@ -2,7 +2,8 @@
 -- FUNCTION Name:  castJson()
 -- Purpose: Cast the sample json to row 0
 -- parameter values: 'corporate_account', 'customer', 'auth', 'customer_wallets', 'tradable_assets', 'asset_rate_history', 
--- 					  'wallet_ledger', 'products', 'inventory', 'money_manager', 'credit_card', 'outbound_messages', 'row_metadata',
+-- 					  'wallet_ledger', 'products', 'inventory', 'money_manager', 'credit_card', 'outbound_messages', 
+-- 					  'activity_log', 'row_metadata',
 --
 --
 --
@@ -873,6 +874,37 @@ BEGIN
 								"send_attempts":               0,                                          "_comment_send_attempts":                   "Send attempt count",
 								"number_of_retries":            3,                                          "_comment_number_of_retries":               "Max retry attempts"
 							}
+						}' AS JSON);
+
+-- =======================================================================
+-- activity_log.user_info.web_request.internal_call
+-- =======================================================================
+		WHEN 'activity_log' THEN
+			RETURN CAST(
+						'{
+						  "user_info": {
+							"app_name": "GFT App",
+							"user_id": "CUST_1001",
+							"device_info": "Android 14",
+							"client_ip": "192.168.1.10",
+							"latitude": "31.5204",
+							"longitude": "74.3587"
+						  },
+						  "web_request": {
+							"action_code": "LOGIN",
+                            "action_status": "success",
+							"failure_reason": null,
+							"json_request": { "loginId": "ali375", "password": "***" },
+                            "request_time": "2026-02-19 16:47:00",
+							"json_response": { "status": "success" },
+                            "response_time": "2026-02-19 16:47:00",
+                            "notes": null
+						  },
+						  "internal_call": {
+							"caller_name": "loginCustomer",
+							"result": "OK",
+							"notes": "Validated successfully"
+						  }
 						}' AS JSON);
 		
 -- =======================================================================

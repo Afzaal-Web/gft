@@ -6,6 +6,7 @@
     "logged_by":             "SYSTEM",                      "_comment_logged_by":              "Who generated the log",
     "application_name":      "GFT Web App",                 "_comment_application_name":      "Source application",
 
+
     "application_context": {
         "module_name":       "Orders",                     "_comment_module_name":           "Application module",
         "view_name":         "OrderDetails",               "_comment_view_name":             "UI view or screen",

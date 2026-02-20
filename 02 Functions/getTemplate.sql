@@ -2,7 +2,8 @@
 -- FUNCTION Name:  getTemplate()
 -- Purpose: template of the JSON for the table column with data type json
 -- parameter values: 'corporate_account', 'customer', 'auth', 'customer_wallets', 'tradable_assets', 'asset_rate_history', 
--- 					  'wallet_ledger', ,'products', 'inventory', 'money_manager', 'credit_card', 'transaction_life_cycle', 'row_metadata',
+-- 					  'wallet_ledger', ,'products', 'inventory', 'money_manager', 'credit_card', 'transaction_life_cycle', 'outbound_msgs', 
+-- 					  'app_preferences', 'activity_log', 'row_metadata',
 --
 --
 --
@@ -751,6 +752,63 @@ BEGIN
 								"send_attempts":               null,
 								"number_of_retries":           null
 							}
+						}' AS JSON);
+
+-- =======================================================================
+-- app_preferences.app_preferences_json
+-- =======================================================================
+		WHEN 'app_preferences' THEN
+			RETURN CAST(
+						'{
+							"preference_rec_id":      null,
+                            "customer_rec_id":        null,
+							"preference_key":         null,
+							"preference_value":       null,
+
+							
+							"application_scope": {
+								"application_name":   null,
+								"module_name":        null,
+								"environment":        null
+							},
+
+							"preference_behavior": {
+								"is_user_editable":   null,
+								"is_system_defined":  null,
+								"effective_from":     null,
+								"effective_until":    null
+							}
+						}' AS JSON);
+	
+-- =======================================================================
+-- activity_log.user_info.web_request.internal_call
+-- =======================================================================
+		WHEN 'activity_log' THEN
+			RETURN CAST(
+						'{
+						  "user_info": {
+										"app_name": null,
+										"user_id": null,
+										"device_info": null,
+										"client_ip": null,
+										"latitude": null,
+										"longitude": null
+									  },
+						  "web_request": {
+										"action_code": null,
+										"action_status": null,
+										"failure_reason": null,
+										"json_request": {},
+										"request_time": null,
+										"json_response": {},
+										"response_time": null,
+										"notes": null
+									  },
+						  "internal_call": {
+											"caller_name": null,
+											"result": null,
+											"notes": null
+										  }
 						}' AS JSON);
 	
 -- =======================================================================
