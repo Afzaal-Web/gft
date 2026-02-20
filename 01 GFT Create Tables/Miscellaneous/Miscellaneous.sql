@@ -6,6 +6,48 @@ SET SESSION sql_mode='NO_AUTO_VALUE_ON_ZERO';
 -- Miscellaneous Module Started
 
 -- ===============================================
+-- activity_log Table Started
+-- ===============================================
+DROP TABLE IF EXISTS activity_log;
+
+CREATE TABLE IF NOT EXISTS activity_log (
+
+    activity_log_rec_id		INT 					PRIMARY KEY AUTO_INCREMENT,
+    
+    logging_object       	VARCHAR(64),          -- procedure / API name
+    parent_table_name     	VARCHAR(64),
+    parent_table_id       	INT,
+	log_time 				DATETIME,
+    
+	user_info			  	JSON,
+
+    web_request				JSON,
+
+	internal_call			JSON,
+    
+    row_meta_data 			JSON
+);
+INSERT INTO activity_log
+SET
+    activity_log_rec_id 		= 0,
+    logging_object             	= 'placeOrder',
+    parent_table_name			= 'Orders',
+    parent_table_id        		= 0,
+    log_time              		= NOW(),
+
+	user_info					= JSON_EXTRACT(castJson('activity_log'),'$.user_info'),
+    web_request					= JSON_EXTRACT(castJson('activity_log'), '$.web_request'),
+    internal_call				= JSON_EXTRACT(castJson('activity_log'), '$.internal_call'),
+    
+    row_meta_data				= castJson('row_metadata');
+
+
+
+
+
+
+
+-- ===============================================
 -- outbound_messages Table Started
 -- ===============================================
 
@@ -14,7 +56,7 @@ DROP TABLE IF EXISTS outbound_msgs;
 -- Create outbound_messages Table
 -- ===============================================
 CREATE TABLE IF NOT EXISTS outbound_msgs (
-    outbound_msgs_rec_id     		INT                            PRIMARY KEY AUTO_INCREMENT,
+    outbound_msgs_rec_id     		    INT                            PRIMARY KEY AUTO_INCREMENT,
     message_guid                 		VARCHAR(100)                   NOT NULL UNIQUE,
     parent_message_table_name    		VARCHAR(100),           
 	parent_message_table_rec_id      	INT,                                  
@@ -199,6 +241,7 @@ DROP TABLE IF EXISTS app_preferences;
 -- ===============================================
 CREATE TABLE IF NOT EXISTS app_preferences (
     preference_rec_id      INT                                  PRIMARY KEY AUTO_INCREMENT,
+    customer_rec_id		   INT,
     preference_key         VARCHAR(100),                         
     preference_value       VARCHAR(100),                                 
 
@@ -214,12 +257,14 @@ CREATE TABLE IF NOT EXISTS app_preferences (
 INSERT INTO app_preferences
 SET
     preference_rec_id 		 = 0,
+    customer_rec_id 		 = 0,
     preference_key    		 = 'default_currency',
     preference_value  		 = 'USD',
 
     app_preferences_json	 = JSON_OBJECT(
     
         'preference_rec_id', 0,                                 '_comment_preference_rec_id', 'Auto-increment preference record ID',
+        'customer_rec_id', 0,                                 	'_comment_customer_rec_id', 'user rec id of the customer',
         'preference_key', 'default_currency',                   '_comment_preference_key', 'Preference unique key',
         'preference_value', 'USD',                               '_comment_preference_value', 'Preference configured value',
 
