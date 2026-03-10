@@ -7,11 +7,11 @@ CREATE PROCEDURE queueOutboundMessage (
 										OUT pResObj JSON
 									)
 BEGIN
-	DECLARE v_outbound_msgs_rec_id	INT;
-    DECLARE v_message_guid 			VARCHAR(100);
-    DECLARE v_new_json 				JSON;
-    DECLARE v_outbound_msgs_json	JSON;
-    DECLARE v_row_metadata			JSON;
+	DECLARE v_outbound_msgs_rec_id		INT;
+    DECLARE v_message_guid 				VARCHAR(100);
+    DECLARE v_new_json 					JSON;
+    DECLARE v_outbound_msgs_json		JSON;
+    DECLARE v_row_metadata				JSON;
 
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
@@ -98,10 +98,6 @@ DELIMITER ;
 
 
 -- Test Scripts
-
--- =============================================
--- Test Case 1: Normal Email Queue
--- =============================================
 
 -- =========================
 -- Test Script for queueOutboundMessage

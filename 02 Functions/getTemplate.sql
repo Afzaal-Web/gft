@@ -3,7 +3,7 @@
 -- Purpose: template of the JSON for the table column with data type json
 -- parameter values: 'corporate_account', 'customer', 'auth', 'customer_wallets', 'tradable_assets', 'asset_rate_history', 
 -- 					  'wallet_ledger', ,'products', 'inventory', 'money_manager', 'credit_card', 'transaction_life_cycle', 'outbound_msgs', 
--- 					  'app_preferences', 'activity_log', 'row_metadata',
+-- 					  'app_preferences', 'activity_log', 'document_management', 'row_metadata',
 --
 --
 --
@@ -809,6 +809,50 @@ BEGIN
 											"result": null,
 											"notes": null
 										  }
+						}' AS JSON);
+
+-- =======================================================================
+-- document_management.document_management_json
+-- =======================================================================
+		WHEN 'document_management' THEN
+			RETURN CAST(
+						'{
+							"document_management_rec_id":   null,
+							"customer_rec_id":              null,
+							"employee_rec_id":              null,
+
+							"document_details": {
+								"doc_type":                 null,
+								"file_name":                null,
+								"file_path":                null,
+								"mime_type":                null
+							},
+
+							"status_lifecycle": {
+								"status":                   null,
+								"is_mandatory":             null,
+								"is_latest_version":        null,
+								"is_deleted":               null
+							},
+
+							"time_tracking": {
+								"uploaded_at":             null,
+								"reviewed_at":             null,
+								"expiry_at":               null,
+								"last_updated_at":         null,
+								"last_accessed_at":        null,
+								"deleted_at":              null
+							},
+
+							"audit": {
+								"reviewed_by_rec_id":       null,
+								"deleted_by_rec_id":        null,
+								"remarks":                  null
+							},
+
+							"access_permissions": {
+								"download_allowed_to":      []
+							}
 						}' AS JSON);
 	
 -- =======================================================================

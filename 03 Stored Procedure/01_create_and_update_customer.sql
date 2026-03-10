@@ -180,8 +180,8 @@ BEGIN
 													  );
 
 			UPDATE  customer
-			SET 	customer_json  	= v_customer_json
-			WHERE   customer_rec_id = v_customer_rec_id;
+			SET 	customer_json  	  = v_customer_json
+			WHERE   customer_rec_id   = v_customer_rec_id;
 				
 				 /* ---------- get Auth JSON ---------- */
 			SET v_auth_json 	= getTemplate('auth');
@@ -215,7 +215,7 @@ BEGIN
 
 			UPDATE  auth
 			SET 	auth_json 	  = v_auth_json
-			WHERE   auth_rec_id = v_auth_rec_id;
+			WHERE   auth_rec_id   = v_auth_rec_id;
             
             INSERT INTO password_history
 			SET 	parent_table_name   		= 'customer',
@@ -245,8 +245,6 @@ BEGIN
 
 			CLOSE asset_cursor;
             
-
-
 
 
 		/* ***************************************************************************************** */            

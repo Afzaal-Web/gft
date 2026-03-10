@@ -11,6 +11,7 @@ BEGIN
     DECLARE v_login_id              VARCHAR(255);
     DECLARE v_preference_key        VARCHAR(255);
     DECLARE v_preference_value      VARCHAR(255);
+    DECLARE v_preference_rec_id 	INT;
 
     DECLARE v_customer_rec_id       INT;
     DECLARE v_existing_pref_id      INT;
@@ -75,8 +76,8 @@ BEGIN
         -- =========================
         -- Determine Effective Dates
         -- =========================
-        SET v_effective_from  = NULL;
-        SET v_effective_until = NULL;
+        SET v_effective_from  	= NULL;
+        SET v_effective_until 	= NULL;
 
         -- FIRST TIME
         IF v_existing_pref_id IS NULL THEN
@@ -101,8 +102,8 @@ BEGIN
             -- If same value → keep old dates
             ELSE
 
-                SET v_effective_from  = getJval(v_existing_json,  '$.preference_behavior.effective_from');
-                SET v_effective_until = getJval(v_existing_json, '$.preference_behavior.effective_until');
+                SET v_effective_from  = getJval(v_existing_json,  'preference_behavior.effective_from');
+                SET v_effective_until = getJval(v_existing_json,  'preference_behavior.effective_until');
 
             END IF;
 
@@ -139,19 +140,30 @@ BEGIN
         IF v_existing_pref_id IS NULL THEN
 
             INSERT INTO app_preferences
-            SET customer_rec_id      = v_customer_rec_id,
-                preference_key       = v_preference_key,
-                preference_value     = v_preference_value,
-                app_preferences_json = v_app_preferences_json,
-                row_metadata         = v_row_metadata;
+            SET customer_rec_id      	= v_customer_rec_id,
+                preference_key       	= v_preference_key,
+                preference_value     	= v_preference_value,
+                app_preferences_json 	= v_app_preferences_json,
+                row_metadata         	= v_row_metadata;
+			
+            SET v_preference_rec_id 	= LAST_INSERT_ID();
+            
+			SET v_app_preferences_json	= JSON_SET( v_app_preferences_json,
+													'$.preference_rec_id', 	v_preference_rec_id,
+                                                    '$.customer_rec_id', 	v_customer_rec_id
+												  );
+                                                            
+			UPDATE  app_preferences
+			SET 	app_preferences_json  	= v_app_preferences_json
+			WHERE   preference_rec_id 		= v_preference_rec_id;
+            
 
         ELSE
-
             UPDATE app_preferences
-            SET preference_value      = v_preference_value,
-                app_preferences_json  = v_app_preferences_json,
-                row_metadata          = v_row_metadata
-            WHERE preference_rec_id = v_existing_pref_id;
+            SET preference_value      	= v_preference_value,
+                app_preferences_json  	= v_app_preferences_json,
+                row_metadata          	= v_row_metadata
+            WHERE preference_rec_id  	= v_existing_pref_id;
 
         END IF;
 
@@ -159,9 +171,9 @@ BEGIN
         -- Success Response
         -- =========================
         SET pResObj = JSON_OBJECT(
-            'status', 'success',
-            'message', 'Preference saved successfully'
-        );
+									'status', 'success',
+									'message', 'Preference saved successfully'
+								);
 
     END main_block;
 
