@@ -6,9 +6,10 @@
   "receipt_number"                          : "RCT-2026-0001",
   "order_date"                              : "NOW()",
   "order_status"                            : "Pending",                                    "_comment_order_status"               : "Order status: Pending, Completed, Cancelled, etc",
+  "next_action_required"                    : "Approval",                                    "_comment_next_action_required"       : "Next action required to move order forward",
   "order_cat"                               : "GTC",                                        "_comment_order_type"                 : "Order type: DO: DAY ORDER, IOC: Immediate or cancel, GTC = Good till cancelled. etc",
   "order_type"                              : "Buy",                                        "_comment_transaction_type"           : "Transaction type: Buy, Sell, redeem, exchange",     
-
+  "metal"                                   : "Gold",                                        "_comment_metal"                      : "Metal being traded", 
 
   "customer_info" : 
   {
@@ -25,14 +26,11 @@
         "notes"                             : "Initial buy order placed by customer"
   },
 
-  "items": 
-  [
-      {
-        "item_code"                         : "gLD-2412",                                   "_comment_buy_item_id"                : "Bought item Unique ID",
-        "item_name"                         : "Gold Bar",                                   "item_type"                           : "Metal",
-        
-
-        "rate_info" :  
+  "customer_request":{
+       "anything from customer type (limit order) will be here": "dd"
+  },
+   
+    "rate_info" :  
         {
             "rate_rec_id"                     : 55,                                        "_comment_rate_rec_id"                 : "Rate record reference ID",
             "spot_rate"                       : 4433.85,                                   "_comment_spot_rate"                   : "Spot market rate",
@@ -41,31 +39,35 @@
             "foreign_exchange_rate"           : 278.50,                                    "_comment_foreign_exchange_rate"       : "FX conversion rate",
             "foreign_exchange_source"         : "OpenExchange",                            "_comment_foreign_exchange_source"     : "FX rate source"
         },
+      
+     "buy_items": [ 
+      {
+        "item_code"                         : "gLD-2412",                                   "_comment_buy_item_id"                : "Bought item Unique ID",
+        "item_name"                         : "Gold Bar",                                   "item_type"                           : "Metal",
+        "item_quantity"                     : "5",                                        "_comment_buy_quantity"              : "Quantity purchased",
+        "item_weight"                       : "2 g",                                        "_comment_buy_weight"                : "Weight purchased"
+       }
+     ] ,
+ 
+  
+  "sell_items": [{
+        "item_code"                         : "gLD-2412",                                   "_comment_buy_item_id"                : "Bought item Unique ID",
+        "item_name"                         : "Gold Bar",                                   "item_type"                           : "Metal",
+         "item_quantity"                     : "5",                                        "_comment_buy_quantity"              : "Quantity purchased",
+        "item_weight"                       : "2 g",                                        "_comment_buy_weight"                : "Weight purchased"
+        
+  }
+],
 
-        "transaction": {
-            "credit": {
-              "wallet_type"                   : "Gold",                                    "_comment_buy_weight"                          : "Weight purchased",
-              "balance_before"                : "3 g" ,                                    "_comment_product_weight_before_transaction"   : "Weight before",
-              "transaction_amount"            : "2 g",                                     "_comment_buy_quantity"                        : "Quantity purchased",
-              "balance_after"                 : "5 g",                                     "_comment_product_weight_after_transaction"    : "Weight after",
-              "ledger_id"                     : 12,                                        "_comment_ledger_id"                           : "Ledger entry reference ID"
-            },
-
-            "debit": {
-              "wallet_type"                   : "Cash",                                   "_comment_buy_weight"                          : "Weight purchased",
-              "balance_before"                : "PKR 75,230",                             "_comment_product_weight_before_transaction"   : "Weight before",
-              "transaction_amount"            : "PKR 25,530",                             "_comment_buy_quantity"                        : "Quantity purchased",
-              "balance_after"                 : "PKR 49,700",                             "_comment_product_weight_after_transaction"    : "Weight after",
-              "ledger_id"                     : 321,                                      "_comment_ledger_id"                           : "Ledger entry reference ID"  
-            }
-        }
-      }
-  ],
-
-
-  "order_charges" : 
-  {
-        "items_total_amount"       : 44338.50,                                            "_comment_items_total_amount"           : "Total items amount",
+"order_summary": {
+      "total_buy_items"                   : 1,                                       
+      "total_sell_items"                   : 1,                                      
+      "total_buy_amount"                  : 44338.50,                                
+      "total_sell_amount"                  : 44338.50,                               
+                                    
+      "total_buy_weight"                  : "2 g",    
+      "total_sell_weight"                  : "2 g",
+      "items_total_amount"       : 44338.50,                                            "_comment_items_total_amount"           : "Total items amount",
         "making_charges"           : 500.00,                                              "_comment_making_charges"               : "Making charges",
         "premium_charged"          : 150.00,                                              "_comment_premium_charged"              : "Premium charged",
         "transaction_fee"          : 50.00,                                               "_comment_transaction_fee"              : "Transaction fee",
@@ -73,8 +75,22 @@
         "taxes"                    : 775.00,                                              "_comment_taxes"                        : "Taxes applied",
         "taxes_description"        : "GST 18%",                                           "_comment_taxes_description"            : "Tax description",
         "total_discounts"          : 0.00,                                                "_comment_total_discounts"              : "Discounts applied",
-        "total_order_amount"       : 45838.50,                                            "_comment_total_order_amount"           : "Final payable amount"
-  },
+        "total_order_amount"       : 45838.50,                                            "_comment_total_order_amount"           : "Final payable amount"                                    
+
+},
+ "transactions": { 
+      
+            "transaction_num": "TXN-2026-0001",                                 "_comment_transaction_num"              : "Unique transaction reference number",
+            "transaction_type": "credit",                                     "debit or credit"                         : "Indicates whether the transaction is a debit or credit",
+              "wallet_type"                   : "Gold",                                    "_comment_buy_weight"                          : "Weight purchased",
+              "balance_before"                : "3 g" ,                                    "_comment_product_weight_before_transaction"   : "Weight before",
+              "transaction_amount"            : "2 g",                                     "_comment_buy_quantity"                        : "Quantity purchased",
+              "balance_after"                 : "5 g",                                     "_comment_product_weight_after_transaction"    : "Weight after",
+              "ledger_id"                     : 12,                                        "_comment_ledger_id"                           : "Ledger entry reference ID"
+            },
+        
+
+
 
   "order_pickup_info" :
   {
