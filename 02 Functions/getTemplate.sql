@@ -3,7 +3,7 @@
 -- Purpose: template of the JSON for the table column with data type json
 -- parameter values: 'corporate_account', 'customer', 'auth', 'customer_wallets', 'tradable_assets', 'asset_rate_history', 
 -- 					  'wallet_ledger', ,'products', 'inventory', 'money_manager', 'credit_card', 'transaction_life_cycle', 'outbound_msgs', 
--- 					  'app_preferences', 'activity_log', 'document_management', 'row_metadata',
+-- 					  'app_preferences', 'activity_log', 'document_management', 'orders', 'row_metadata',
 --
 --
 --
@@ -855,6 +855,147 @@ BEGIN
 							}
 						}' AS JSON);
 	
+-- =======================================================================
+-- orders.orders_json
+-- =======================================================================
+		WHEN 'orders' THEN
+			RETURN CAST(
+						'{
+							"order_rec_id"                : null,
+							"customer_rec_id"             : null,
+							"account_number"              : null,
+							"order_number"                : null,
+							"receipt_number"              : null,
+							"order_date"                  : null,
+							"order_status"                : null,
+							"next_action_required"        : null,
+							"order_cat"                   : null,
+							"order_type"                  : null,
+							"metal"                       : null,
+							"customer_info" :
+							{
+								"customer_rec_id"             : null,
+								"customer_name"               : null,
+								"customer_account_number"     : null,
+								"customer_phone"              : null,
+								"whatsapp"                    : null,
+								"customer_email"              : null,
+								"customer_address"            : null,
+								"customer_ip_address"         : null,
+								"latitude"                    : null,
+								"longitude"                   : null,
+								"notes"                       : null
+							},
+							"customer_request" :
+							{
+								"rate"                        : null,
+								"amount"                      : null,
+								"weight"                      : null,
+								"Expiration_time"             : null,
+								"is_partial_fill_allowed"     : null,
+								"qty_to_buy"                  : null,
+								"date_of_purchase"            : null,
+								"quality"                     : null,
+								"payment_method"              : null,
+								"additional_notes"            : null,
+								"product_images"              : null
+							},
+							"rate_info" :
+							{
+								"rate_rec_id"                 : null,
+								"spot_rate"                   : null,
+								"currency_unit"               : null,
+								"rate_source"                 : null,
+								"foreign_exchange_rate"       : null,
+								"foreign_exchange_source"     : null
+							},
+							"buy_items":
+							[
+								{
+									"item_code"               : null,
+									"item_name"               : null,
+									"item_type"               : null,
+									"item_quantity"           : null,
+									"item_weight"             : null,
+									"bought_price"            : null
+								}
+							],
+							"sell_items":
+							[
+								{
+									"item_code"               : null,
+									"item_name"               : null,
+									"item_type"               : null,
+									"item_quantity"           : null,
+									"item_weight"             : null,
+									"sold_price"              : null
+								}
+							],
+							"order_summary":
+							{
+								"total_buy_items"             : null,
+								"total_buy_amount"            : null,
+								"total_buy_weight"            : null,
+								"total_sell_items"            : null,
+								"total_sell_amount"           : null,
+								"total_sell_weight"           : null,
+								"items_total_amount"          : null,
+								"making_charges"              : null,
+								"premium_charged"             : null,
+								"transaction_fee"             : null,
+								"processing_charges"          : null,
+								"taxes"                       : null,
+								"taxes_description"           : null,
+								"total_discounts"             : null,
+								"total_order_amount"          : null
+							},
+							"transactions":
+							{
+								"transaction_num"             : null,
+								"transaction_type"            : null,
+								"wallet_type"                 : null,
+								"balance_before"              : null,
+								"transaction_amount"          : null,
+								"balance_after"               : null,
+								"ledger_id"                   : null
+							},
+							"order_pickup_info" :
+							{
+								"pickup_required"             : null,
+								"store_address"               : null,
+								"pickup_status"               : null,
+								"pickup_date"                 : null,
+								"pickup_tracking_number"      : null
+							},
+							"order_approval" :
+							{
+								"authentication_process_rec_id" : null,
+								"authentication_status"         : null,
+								"otp_method_email"              : null,
+								"otp_method_phone"              : null,
+								"finger_print_used"             : null,
+								"face_recognition_used"         : null,
+								"call_back_confirmation_used"   : null,
+								"approved_by_rec_id"            : null,
+								"approved_by_name"              : null,
+								"approval_number"               : null,
+								"approved_at"                   : null
+							},
+							"contract_info" :
+							{
+								"contract_number"               : null,
+								"contract_executed_at"          : null,
+								"contract_terms_and_conditions" : null
+							},
+							"fulfillment_info" :
+							{
+								"fulfillment_status"            : null,
+								"fulfilled_at"                  : null,
+								"delivery_method"               : null,
+								"tracking_number"               : null,
+								"estimated_delivery_date"       : null
+							}
+						}' AS JSON);
 -- =======================================================================
 -- row_metadta for all tables
 -- =======================================================================
