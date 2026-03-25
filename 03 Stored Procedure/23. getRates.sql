@@ -102,11 +102,3 @@ END $$
 DELIMITER ;
 
 
-SET @req = CAST('{
-  "P_ASSET_CODE": "SLV",
-  "P_CURRENCY": "EUR"
-}' AS JSON);
-
-SET @res = '';
-CALL getRates(@req, @res);
-SELECT @res;

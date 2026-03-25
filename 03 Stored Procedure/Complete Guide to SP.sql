@@ -1,3 +1,9 @@
+-- ==================================================================================================
+-- Purpose:     to get all info regarding stored procedures in MySQL, 
+--              including how to create, use, and manage them effectively.
+-- ==================================================================================================
+
+
 -- Basic Stored Procedure Structure
 
 DELIMITER $$

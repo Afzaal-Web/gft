@@ -1,3 +1,8 @@
+-- ==================================================================================================
+-- Procedure:   getInventory
+-- Purpose:     get the json of inventory with queried rec id
+-- ==================================================================================================
+
 DROP PROCEDURE IF EXISTS getInventory;
 
 DELIMITER $$

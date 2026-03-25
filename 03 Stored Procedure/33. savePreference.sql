@@ -1,3 +1,9 @@
+-- ==================================================================================================
+-- Procedure:   savePreferences
+-- Purpose:     save or update user preferences
+-- ==================================================================================================
+
+
 DROP PROCEDURE IF EXISTS savePreferences;
 
 DELIMITER $$

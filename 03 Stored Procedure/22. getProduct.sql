@@ -1,3 +1,8 @@
+-- ==================================================================================================
+-- Procedure:   getProduct
+-- Purpose:     get the json of product with queried rec id
+-- ==================================================================================================
+
 DROP PROCEDURE IF EXISTS getProduct;
 
 DELIMITER $$

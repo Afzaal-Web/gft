@@ -1,3 +1,9 @@
+-- ==================================================================================================
+-- Procedure:   generateUsername
+-- Purpose:     generate a unique username for a user
+-- ==================================================================================================
+
+
 DROP PROCEDURE IF EXISTS generateUsername;
 DELIMITER $$
 

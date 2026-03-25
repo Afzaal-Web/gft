@@ -1,3 +1,8 @@
+-- ==================================================================================================
+-- Procedure:   getCreditCard
+-- Purpose:     get the json of credit card with queried rec id
+-- ==================================================================================================
+
 DROP PROCEDURE IF EXISTS getCreditCard;
 
 DELIMITER $$

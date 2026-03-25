@@ -1,3 +1,8 @@
+-- ==================================================================================================
+-- Procedure:   getCustomer
+-- Purpose:     get the json of customer with queried rec id
+-- ==================================================================================================
+
 DROP PROCEDURE IF EXISTS getCustomer;
 
 DELIMITER $$

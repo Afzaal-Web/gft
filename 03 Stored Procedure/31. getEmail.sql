@@ -1,3 +1,8 @@
+-- ==================================================================================================
+-- Procedure:   queueOutboundMessage
+-- Purpose:     queue an outbound message for delivery
+-- ==================================================================================================
+
 DROP PROCEDURE IF EXISTS queueOutboundMessage;
 
 DELIMITER $$
@@ -97,54 +102,6 @@ END $$
 DELIMITER ;
 
 
--- Test Scripts
 
--- =========================
--- Test Script for queueOutboundMessage
--- =========================
-
-SET @reqObj = JSON_OBJECT(
-    "parent_message_table_name", "feedback",
-    "parent_message_table_rec_id", 101,
-    "object_name", "feedback",
-
-    "business_context", JSON_OBJECT(
-        "module_name", "Customer Module",
-        "message_name", "Feedback Submission",
-        "message_type", "Email",
-        "notes", "Customer submitted feedback",
-        "login_id", 1001
-    ),
-
-    "recipient_info", JSON_OBJECT(
-        "to_address", "csr@gft.com",
-        "cc_list", JSON_ARRAY(),
-        "bcc_list", JSON_ARRAY(),
-        "is_email_verified", TRUE
-    ),
-
-    "sender_info", JSON_OBJECT(
-        "from_name", "GFT Support",
-        "from_address", "no-reply@gft.com"
-    ),
-
-    "message_content", JSON_OBJECT(
-        "message_subject", "New Feedback Received",
-        "message_body", JSON_OBJECT(
-            "customer_name", "Ali Khan",
-            "email", "ali.khan@example.com",
-            "phone", "03001234567",
-            "feedback_type", "Product Issue",
-            "comments", "The product arrived damaged."
-        ),
-        "attachment_list", JSON_ARRAY()
-    )
-);
-
--- Call the procedure
-CALL queueOutboundMessage(@reqObj, @resObj);
-
--- View procedure response
-SELECT @resObj AS response;
 
 

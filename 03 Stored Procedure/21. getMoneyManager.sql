@@ -1,3 +1,8 @@
+-- ==================================================================================================
+-- Procedure:   getMoneyManager
+-- Purpose:     get the json of money manager with queried rec id
+-- ==================================================================================================
+
 DROP PROCEDURE IF EXISTS getMoneyManager;
 
 DELIMITER $$

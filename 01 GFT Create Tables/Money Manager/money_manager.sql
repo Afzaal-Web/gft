@@ -22,7 +22,6 @@ CREATE TABLE IF NOT EXISTS money_manager (
     transaction_type 				ENUM('cash deposit','bank transfer', 'check deposit', 'e wallets', 'credit card')	NOT NULL,
     backoffice_post_number			VARCHAR(255),
     trans_posted_at 				DATETIME,
-
     money_manager_json			 	JSON,
     row_metadata 					JSON
 );

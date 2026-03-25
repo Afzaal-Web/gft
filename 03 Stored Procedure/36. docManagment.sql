@@ -1,3 +1,8 @@
+-- ==================================================================================================
+-- Procedure:   documentManagment
+-- Purpose:     manage document uploads for customers and employees
+-- ==================================================================================================
+
 DROP PROCEDURE IF EXISTS documentManagment;
 
 
@@ -185,27 +190,3 @@ END $$
 
 DELIMITER ;
 
-
-SET @req = JSON_OBJECT(
-    'P_LOGIN_ID', 'khan@gmail.com',
-    'P_USER_TYPE', 'CUSTOMER',
-    'P_DOC_TYPE', 'CNIC',
-    'P_NOTES', 'Front side copy',
-    'P_ATTACHMENT_URL', 'https://files/cnic_front.jpg'
-);
-
-CALL documentManagment(@req, @res);
-SELECT @res;
-
-
--- Prepare request JSON
-
-
--- Declare output variable
-SET @res = NULL;
-
--- Call the procedure
-CALL documentManagment(@req, @res);
-
--- Check the output
-SELECT @res;
