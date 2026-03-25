@@ -3,7 +3,7 @@
 -- Purpose: Cast the sample json to row 0
 -- parameter values: 'corporate_account', 'customer', 'auth', 'customer_wallets', 'tradable_assets', 'asset_rate_history', 
 -- 					  'wallet_ledger', 'products', 'inventory', 'money_manager', 'credit_card', 'outbound_messages', 
--- 					  'activity_log', 'row_metadata',
+-- 					  'activity_log', 'orders',  'row_metadata',
 --
 --
 --
@@ -907,6 +907,164 @@ BEGIN
 						  }
 						}' AS JSON);
 		
+-- =======================================================================
+-- orders.orders_json
+-- =======================================================================
+		WHEN 'orders' THEN
+			RETURN CAST(
+						'{
+							"order_rec_id"                                : 0,
+							"customer_rec_id"                             : 101,                                          
+							"account_number"                              : "CUS-001",                                    
+							"order_number"                                : "ORD-2026-0001",
+							"receipt_number"                              : "RCT-2026-0001",
+							"order_date"                                  : "NOW()",
+							"order_status"                                : "Pending",                                   "_comment_order_status"               : "Order status: Pending, Completed, Cancelled, etc",
+							"next_action_required"                        : "Approval",                                  "_comment_next_action_required"       : "Next action required to move order forward",
+							"order_cat"                                   : "GTC",                                       "_comment_order_type"                 : "Order type: DO: DAY ORDER, IOC: Immediate or cancel, GTC = Good till cancelled. etc",
+							"order_type"                                  : "Buy",                                       "_comment_transaction_type"           : "Transaction type: Buy, Sell, redeem, exchange",     
+							"metal"                                       : "Gold",                                      "_comment_metal"                      : "Metal being traded", 
+
+							"customer_info" : 
+							{
+								"customer_rec_id"                         : 101,                                         "_comment_customer_rec_id"             : "Unique customer record ID",
+								"customer_name"                           : "Ali Raza",                                  "_comment_customer_name"               : "Full name of customer",
+								"customer_account_number"                 : "CUS-001",                                   "_comment_customer_account_number"     : "Customer account number",
+								"customer_phone"                          : "+92-300-9876543",                           "_comment_customer_phone"              : "Primary phone number",
+								"whatsapp"                                : "+92-300-9876543",                           "_comment_whatsapp"                    : "WhatsApp contact number",
+								"customer_email"                          : "ali.raza@email.com",                        "_comment_customer_email"              : "Customer email address",
+								"customer_address"                        : "Karachi, Pakistan",                         "_comment_customer_address"            : "Residential or billing address",
+								"customer_ip_address"                     : "192.168.1.25",
+								"latitude"                                : 24.860735,
+								"longitude"                               : 67.001137,
+								"notes"                                   : "Initial buy order placed by customer"
+							},
+
+							"customer_request" :
+							{
+								"rate"                                    : 4433.85,                                      "_comment_customer_requested_rate"          : "Customer requested rate for the order",
+								"amount"                                  : 44338.50,                                     "_comment_customer_requested_amount"        : "Customer requested  amount for the order",
+								"weight"                                  : "2 g",                                        "_comment_customer_requested_weight"        : "Customer requested weight for the order",
+								"Expiration_time"                         : "2026-12-31T23:59:59Z",                       "_comment_customer_request_expiration"      : "Expiration time for the customer''s requested rate/amount/weight",
+								"is_partial_fill_allowed"                 : true,                                         "_comment_customer_request_partial_fill"    : "Indicates if partial fills are allowed for the customer''s request",
+								"qty_to_buy"                              : 5,                                            "_comment_customer_request_qty_to_buy"      : "Quantity customer wants to buy",
+								"date_of_purchase"                        : "NOW()",                                      "_comment_customer_request_date_of_purchase" : "Date when customer made the request",
+								"quality"                                 : "24K",                                        "_comment_customer_request_quality"         : "Quality of the metal requested by the customer",
+								"payment_method"                          : "Bank Transfer",                              "_comment_customer_request_payment_method"   : "Customer''s preferred payment method",
+								"additional_notes"                        : "Customer prefers delivery within 3 days",    "_comment_customer_request_additional_notes" : "Any additional notes or instructions from the customer regarding their request",
+								"product_images"                          : ["array of product images urls"],             "_comment_customer_request_product_images" : "URLs of product images provided by the customer"
+							},
+							
+							"rate_info" :
+							{
+								"rate_rec_id"                             : 55,                                           "_comment_rate_rec_id"                 : "Rate record reference ID",
+								"spot_rate"                               : 4433.85,                                      "_comment_spot_rate"                   : "Spot market rate",
+								"currency_unit"                           : "PKR",                                        "_comment_currency_unit"               : "Currency unit",
+								"rate_source"                             : "metals-api",                                 "_comment_rate_source"                 : "Source of spot rate",
+								"foreign_exchange_rate"                   : 278.50,                                       "_comment_foreign_exchange_rate"       : "FX conversion rate",
+								"foreign_exchange_source"                 : "OpenExchange",                               "_comment_foreign_exchange_source"     : "FX rate source"
+							},
+								
+							"buy_items": 
+							[
+								{
+								"item_code"                              : "gLD-2412",                                  "_comment_buy_item_id"                : "Bought item Unique ID",
+								"item_name"                              : "Gold Bar",                                 
+								"item_type"                              : "Metal",
+								"item_quantity"                          : "5",                                         "_comment_buy_quantity"               : "Quantity purchased",
+								"item_weight"                            : "2 g",                                       "_comment_buy_weight"                 : "Weight purchased",
+								"bought_price"                           : 44338.50,                                    "_comment_bought_item_price"          : "Price per unit of the item"
+								}
+							],
+								
+							"sell_items":
+							[
+								{
+								"item_code"                              : "gLD-2412",                                   "_comment_buy_item_id"                : "Bought item Unique ID",
+								"item_name"                              : "Gold Bar",                                  
+								"item_type"                              : "Metal",
+								"item_quantity"                          : "5",                                        "_comment_buy_quantity"              : "Quantity purchased",
+								"item_weight"                            : "2 g",                                        "_comment_buy_weight"                : "Weight purchased",
+								"sold_price"                             : 44338.50,                                   "_comment_sell_item_price"           : "Price per unit of the item"    
+								}
+							],
+
+							"order_summary": 
+							{
+								"total_buy_items"                        : 1,
+								"total_buy_amount"                       : 44338.50,
+								"total_buy_weight"                       : "2 g",                                 
+								"total_sell_items"                       : 1,                              
+								"total_sell_amount"                      : 44338.50,
+								"total_sell_weight"                      : "2 g",
+								"items_total_amount"                     : 44338.50,                                  "_comment_items_total_amount"           : "Total items amount",
+
+								"making_charges"                         : 500.00,                                    "_comment_making_charges"               : "Making charges",
+								"premium_charged"                        : 150.00,                                    "_comment_premium_charged"              : "Premium charged",
+								"transaction_fee"                        : 50.00,                                     "_comment_transaction_fee"              : "Transaction fee",
+								"processing_charges"                     : 25.00,                                     "_comment_processing_charges"           : "Processing fee",
+								"taxes"                                  : 775.00,                                    "_comment_taxes"                        : "Taxes applied",
+								"taxes_description"                      : "GST 18%",                                 "_comment_taxes_description"            : "Tax description",
+								"total_discounts"                        : 0.00,                                      "_comment_total_discounts"              : "Discounts applied",
+
+								"total_order_amount"                     : 45838.50,                                  "_comment_total_order_amount"           : "Final payable amount"                                    
+							},
+							
+							"transactions": 
+							{ 
+								"transaction_num"                        : "TXN-2026-0001",                           "_comment_transaction_num"              : "Unique transaction reference number",
+								"transaction_type"                       : "credit",                                  "debit or credit"                         : "Indicates whether the transaction is a debit or credit",
+								"wallet_type"                            : "Gold",                                    "_comment_buy_weight"                          : "Weight purchased",
+								"balance_before"                         : "3 g" ,                                    "_comment_product_weight_before_transaction"   : "Weight before",
+								"transaction_amount"                     : "2 g",                                     "_comment_buy_quantity"                        : "Quantity purchased",
+								"balance_after"                          : "5 g",                                     "_comment_product_weight_after_transaction"    : "Weight after",
+								"ledger_id"                              : 12,                                        "_comment_ledger_id"                           : "Ledger entry reference ID"
+							},
+									
+							"order_pickup_info" :
+							{
+								"pickup_required"                        : true,                                      "_comment_pickup_required"              : "Is pickup required",
+								"store_address"                          : "Main Branch Karachi",                     "_comment_store_address"                : "Pickup location",
+								"pickup_status"                          : "Pending",                                 "_comment_pickup_status"                : "Pickup status",
+								"pickup_date"                            : null,                                      "_comment_pickup_date"                  : "Pickup date",
+								"pickup_tracking_number"                 : null,                                      "_comment_pickup_tracking_number"       : "Tracking number"
+							},
+
+							"order_approval" :
+							{
+								"authentication_process_rec_id"       : 9,                                        "_comment_authentication_process_rec_id"       : "Auth process ID",
+								"authentication_status"                   : "Authenticated",                           "_comment_authentication_status"                   : "Authentication status: Authenticated, Failed, Pending, etc",
+								"otp_method_email"                    : true,                                     "_comment_otp_method_email"                           : "OTP method used",
+								"otp_method_phone"                    : true,                                     "_comment_otp_method_phone"                           : "OTP method used",
+								"finger_print_used"                   : true,                                     "_comment_fingerprint_used"                         : "Indicates if device fingerprinting was used",     
+								"face_recognition_used"               : false,                                    "_comment_face_recognition_used"                    : "Indicates if face recognition was used",   
+								"call_back_confirmation_used"         : true,                                     "_comment_call_back_confirmation_used"                    : "Indicates if call back confirmation was used",     
+
+								"approved_by_rec_id"                  : 3,                                        "_comment_approved_by_rec_id"                  : "Approver ID",
+								"approved_by_name"                    : "Manager One",                            "_comment_approved_by_name"                    : "Approver name",
+								"approval_number"                     : "APR-00045",                              "_comment_approval_number"                     : "Approval reference",
+								"approved_at"                         : "NOW()",                                   "_comment_approved_at"                        : "Approval timestamp"
+								
+							},
+
+							"contract_info" : 
+							{
+								"contract_number"                     : "CNT-2026-009",                           "_comment_contract_number"                      : "Contract reference",
+								"contract_executed_at"                : "NOW()",                                  "_comment_contract_executed_at"                 : "Execution date",
+								"contract_terms_and_conditions"       : "Standard bullion trading terms apply"
+							},
+
+							"fulfillment_info" :
+							{
+								"fulfillment_status"                  : "Pending",                                 "_comment_fulfillment_status"                  : "Fulfillment status: Pending, Completed, etc",
+								"fulfilled_at"                        : "NOW()",                                   "_comment_fulfilled_at"                        : "Fulfillment timestamp",
+								"delivery_method"                     : "Pickup from store",                       "_comment_delivery_method"                     : "Delivery method",
+								"tracking_number"                     : "AX-123456",                               "_comment_tracking_number"                     : "Delivery tracking number",
+								"estimated_delivery_date"             : "2026-12-31T23:59:59Z",                    "_comment_estimated_delivery_date"             : "Estimated delivery date"
+							}
+						}' AS JSON);
+
+
 -- =======================================================================
 -- row_metadta for all tables
 -- =======================================================================
