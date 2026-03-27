@@ -1,7 +1,7 @@
 -- ==================================================================================================
 -- Procedure:          insertOrder
 -- Purpose:            Handle all order types: Buy (Market/Manual/Products), Sell (Auto/Manual),
---                     Exchange, Redeem, Sell Physical Gold
+--                     Exchange, Redeem
 -- Functions used:
 --                      isFalsy()       : validate values from reqObj
 --                      getJval()       : get value from request object
@@ -9,6 +9,7 @@
 --                      getSequence()   : generate order/receipt numbers
 -- ==================================================================================================
 DROP PROCEDURE IF EXISTS insertOrder;
+
 DELIMITER $$
 CREATE PROCEDURE insertOrder(
                                 IN  pjReqObj    JSON,
@@ -28,7 +29,7 @@ BEGIN
     DECLARE v_order_cat                 VARCHAR(10);
     DECLARE v_order_type                VARCHAR(20);
     DECLARE v_metal                     VARCHAR(50);
-    DECLARE v_order_sub_type            VARCHAR(50);  -- Market, Manual, Products, PhysicalGold
+    DECLARE v_order_sub_type            VARCHAR(50);  -- Market, Manual, Products
 
     /* ===================== Rate Variables ===================== */
     DECLARE v_rate_rec_id               INT;
@@ -87,7 +88,7 @@ BEGIN
         SET v_customer_rec_id   = getJval(pjReqObj, 'customer_rec_id');
         SET v_account_number    = getJval(pjReqObj, 'account_number');
         SET v_order_type        = getJval(pjReqObj, 'order_type');      -- Buy, Sell, Exchange, Redeem
-        SET v_order_sub_type    = getJval(pjReqObj, 'order_sub_type');  -- Market, Manual, Products, PhysicalGold
+        SET v_order_sub_type    = getJval(pjReqObj, 'order_sub_type');  -- Market, Manual, Products
         SET v_order_cat         = getJval(pjReqObj, 'order_cat');       -- DO, IOC, GTC
         SET v_metal             = getJval(pjReqObj, 'metal');           -- Gold, Silver, Platinum
         SET v_order_date        = NOW();
@@ -116,7 +117,7 @@ BEGIN
         END IF;
 
         /* ===================== Fetch Latest Rate from Rates Table ===================== */
-        /* FIX #2: Skip rate fetch for Exchange — rates fetched per leg inside Exchange block */
+        /* Skip rate fetch for Exchange — rates fetched per leg inside Exchange block */
         IF v_order_type != 'Exchange' THEN
             SELECT  rate_rec_id,    spot_rate,      currency_unit,      rate_source,    foreign_exchange_rate,  foreign_exchange_source
             INTO    v_rate_rec_id,  v_spot_rate,    v_currency_unit,    v_rate_source,  v_fx_rate,              v_fx_source
@@ -305,7 +306,7 @@ BEGIN
 
         -- -----------------------------------------------------------------------
         -- SELL
-        -- Sub types: Market / Auto-Select, Manual, Physical Gold
+        -- Sub types: Market / Auto-Select, Manual
         -- -----------------------------------------------------------------------
         ELSEIF v_order_type = 'Sell' THEN
 
@@ -406,62 +407,6 @@ BEGIN
                     '$.rate_info.foreign_exchange_source',          v_fx_source
                 );
 
-            -- Sell Physical Gold
-            ELSEIF v_order_sub_type = 'PhysicalGold' THEN
-
-                IF isFalsy(getJval(pjReqObj, 'customer_request.weight')) THEN
-                    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'weight is required for Physical Gold');
-                END IF;
-                IF isFalsy(getJval(pjReqObj, 'customer_request.quality')) THEN
-                    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'karat/quality is required for Physical Gold');
-                END IF;
-                IF isFalsy(getJval(pjReqObj, 'customer_request.date_of_purchase')) THEN
-                    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'date_of_purchase is required for Physical Gold');
-                END IF;
-                IF isFalsy(getJval(pjReqObj, 'customer_request.payment_method')) THEN
-                    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'payment_method is required for Physical Gold');
-                END IF;
-
-                IF JSON_LENGTH(v_errors) > 0 THEN
-                    SET psResObj = JSON_OBJECT('status', 'error', 'status_code', '2', 'message', 'Validation failed', 'errors', v_errors);
-                    LEAVE main_block;
-                END IF;
-
-                SET v_order_cat = 'DO';
-
-                SET v_order_json = JSON_SET(v_order_json,
-                    '$.order_number',                           v_order_number,
-                    '$.receipt_number',                         v_receipt_number,
-                    '$.order_date',                             v_order_date,
-                    '$.order_status',                           v_order_status,
-                    '$.next_action_required',                   v_next_action_required,
-                    '$.order_cat',                              v_order_cat,
-                    '$.order_type',                             v_order_type,
-                    '$.metal',                                  v_metal,
-                    '$.customer_info.customer_rec_id',          v_customer_rec_id,
-                    '$.customer_info.customer_name',            getJval(pjReqObj, 'customer_info.customer_name'),
-                    '$.customer_info.customer_account_number',  v_account_number,
-                    '$.customer_info.customer_phone',           getJval(pjReqObj, 'customer_info.customer_phone'),
-                    '$.customer_info.whatsapp',                 getJval(pjReqObj, 'customer_info.whatsapp'),
-                    '$.customer_info.customer_email',           getJval(pjReqObj, 'customer_info.customer_email'),
-                    '$.customer_info.customer_address',         getJval(pjReqObj, 'customer_info.customer_address'),
-                    '$.customer_info.customer_ip_address',      getJval(pjReqObj, 'customer_info.customer_ip_address'),
-                    '$.customer_info.latitude',                 getJval(pjReqObj, 'customer_info.latitude'),
-                    '$.customer_info.longitude',                getJval(pjReqObj, 'customer_info.longitude'),
-                    '$.customer_request.weight',                getJval(pjReqObj, 'customer_request.weight'),
-                    '$.customer_request.quality',               getJval(pjReqObj, 'customer_request.quality'),
-                    '$.customer_request.date_of_purchase',      getJval(pjReqObj, 'customer_request.date_of_purchase'),
-                    '$.customer_request.payment_method',        getJval(pjReqObj, 'customer_request.payment_method'),
-                    '$.customer_request.additional_notes',      getJval(pjReqObj, 'customer_request.additional_notes'),
-                    '$.customer_request.product_images',        getJval(pjReqObj, 'customer_request.product_images'),
-                    '$.rate_info.rate_rec_id',                  v_rate_rec_id,
-                    '$.rate_info.spot_rate',                    v_spot_rate,
-                    '$.rate_info.currency_unit',                v_currency_unit,
-                    '$.rate_info.rate_source',                  v_rate_source,
-                    '$.rate_info.foreign_exchange_rate',        v_fx_rate,
-                    '$.rate_info.foreign_exchange_source',      v_fx_source
-                );
-
             END IF; -- End Sell sub types
 
             START TRANSACTION;
@@ -510,7 +455,7 @@ BEGIN
             SET v_next_action_required  = 'approved';
             SET v_order_cat             = 'DO';
 
-            /* FIX #2: Fetch rates separately for from_metal and to_metal */
+            /* Fetch rates separately for from_metal and to_metal */
             SELECT  rate_rec_id,        spot_rate,          currency_unit,          rate_source,        foreign_exchange_rate,  foreign_exchange_source
             INTO    v_from_rate_rec_id, v_from_spot_rate,   v_from_currency_unit,   v_from_rate_source, v_from_fx_rate,         v_from_fx_source
             FROM    rates
@@ -527,7 +472,7 @@ BEGIN
             ORDER BY created_at DESC
             LIMIT 1;
 
-            /* FIX #1 & #3: Sequences generated INSIDE transaction */
+            /* Sequences generated INSIDE transaction */
             START TRANSACTION;
 
                 CALL getSequence('ORDER.ORDER_NUM',   NULL, NULL, 'insertOrder sp', v_order_number);
