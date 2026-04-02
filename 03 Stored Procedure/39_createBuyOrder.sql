@@ -1,0 +1,501 @@
+DROP PROCEDURE IF EXISTS createBuyOrder;
+
+DELIMITER $$
+CREATE PROCEDURE createBuyOrder(
+                                    IN  pjReqObj    JSON,
+                                    OUT psResObj    JSON
+                                )
+BEGIN
+
+  
+    /* ===================== Variables ===================== */
+    DECLARE v_customer_rec_id           INT;
+    DECLARE v_account_number            VARCHAR(50);
+    DECLARE v_order_rec_id              INT;
+    DECLARE v_order_number              VARCHAR(50);
+    DECLARE v_receipt_number            VARCHAR(50);
+    DECLARE v_order_date                DATETIME;
+    DECLARE v_order_status              VARCHAR(20);
+    DECLARE v_next_action_required      VARCHAR(20);
+    DECLARE v_order_cat                 VARCHAR(10);
+    DECLARE v_order_type                VARCHAR(20);
+    DECLARE v_order_sub_type            VARCHAR(20);
+    DECLARE v_metal                     VARCHAR(50);
+    DECLARE v_asset_code                VARCHAR(10);
+    DECLARE v_product_type              VARCHAR(20);
+    DECLARE v_cr_payment_method         VARCHAR(50);        /* added */
+    DECLARE v_cr_date_of_purchase       DATETIME;           /* added */
+
+    DECLARE v_tradable_assets_rec_id    INT;
+    DECLARE v_rate_json                 JSON;
+    DECLARE v_spot_rate                 DECIMAL(18,6);      /* added */
+
+    DECLARE v_customer_json             JSON;
+    DECLARE v_order_json                JSON;
+    DECLARE v_row_metadata              JSON;
+
+    /* --- buy_items variables (shared by SLICE and PRODUCT) --- */
+    DECLARE v_inventory_json            JSON;
+    DECLARE v_item_code                 VARCHAR(50);
+    DECLARE v_item_name                 VARCHAR(100);
+    DECLARE v_item_type                 VARCHAR(50);
+    DECLARE v_item_weight               DECIMAL(18,6);
+    DECLARE v_item_quantity             INT;
+    DECLARE v_bought_price              DECIMAL(18,2);
+    DECLARE v_buy_items_output          JSON;
+
+    /* --- PRODUCT loop variables --- */
+    DECLARE v_buy_items_input           JSON;
+    DECLARE v_single_item               JSON;
+    DECLARE v_loop_idx                  INT DEFAULT 0;
+    DECLARE v_items_count               INT DEFAULT 0;
+
+    DECLARE v_errors                    JSON DEFAULT JSON_ARRAY();
+    DECLARE v_err_msg                   VARCHAR(500);
+
+    /* ===================== Error Handler ===================== */
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET STACKED DIAGNOSTICS CONDITION 1 v_err_msg = MESSAGE_TEXT;
+        ROLLBACK;
+        SET psResObj = JSON_OBJECT(
+            'status',       'error',
+            'status_code',  '1',
+            'message',      'Insertion failed',
+            'system_error', v_err_msg
+        );
+    END;
+
+    /* ===================== Step 1: Extract Request Values ===================== */
+    SET v_order_type            = 'Buy';
+    SET v_account_number        = getJval(pjReqObj, 'account_number');
+    SET v_asset_code            = getJval(pjReqObj, 'asset_code');
+    SET v_order_sub_type        = getJval(pjReqObj, 'order_sub_type');
+    SET v_order_cat             = getJval(pjReqObj, 'order_cat');
+    SET v_metal                 = getJval(pjReqObj, 'metal');
+    SET v_product_type          = getJval(pjReqObj, 'product_type');
+    SET v_cr_payment_method     = getJval(pjReqObj, 'customer_request.payment_method');
+    SET v_cr_date_of_purchase   = NOW();
+
+    /* ===================== Step 2: Common Validations ===================== */
+    IF isFalsy(v_account_number) THEN
+        SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'account_number is required');
+    END IF;
+
+    IF isFalsy(v_asset_code) THEN
+        SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'asset_code is required');
+    END IF;
+
+    IF isFalsy(v_order_type) THEN
+        SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'order_type is required');
+    END IF;
+
+    IF isFalsy(v_order_sub_type) THEN
+        SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'order_sub_type is required');
+    END IF;
+
+    IF isFalsy(v_metal) THEN
+        SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'metal is required');
+    END IF;
+
+    IF isFalsy(v_cr_payment_method) THEN
+        SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'customer_request.payment_method is required');
+    END IF;
+
+    IF JSON_LENGTH(v_errors) > 0 THEN
+        SET psResObj = JSON_OBJECT(
+                                    'status',       'error',
+                                    'status_code',  '2',
+                                    'message',      'Validation failed',
+                                    'errors',       v_errors
+                                    );
+        LEAVE;
+    END IF;
+
+    /* ===================== Step 3: Fetch Customer Record ===================== */
+    SELECT  customer_rec_id 
+    INTO    v_customer_rec_id
+    FROM    customers
+    WHERE   account_number = v_account_number;
+
+    CALL getCustomer(v_customer_rec_id, v_customer_json);
+
+    IF isFalsy(v_customer_json) THEN
+        SET psResObj = JSON_OBJECT(
+                                    'status',               'error',
+                                    'status_code',          '3',
+                                    'message',              'Customer not found',
+                                    'customer_rec_id',      v_customer_rec_id
+                                    );
+        LEAVE;
+    END IF;
+
+    /* ===================== Step 4: Fetch Latest Rate for Asset rate history ===================== */
+    SELECT  tradable_assets_rec_id,      tradable_assets_json
+    INTO    v_tradable_assets_rec_id,    v_rate_json
+    FROM    tradable_assets
+    WHERE   asset_code = v_asset_code;
+
+    IF isFalsy(v_rate_json) THEN
+        SET psResObj = JSON_OBJECT(
+                                    'status',               'error',
+                                    'status_code',          '4',
+                                    'message',              'Rate not found for asset_code',
+                                    'asset_code',           v_asset_code
+                                    );
+        LEAVE;
+    END IF;
+
+    /* Extract spot_rate once - reused in buy_items price calculation */     /* added */
+    SET v_spot_rate = getJval(v_rate_json, 'spot_rate.current_rate');         /* added */
+
+    /* ===================== Step 5: Generate Order & Receipt Numbers ===================== */
+    CALL getSequence('ORDER.ORDER_NUM', NULL, NULL, 'createBuyOrder', v_order_number);
+    CALL getSequence('ORDER.RECEIPT_NUM', NULL, NULL, 'createBuyOrder', v_receipt_number);
+
+    /* ===================== Step 6: Set Common Order Header Values ===================== */
+    SET v_order_date = NOW();
+    SET v_order_status = 'Pending';
+    SET v_next_action_required = 'Approval';
+
+    /* ===================== Step 7: Load Order Template & Row Metadata ===================== */
+    SET v_order_json = getTemplate('orders');
+    SET v_row_metadata = getTemplate('row_metadata');
+
+    /* ===================== Step 8: Populate Customer & Rate Info & top level fields ===================== */
+    SET v_order_json = JSON_SET(v_order_json,
+                                '$.customer_info.customer_rec_id',          v_customer_rec_id,
+                                '$.customer_info.customer_name',            CONCAT(getJval(v_customer_json, 'first_name'), ' ', getJval(v_customer_json, 'last_name')),
+                                '$.customer_info.customer_account_number',  getJval(v_customer_json, 'main_account_number'),
+                                '$.customer_info.customer_phone',           getJval(v_customer_json, 'phone'),
+                                '$.customer_info.whatsapp',                 getJval(v_customer_json, 'whatsapp'),
+                                '$.customer_info.customer_email',           getJval(v_customer_json, 'email'),
+                                '$.customer_info.customer_address',         getJval(v_customer_json, 'residential_address'),
+                                '$.customer_info.customer_ip_address',      getJval(pjReqObj, 'customer_ip_address'),
+                                '$.customer_info.latitude',                 getJval(pjReqObj, 'latitude'),
+                                '$.customer_info.longitude',                getJval(pjReqObj, 'longitude'),
+                                '$.customer_info.notes',                    getJval(pjReqObj, 'notes'),
+
+                                '$.rate_info.rate_rec_id',                  v_tradable_assets_rec_id,
+                                '$.rate_info.spot_rate',                    getJval(v_rate_json, 'spot_rate.current_rate'),
+                                '$.rate_info.currency_unit',                getJval(v_rate_json, 'spot_rate.currency'),
+                                '$.rate_info.rate_source',                  getJval(v_rate_json, 'spot_rate.url'),
+                                '$.rate_info.foreign_exchange_rate',        getJval(v_rate_json, 'spot_rate.foreign_exchange_rate'),
+                                '$.rate_info.foreign_exchange_source',      getJval(v_rate_json, 'spot_rate.foreign_exchange_source'),
+
+                                '$.customer_rec_id',                        v_customer_rec_id,
+                                '$.account_number',                         v_account_number,
+                                '$.order_number',                           v_order_number,
+                                '$.receipt_number',                         v_receipt_number,
+                                '$.order_date',                             DATE_FORMAT(v_order_date, '%Y-%m-%dT%H:%i:%sZ'),
+                                '$.order_status',                           v_order_status,
+                                '$.next_action_required',                   v_next_action_required,
+                                '$.order_type',                             v_order_type,
+                                '$.order_sub_type',                         v_order_sub_type,
+                                '$.metal',                                  v_metal
+                            );
+
+    /* ===================== Step 9: Branch by product_type ===================== */
+    SET v_product_type = getJval(pjReqObj, 'product_type');
+
+    IF v_product_type = 'SLICE' THEN
+
+        /* ---------------------------------------------------------------
+           SLICE: validate item_code + item_weight (common to Market & Limit)
+           --------------------------------------------------------------- */   /* added block start */
+        IF isFalsy(getJval(pjReqObj, 'item_code')) THEN
+            SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'item_code is required for SLICE order');
+        END IF;
+
+        IF isFalsy(getJval(pjReqObj, 'item_weight')) THEN
+            SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'item_weight is required for SLICE order');
+        END IF;
+
+        IF JSON_LENGTH(v_errors) > 0 THEN
+            SET psResObj = JSON_OBJECT(
+                                        'status',       'error',
+                                        'status_code',  '2',
+                                        'message',      'Validation failed',
+                                        'errors',        v_errors
+                                        );
+            LEAVE;
+        END IF;
+
+        /* ---------------------------------------------------------------
+           SLICE: lookup item_name + item_type from inventory table
+           --------------------------------------------------------------- */
+        SET v_item_code   = getJval(pjReqObj, 'item_code');
+        SET v_item_weight = getJval(pjReqObj, 'item_weight');
+
+        SELECT  inventory_json
+        INTO    v_inventory_json
+        FROM    inventory
+        WHERE   item_code = v_item_code
+        LIMIT   1;
+
+        IF isFalsy(v_inventory_json) THEN
+            SET psResObj = JSON_OBJECT(
+                                        'status',       'error',
+                                        'status_code',  '6',
+                                        'message',      'Inventory item not found',
+                                        'item_code',     v_item_code
+                                        );
+            LEAVE;
+        END IF;
+
+        SET v_item_name        = getJval(v_inventory_json, 'item_name');
+        SET v_item_type        = getJval(v_inventory_json, 'item_type');
+        SET v_bought_price     = v_spot_rate * v_item_weight;
+
+        /* ---------------------------------------------------------------
+           SLICE: build the single-element buy_items array
+           --------------------------------------------------------------- */
+        SET v_buy_items_output = JSON_ARRAY(
+                                    JSON_OBJECT(
+                                        'item_code',        v_item_code,
+                                        'item_name',        v_item_name,
+                                        'item_type',        v_item_type,
+                                        'item_quantity',    1,
+                                        'item_weight',      v_item_weight,
+                                        'bought_price',     v_bought_price
+                                    )
+                                 );                                             /* added block end */
+
+        /* ------- sub-branch: Market ------- */
+        IF v_order_sub_type = 'Market' THEN
+            IF isFalsy(getJval(pjReqObj, 'customer_request.amount')) THEN
+                SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'customer_request.amount is required for Market order');
+            END IF;
+
+            IF JSON_LENGTH(v_errors) > 0 THEN
+                SET psResObj = JSON_OBJECT(
+                                            'status',           'error',
+                                            'status_code',      '2',
+                                            'message',          'Validation failed',
+                                            'errors',           v_errors
+                                        );
+                LEAVE;
+            END IF;
+
+            SET v_order_cat = 'DO';
+            SET v_order_json = JSON_SET(v_order_json,
+                                        '$.order_cat',                              v_order_cat,
+                                        '$.buy_items',                              v_buy_items_output,             /* changed: was getJval(pjReqObj, 'buy_items') */
+                                        '$.customer_request.amount',                getJval(pjReqObj, 'customer_request.amount'),
+                                        '$.customer_request.payment_method',        v_cr_payment_method,            /* changed: was getJval(pjReqObj, 'payment_method') */
+                                        '$.customer_request.date_of_purchase',      DATE_FORMAT(NOW(), '%Y-%m-%dT%H:%i:%sZ')
+                                    );
+
+        /* ------- sub-branch: Limit ------- */
+        ELSEIF v_order_sub_type = 'Limit' THEN
+            /* Set default order_cat to GTC if not provided */
+            IF isFalsy(v_order_cat) THEN
+                SET v_order_cat = 'GTC';
+            END IF;
+
+            IF isFalsy(getJval(pjReqObj, 'customer_request.rate')) THEN
+                SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'customer_request.rate is required for Limit order');
+            END IF;
+
+            IF isFalsy(getJval(pjReqObj, 'customer_request.weight')) THEN
+                SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'customer_request.weight is required for Limit order');
+            END IF;
+
+            IF isFalsy(getJval(pjReqObj, 'customer_request.Expiration_time')) THEN
+                SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'customer_request.Expiration_time is required for Limit order');
+            END IF;
+
+            IF v_order_cat NOT IN ('GTC','IOC') THEN
+                SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'order_cat must be GTC or IOC for Limit order');
+            END IF;
+
+            IF JSON_LENGTH(v_errors) > 0 THEN
+                SET psResObj = JSON_OBJECT(
+                                            'status',           'error',
+                                            'status_code',      '2',
+                                            'message',          'Validation failed',
+                                            'errors',           v_errors
+                                            );
+                LEAVE;
+            END IF;
+
+            SET v_order_json = JSON_SET(v_order_json,
+                                        '$.order_cat',                                  v_order_cat,
+                                        '$.buy_items',                                  v_buy_items_output,             /* changed: was getJval(pjReqObj, 'buy_items') */
+                                        '$.customer_request.rate',                      getJval(pjReqObj, 'customer_request.rate'),
+                                        '$.customer_request.weight',                    v_item_weight,                  /* changed: use already-extracted variable */
+                                        '$.customer_request.amount',                    getJval(pjReqObj, 'customer_request.amount'),
+                                        '$.customer_request.Expiration_time',           getJval(pjReqObj, 'customer_request.Expiration_time'),
+                                        '$.customer_request.is_partial_fill_allowed',   getJval(pjReqObj, 'customer_request.is_partial_fill_allowed'),
+                                        '$.customer_request.payment_method',            v_cr_payment_method,            /* changed: was getJval(pjReqObj, 'payment_method') */
+                                        '$.customer_request.date_of_purchase',          DATE_FORMAT(NOW(), '%Y-%m-%dT%H:%i:%sZ')
+                                    );
+
+        ELSE
+            SET psResObj = JSON_OBJECT(
+                                        'status',           'error',
+                                        'status_code',      '5',
+                                        'message',          'Unknown order_sub_type for SLICE. Must be Market or Limit'
+                                );
+            LEAVE;
+        END IF;
+
+    ELSEIF v_product_type = 'PRODUCT' THEN
+
+        /* ---------------------------------------------------------------
+           PRODUCT: validate buy_items array is present and non-empty
+           --------------------------------------------------------------- */
+        SET v_buy_items_input = getJval(pjReqObj, 'buy_items');
+
+        IF isFalsy(v_buy_items_input) OR JSON_LENGTH(v_buy_items_input) = 0 THEN
+            SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'buy_items array is required and must not be empty for PRODUCT order');
+            SET psResObj = JSON_OBJECT('status','error','status_code','2','message','Validation failed','errors',v_errors);
+            LEAVE;
+        END IF;
+
+        /* ---------------------------------------------------------------
+           PRODUCT: loop — validate each item, lookup inventory,
+                    calculate bought_price = spot_rate * item_weight * item_quantity
+           --------------------------------------------------------------- */
+        SET v_items_count      = JSON_LENGTH(v_buy_items_input);
+        SET v_loop_idx         = 0;
+        SET v_buy_items_output = JSON_ARRAY();
+
+        WHILE v_loop_idx < v_items_count DO
+
+            /* Extract current item from input array */
+            SET v_single_item   = JSON_EXTRACT(v_buy_items_input, CONCAT('$[', v_loop_idx, ']'));
+            SET v_item_code     = getJval(v_single_item, 'item_code');
+            SET v_item_weight   = getJval(v_single_item, 'item_weight');
+            SET v_item_quantity = getJval(v_single_item, 'item_quantity');
+
+            /* Per-item field validation */
+            IF isFalsy(v_item_code) THEN
+                SET v_errors = JSON_ARRAY_APPEND(v_errors, '$',
+                    CONCAT('buy_items[', v_loop_idx, '].item_code is required'));
+            END IF;
+
+            IF isFalsy(v_item_weight) THEN
+                SET v_errors = JSON_ARRAY_APPEND(v_errors, '$',
+                    CONCAT('buy_items[', v_loop_idx, '].item_weight is required'));
+            END IF;
+
+            IF isFalsy(v_item_quantity) THEN
+                SET v_errors = JSON_ARRAY_APPEND(v_errors, '$',
+                    CONCAT('buy_items[', v_loop_idx, '].item_quantity is required'));
+            END IF;
+
+            IF JSON_LENGTH(v_errors) > 0 THEN
+                SET psResObj = JSON_OBJECT(
+                                            'status',       'error',
+                                            'status_code',  '2',
+                                            'message',      'Validation failed on buy_items',
+                                            'errors',        v_errors
+                                            );
+                LEAVE;
+            END IF;
+
+            /* Lookup item_name + item_type from inventory */
+            SET v_inventory_json = NULL;
+
+            SELECT  inventory_json
+            INTO    v_inventory_json
+            FROM    inventory
+            WHERE   item_code = v_item_code
+            LIMIT   1;
+
+            IF isFalsy(v_inventory_json) THEN
+                SET psResObj = JSON_OBJECT(
+                                            'status',       'error',
+                                            'status_code',  '6',
+                                            'message',      CONCAT('Inventory item not found for item_code: ', v_item_code),
+                                            'item_code',     v_item_code,
+                                            'item_index',    v_loop_idx
+                                            );
+                LEAVE;
+            END IF;
+
+            SET v_item_name    = getJval(v_inventory_json, 'item_name');
+            SET v_item_type    = getJval(v_inventory_json, 'item_type');
+
+            /* bought_price = spot_rate * item_quantity */
+            SET v_bought_price = v_spot_rate * v_item_quantity;
+
+            /* Append fully-populated item into output array */
+            SET v_buy_items_output = JSON_ARRAY_APPEND(
+                                        v_buy_items_output,
+                                        '$',
+                                        JSON_OBJECT(
+                                            'item_code',        v_item_code,
+                                            'item_name',        v_item_name,
+                                            'item_type',        v_item_type,
+                                            'item_quantity',    v_item_quantity,
+                                            'item_weight',      v_item_weight,
+                                            'bought_price',     v_bought_price
+                                        )
+                                     );
+
+            SET v_loop_idx = v_loop_idx + 1;
+
+        END WHILE;
+
+        /* ---------------------------------------------------------------
+           PRODUCT: merge into order_json
+           --------------------------------------------------------------- */
+        SET v_order_cat = 'DO';
+        SET v_order_json = JSON_SET(v_order_json,
+                                    '$.order_cat',                          v_order_cat,
+                                    '$.buy_items',                          v_buy_items_output,
+                                    '$.customer_request.payment_method',    v_cr_payment_method,
+                                    '$.customer_request.date_of_purchase',  DATE_FORMAT(NOW(), '%Y-%m-%dT%H:%i:%sZ')
+                                );
+
+    ELSE
+        SET psResObj = JSON_OBJECT(
+                                    'status',           'error',
+                                    'status_code',      '5',
+                                    'message',          'Unknown product_type for Buy. Must be SLICE or PRODUCT'
+                            );
+        LEAVE;
+    END IF;
+
+    /* ===================== Step 10: INSERT into orders table ===================== */
+    
+        INSERT INTO orders
+            SET customer_rec_id         = v_customer_rec_id,
+                account_number          = v_account_number,
+                order_number            = v_order_number,
+                receipt_number          = v_receipt_number,
+                order_date              = v_order_date,
+                order_status            = v_order_status,
+                next_action_required    = v_next_action_required,
+                order_cat               = v_order_cat,
+                order_type              = v_order_type,
+                metal                   = v_metal,
+                order_json              = v_order_json,
+                row_metadata            = v_row_metadata;
+
+        SET v_order_rec_id = LAST_INSERT_ID();
+
+        SET v_order_json = JSON_SET(v_order_json, '$.order_rec_id', v_order_rec_id);
+
+        UPDATE  orders
+        SET     order_json   = v_order_json
+        WHERE   order_rec_id = v_order_rec_id;
+    
+
+    /* ===================== Step 11: Success Response ===================== */
+    SET psResObj = JSON_OBJECT(
+                                'status',           'success',
+                                'status_code',      '0',
+                                'message',          'Buy order inserted successfully',
+                                'order_rec_id',     v_order_rec_id,
+                                'order_number',     v_order_number,
+                                'receipt_number',   v_receipt_number,
+                                'order_type',       v_order_type,
+                                'order_sub_type',   v_order_sub_type,
+                                'order_cat',        v_order_cat,
+                                'order_json',       v_order_json
+                            );
+END$$
+DELIMITER ;

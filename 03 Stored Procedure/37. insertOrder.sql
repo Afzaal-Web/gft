@@ -1,26 +1,15 @@
--- ==================================================================================================
--- Procedure:          insertOrder
--- Purpose:            Handle all order types: Buy (Market/Manual/Products), Sell (Auto/Manual),
---                     Exchange, Redeem
--- Functions used:
---                      isFalsy()       : validate values from reqObj
---                      getJval()       : get value from request object
---                      getTemplate()   : get json column template
---                      getSequence()   : generate order/receipt numbers
--- ==================================================================================================
 DROP PROCEDURE IF EXISTS insertOrder;
 
 DELIMITER $$
 CREATE PROCEDURE insertOrder(
-                                IN  pjReqObj    JSON,
-                                OUT psResObj    JSON
-                            )
+    IN  pjReqObj    JSON,
+    OUT psResObj    JSON
+)
 BEGIN
     /* ===================== Column Variables ===================== */
-    DECLARE v_order_rec_id              INT;
-    DECLARE v_linked_order_rec_id       INT;
     DECLARE v_customer_rec_id           INT;
     DECLARE v_account_number            VARCHAR(50);
+    DECLARE v_order_rec_id              INT;
     DECLARE v_order_number              VARCHAR(50);
     DECLARE v_receipt_number            VARCHAR(50);
     DECLARE v_order_date                DATETIME;
@@ -28,39 +17,42 @@ BEGIN
     DECLARE v_next_action_required      VARCHAR(20);
     DECLARE v_order_cat                 VARCHAR(10);
     DECLARE v_order_type                VARCHAR(20);
+    DECLARE v_order_sub_type            VARCHAR(20);
     DECLARE v_metal                     VARCHAR(50);
-    DECLARE v_order_sub_type            VARCHAR(50);  -- Market, Manual, Products
-
-    /* ===================== Rate Variables ===================== */
-    DECLARE v_rate_rec_id               INT;
-    DECLARE v_spot_rate                 DECIMAL(18,4);
-    DECLARE v_currency_unit             VARCHAR(10);
-    DECLARE v_rate_source               VARCHAR(100);
-    DECLARE v_fx_rate                   DECIMAL(18,4);
-    DECLARE v_fx_source                 VARCHAR(100);
+    DECLARE v_asset_code                VARCHAR(10);
 
     /* ===================== Exchange Variables ===================== */
-    DECLARE v_exchange_sell_rec_id      INT;
-    DECLARE v_exchange_buy_rec_id       INT;
-    DECLARE v_exchange_order_number     VARCHAR(50);
-    DECLARE v_exchange_receipt_number   VARCHAR(50);
+    DECLARE v_exchange_from_metal       VARCHAR(50);
+    DECLARE v_exchange_to_metal         VARCHAR(50);
+    DECLARE v_exchange_from_asset_code  VARCHAR(10);
+    DECLARE v_exchange_to_asset_code    VARCHAR(10);
+    DECLARE v_exchange_weight           VARCHAR(20);
 
-    /* ===================== Exchange Rate Variables (from_metal / to_metal) ===================== */
-    DECLARE v_from_rate_rec_id          INT;
-    DECLARE v_from_spot_rate            DECIMAL(18,4);
-    DECLARE v_from_currency_unit        VARCHAR(10);
-    DECLARE v_from_rate_source          VARCHAR(100);
-    DECLARE v_from_fx_rate              DECIMAL(18,4);
-    DECLARE v_from_fx_source            VARCHAR(100);
+    /* ===================== Exchange Rate Variables ===================== */
+    DECLARE v_from_asset_rate_rec_id    INT;
+    DECLARE v_from_rate_json            JSON;
+    DECLARE v_to_asset_rate_rec_id      INT;
+    DECLARE v_to_rate_json              JSON;
 
-    DECLARE v_to_rate_rec_id            INT;
-    DECLARE v_to_spot_rate              DECIMAL(18,4);
-    DECLARE v_to_currency_unit          VARCHAR(10);
-    DECLARE v_to_rate_source            VARCHAR(100);
-    DECLARE v_to_fx_rate                DECIMAL(18,4);
-    DECLARE v_to_fx_source              VARCHAR(100);
+    /* ===================== Rate Variables ===================== */
+    DECLARE v_asset_rate_rec_id         INT;
+    DECLARE v_rate_json                 JSON;
+
+    /* ===================== Customer Request Variables ===================== */
+    DECLARE v_cr_rate                   DECIMAL(18,4);
+    DECLARE v_cr_amount                 DECIMAL(18,4);
+    DECLARE v_cr_weight                 VARCHAR(20);
+    DECLARE v_cr_expiration_time        DATETIME;
+    DECLARE v_cr_is_partial_fill        TINYINT(1);
+    DECLARE v_cr_qty_to_buy             INT;
+    DECLARE v_cr_date_of_purchase       DATETIME;
+    DECLARE v_cr_quality                VARCHAR(10);
+    DECLARE v_cr_payment_method         VARCHAR(50);
+    DECLARE v_cr_additional_notes       TEXT;
+    DECLARE v_cr_product_images         JSON;
 
     /* ===================== JSON Objects ===================== */
+    DECLARE v_customer_json             JSON;
     DECLARE v_order_json                JSON;
     DECLARE v_row_metadata              JSON;
 
@@ -74,130 +66,243 @@ BEGIN
         GET STACKED DIAGNOSTICS CONDITION 1 v_err_msg = MESSAGE_TEXT;
         ROLLBACK;
         SET psResObj = JSON_OBJECT(
-                                    'status',       'error',
-                                    'status_code',  '1',
-                                    'message',      'Insertion failed',
-                                    'system_error', v_err_msg
-                                  );
+            'status',       'error',
+            'status_code',  '1',
+            'message',      'Insertion failed',
+            'system_error', v_err_msg
+        );
     END;
 
     /* ===================== Main ===================== */
     main_block: BEGIN
 
-        /* ===================== Extract Common Fields from Request Object ===================== */
-        SET v_customer_rec_id   = getJval(pjReqObj, 'customer_rec_id');
-        SET v_account_number    = getJval(pjReqObj, 'account_number');
-        SET v_order_type        = getJval(pjReqObj, 'order_type');      -- Buy, Sell, Exchange, Redeem
-        SET v_order_sub_type    = getJval(pjReqObj, 'order_sub_type');  -- Market, Manual, Products
-        SET v_order_cat         = getJval(pjReqObj, 'order_cat');       -- DO, IOC, GTC
-        SET v_metal             = getJval(pjReqObj, 'metal');           -- Gold, Silver, Platinum
-        SET v_order_date        = NOW();
+        /* ===================== Step 1: Extract Common Fields from Request Object ===================== */
+        SET v_account_number        = getJval(pjReqObj, 'account_number');
+        SET v_asset_code            = getJval(pjReqObj, 'asset_code');
+        SET v_order_type            = getJval(pjReqObj, 'order_type');
+        SET v_order_sub_type        = getJval(pjReqObj, 'order_sub_type');
+        SET v_order_cat             = getJval(pjReqObj, 'order_cat');
+        SET v_metal                 = getJval(pjReqObj, 'metal');
 
-        /* ===================== Common Validation ===================== */
-        IF isFalsy(v_customer_rec_id) THEN
-            SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'customer_rec_id is required');
+        SET v_exchange_from_metal   = getJval(pjReqObj, 'exchange.from.metal');
+        SET v_exchange_to_metal     = getJval(pjReqObj, 'exchange.to.metal');
+        SET v_exchange_from_asset_code = getJval(pjReqObj, 'exchange.from.asset_code');
+        SET v_exchange_to_asset_code   = getJval(pjReqObj, 'exchange.to.asset_code');
+        SET v_exchange_weight       = getJval(pjReqObj, 'exchange.weight');
+
+        SET v_cr_payment_method     = getJval(pjReqObj, 'customer_request.payment_method');
+        SET v_cr_date_of_purchase   = NOW();
+
+        /* ===================== Step 2: Common Validations ===================== */
+        IF isFalsy(v_account_number) THEN
+            SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'account_number is required');
         END IF;
 
         IF isFalsy(v_order_type) THEN
             SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'order_type is required');
         END IF;
 
-        IF isFalsy(v_metal) AND v_order_type != 'Exchange' THEN
-            SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'metal is required');
+        IF v_order_type IN ('Buy','Sell') THEN
+            IF isFalsy(v_asset_code) THEN
+                SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'asset_code is required');
+            END IF;
+
+            IF isFalsy(v_order_sub_type) THEN
+                SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'order_sub_type is required');
+            END IF;
+
+            IF isFalsy(v_metal) THEN
+                SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'metal is required');
+            END IF;
+        END IF;
+
+
+        IF v_order_type = 'Exchange' THEN
+            IF isFalsy(v_exchange_from_metal) THEN
+                SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'exchange.from.metal is required');
+            END IF;
+            IF isFalsy(v_exchange_to_metal) THEN
+                SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'exchange.to.metal is required');
+            END IF;
+            IF isFalsy(v_exchange_from_asset_code) THEN
+                SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'exchange.from.asset_code is required');
+            END IF;
+            IF isFalsy(v_exchange_to_asset_code) THEN
+                SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'exchange.to.asset_code is required');
+            END IF;
+            IF isFalsy(v_exchange_weight) THEN
+                SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'exchange.weight is required');
+            END IF;
+        END IF;
+
+        IF isFalsy(v_cr_payment_method) THEN
+            SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'customer_request.payment_method is required');
         END IF;
 
         IF JSON_LENGTH(v_errors) > 0 THEN
             SET psResObj = JSON_OBJECT(
-                                        'status',       'error',
-                                        'status_code',  '2',
-                                        'message',      'Validation failed',
-                                        'errors',       v_errors
-                                      );
+                'status',       'error',
+                'status_code',  '2',
+                'message',      'Validation failed',
+                'errors',       v_errors
+            );
             LEAVE main_block;
         END IF;
 
-        /* ===================== Fetch Latest Rate from Rates Table ===================== */
-        /* Skip rate fetch for Exchange — rates fetched per leg inside Exchange block */
-        IF v_order_type != 'Exchange' THEN
-            SELECT  rate_rec_id,    spot_rate,      currency_unit,      rate_source,    foreign_exchange_rate,  foreign_exchange_source
-            INTO    v_rate_rec_id,  v_spot_rate,    v_currency_unit,    v_rate_source,  v_fx_rate,              v_fx_source
-            FROM    rates
-            WHERE   metal       = v_metal
-            AND     is_active   = 1
-            ORDER BY created_at DESC
-            LIMIT 1;
+        /* ===================== Step 3: Fetch Customer Record ===================== */
+        SELECT customer_rec_id INTO v_customer_rec_id
+        FROM   customers
+        WHERE  account_number = v_account_number;
+
+        CALL getCustomer(v_customer_rec_id, v_customer_json);
+
+        IF isFalsy(v_customer_json) THEN
+            SET psResObj = JSON_OBJECT(
+                'status',          'error',
+                'status_code',     '3',
+                'message',         'Customer not found',
+                'customer_rec_id', v_customer_rec_id
+            );
+            LEAVE main_block;
         END IF;
 
-        /* ===================== Get Templates ===================== */
+        /* ===================== Step 4: Fetch Latest Rate for Asset ===================== */
+        IF v_order_type IN ('Buy', 'Sell') THEN
+            SELECT  asset_rate_rec_id,
+                    asset_rate_history_json
+            INTO    v_asset_rate_rec_id,
+                    v_rate_json
+            FROM    asset_rate_history
+            WHERE   asset_code   = v_asset_code
+            ORDER BY rate_timestamp DESC
+            LIMIT 1;
+
+            IF isFalsy(v_rate_json) THEN
+                SET psResObj = JSON_OBJECT(
+                                            'status',       'error',
+                                            'status_code',  '4',
+                                            'message',      'Rate not found for asset_code',
+                                            'asset_code',   v_asset_code
+                                        );
+                LEAVE main_block;
+            END IF;
+        ELSE
+            SET v_asset_rate_rec_id = NULL;
+            SET v_rate_json = JSON_OBJECT();
+        END IF;
+
+        /* ===================== Step 5: Generate Order & Receipt Numbers ===================== */
+        CALL getSequence('ORDER.ORDER_NUM',   NULL, NULL, 'insertOrder sp', v_order_number);
+        CALL getSequence('ORDER.RECEIPT_NUM', NULL, NULL, 'insertOrder sp', v_receipt_number);
+
+        /* ===================== Step 6: Set Common Order Header Values ===================== */
+        SET v_order_date            = NOW();
+        SET v_order_status          = 'Pending';
+        SET v_next_action_required  = 'Approval';
+
+        /* ===================== Step 7: Load Order Template & Row Metadata ===================== */
         SET v_order_json    = getTemplate('orders');
         SET v_row_metadata  = getTemplate('row_metadata');
 
-        /* ===================== Branch by Order Type ===================== */
+        /* ===================== Step 8: Populate customer_info into order_json ===================== */
+        SET v_order_json = JSON_SET(v_order_json,
+                                    '$.customer_info.customer_rec_id',          v_customer_rec_id,
+                                    '$.customer_info.customer_name',            getJval(v_customer_json, 'first_name') + ' ' + getJval(v_customer_json, 'last_name'),
+                                    '$.customer_info.customer_account_number',  getJval(v_customer_json, 'main_account_number'),
+                                    '$.customer_info.customer_phone',           getJval(v_customer_json, 'phone'),
+                                    '$.customer_info.whatsapp',                 getJval(v_customer_json, 'whatsapp'),
+                                    '$.customer_info.customer_email',           getJval(v_customer_json, 'email'),
+                                    '$.customer_info.customer_address',         getJval(v_customer_json, 'residential_address'),
+                                    '$.customer_info.customer_ip_address',      getJval(pjReqObj,        'customer_ip_address'),
+                                    '$.customer_info.latitude',                 getJval(pjReqObj,        'latitude'),
+                                    '$.customer_info.longitude',                getJval(pjReqObj,         'longitude'),
+                                    '$.customer_info.notes',                    getJval(pjReqObj,         'notes')
+                                );
 
-        -- -----------------------------------------------------------------------
+        /* ===================== Step 9: Populate rate_info into order_json ===================== */
+        SET v_order_json = JSON_SET(v_order_json,
+                                    '$.rate_info.rate_rec_id',              v_asset_rate_rec_id,
+                                    '$.rate_info.spot_rate',                getJval(v_rate_json, 'spot_rate'),
+                                    '$.rate_info.currency_unit',            getJval(v_rate_json, 'currency_unit'),
+                                    '$.rate_info.rate_source',              getJval(v_rate_json, 'source_info.rate_source'),
+                                    '$.rate_info.foreign_exchange_rate',    getJval(v_rate_json, 'foreign_exchange.foreign_exchange_rate'),
+                                    '$.rate_info.foreign_exchange_source',  getJval(v_rate_json, 'foreign_exchange.foreign_exchange_source')
+                                );
+
+        /* ===================== Step 10: Populate common order header into order_json ===================== */
+        SET v_order_json = JSON_SET(v_order_json,
+                                    '$.customer_rec_id',        v_customer_rec_id,
+                                    '$.account_number',         v_account_number,
+                                    '$.order_number',           v_order_number,
+                                    '$.receipt_number',         v_receipt_number,
+                                    '$.order_date',             DATE_FORMAT(v_order_date, '%Y-%m-%dT%H:%i:%sZ'),
+                                    '$.order_status',           v_order_status,
+                                    '$.next_action_required',   v_next_action_required,
+                                    '$.order_type',             v_order_type,
+                                    '$.order_sub_type',         v_order_sub_type,
+                                    '$.metal',                  v_metal
+                                );
+
+        /* ===================== Step 11: Branch by order_type ===================== */
+
+        -- =======================================================================
         -- BUY
-        -- Sub types: Market, Manual, Products
-        -- -----------------------------------------------------------------------
+        -- Sub types: Market, Limit, Products
+        -- =======================================================================
         IF v_order_type = 'Buy' THEN
 
-            SET v_order_status          = 'pending';
-            SET v_next_action_required  = 'approved';
-
-            -- Buy Market Order (Reserve Gold Slice - Auto Select)
+            -- -------------------------------------------------------------------
+            -- BUY : Market Order
+            -- Required : amount, payment_method
+            -- order_cat forced to DO
+            -- -------------------------------------------------------------------
             IF v_order_sub_type = 'Market' THEN
 
                 IF isFalsy(getJval(pjReqObj, 'customer_request.amount')) THEN
-                    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'amount is required for Market order');
+                    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'customer_request.amount is required for Market order');
                 END IF;
 
                 IF JSON_LENGTH(v_errors) > 0 THEN
-                    SET psResObj = JSON_OBJECT('status', 'error', 'status_code', '2', 'message', 'Validation failed', 'errors', v_errors);
+                    SET psResObj = JSON_OBJECT(
+                                                'status', 'error', 
+                                                'status_code', '2', 
+                                                'message', 'Validation failed',
+                                                'errors', v_errors
+                                                );
                     LEAVE main_block;
                 END IF;
 
-                SET v_order_cat = 'DO';  -- Market orders are Day Orders
+                SET v_order_cat = 'DO';
 
                 SET v_order_json = JSON_SET(v_order_json,
-                    '$.order_number',                           v_order_number,
-                    '$.receipt_number',                         v_receipt_number,
-                    '$.order_date',                             v_order_date,
-                    '$.order_status',                           v_order_status,
-                    '$.next_action_required',                   v_next_action_required,
                     '$.order_cat',                              v_order_cat,
-                    '$.order_type',                             v_order_type,
-                    '$.metal',                                  v_metal,
-                    '$.customer_info.customer_rec_id',          v_customer_rec_id,
-                    '$.customer_info.customer_name',            getJval(pjReqObj, 'customer_info.customer_name'),
-                    '$.customer_info.customer_account_number',  v_account_number,
-                    '$.customer_info.customer_phone',           getJval(pjReqObj, 'customer_info.customer_phone'),
-                    '$.customer_info.whatsapp',                 getJval(pjReqObj, 'customer_info.whatsapp'),
-                    '$.customer_info.customer_email',           getJval(pjReqObj, 'customer_info.customer_email'),
-                    '$.customer_info.customer_address',         getJval(pjReqObj, 'customer_info.customer_address'),
-                    '$.customer_info.customer_ip_address',      getJval(pjReqObj, 'customer_info.customer_ip_address'),
-                    '$.customer_info.latitude',                 getJval(pjReqObj, 'customer_info.latitude'),
-                    '$.customer_info.longitude',                getJval(pjReqObj, 'customer_info.longitude'),
+                    '$.buy_items',                              getJval(pjReqObj, 'buy_items'),
                     '$.customer_request.amount',                getJval(pjReqObj, 'customer_request.amount'),
-                    '$.customer_request.date_of_purchase',      v_order_date,
-                    '$.customer_request.payment_method',        getJval(pjReqObj, 'customer_request.payment_method'),
-                    '$.rate_info.rate_rec_id',                  v_rate_rec_id,
-                    '$.rate_info.spot_rate',                    v_spot_rate,
-                    '$.rate_info.currency_unit',                v_currency_unit,
-                    '$.rate_info.rate_source',                  v_rate_source,
-                    '$.rate_info.foreign_exchange_rate',        v_fx_rate,
-                    '$.rate_info.foreign_exchange_source',      v_fx_source
+                    '$.customer_request.payment_method',        v_cr_payment_method,
+                    '$.customer_request.date_of_purchase',      DATE_FORMAT(v_cr_date_of_purchase, '%Y-%m-%dT%H:%i:%sZ')
                 );
 
-            -- Buy Manual Price
-            ELSEIF v_order_sub_type = 'Manual' THEN
+            -- -------------------------------------------------------------------
+            -- BUY : Limit Order
+            -- Required : rate, weight, Expiration_time, payment_method
+            -- order_cat : GTC or IOC from request
+            -- -------------------------------------------------------------------
+            ELSEIF v_order_sub_type = 'Limit' THEN
 
                 IF isFalsy(getJval(pjReqObj, 'customer_request.rate')) THEN
-                    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'rate is required for Manual order');
+                    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'customer_request.rate is required for Limit order');
                 END IF;
+
                 IF isFalsy(getJval(pjReqObj, 'customer_request.weight')) THEN
-                    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'weight is required for Manual order');
+                    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'customer_request.weight is required for Limit order');
                 END IF;
+
                 IF isFalsy(getJval(pjReqObj, 'customer_request.Expiration_time')) THEN
-                    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'Expiration_time is required for Manual order');
+                    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'customer_request.Expiration_time is required for Limit order');
+                END IF;
+
+                IF isFalsy(v_order_cat) OR v_order_cat NOT IN ('GTC', 'IOC') THEN
+                    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'order_cat must be GTC or IOC for Limit order');
                 END IF;
 
                 IF JSON_LENGTH(v_errors) > 0 THEN
@@ -206,40 +311,22 @@ BEGIN
                 END IF;
 
                 SET v_order_json = JSON_SET(v_order_json,
-                    '$.order_number',                               v_order_number,
-                    '$.receipt_number',                             v_receipt_number,
-                    '$.order_date',                                 v_order_date,
-                    '$.order_status',                               v_order_status,
-                    '$.next_action_required',                       v_next_action_required,
-                    '$.order_cat',                                  v_order_cat,
-                    '$.order_type',                                 v_order_type,
-                    '$.metal',                                      v_metal,
-                    '$.customer_info.customer_rec_id',              v_customer_rec_id,
-                    '$.customer_info.customer_name',                getJval(pjReqObj, 'customer_info.customer_name'),
-                    '$.customer_info.customer_account_number',      v_account_number,
-                    '$.customer_info.customer_phone',               getJval(pjReqObj, 'customer_info.customer_phone'),
-                    '$.customer_info.whatsapp',                     getJval(pjReqObj, 'customer_info.whatsapp'),
-                    '$.customer_info.customer_email',               getJval(pjReqObj, 'customer_info.customer_email'),
-                    '$.customer_info.customer_address',             getJval(pjReqObj, 'customer_info.customer_address'),
-                    '$.customer_info.customer_ip_address',          getJval(pjReqObj, 'customer_info.customer_ip_address'),
-                    '$.customer_info.latitude',                     getJval(pjReqObj, 'customer_info.latitude'),
-                    '$.customer_info.longitude',                    getJval(pjReqObj, 'customer_info.longitude'),
-                    '$.customer_request.rate',                      getJval(pjReqObj, 'customer_request.rate'),
-                    '$.customer_request.weight',                    getJval(pjReqObj, 'customer_request.weight'),
-                    '$.customer_request.amount',                    getJval(pjReqObj, 'customer_request.amount'),
-                    '$.customer_request.Expiration_time',           getJval(pjReqObj, 'customer_request.Expiration_time'),
-                    '$.customer_request.is_partial_fill_allowed',   getJval(pjReqObj, 'customer_request.is_partial_fill_allowed'),
-                    '$.customer_request.payment_method',            getJval(pjReqObj, 'customer_request.payment_method'),
-                    '$.customer_request.date_of_purchase',          v_order_date,
-                    '$.rate_info.rate_rec_id',                      v_rate_rec_id,
-                    '$.rate_info.spot_rate',                        v_spot_rate,
-                    '$.rate_info.currency_unit',                    v_currency_unit,
-                    '$.rate_info.rate_source',                      v_rate_source,
-                    '$.rate_info.foreign_exchange_rate',            v_fx_rate,
-                    '$.rate_info.foreign_exchange_source',          v_fx_source
-                );
+                                            '$.order_cat',                                  v_order_cat,
+                                            '$.buy_items',                                  getJval(pjReqObj, 'buy_items'),
+                                            '$.customer_request.rate',                      getJval(pjReqObj, 'customer_request.rate'),
+                                            '$.customer_request.weight',                    getJval(pjReqObj, 'customer_request.weight'),
+                                            '$.customer_request.amount',                    getJval(pjReqObj, 'customer_request.amount'),
+                                            '$.customer_request.Expiration_time',           getJval(pjReqObj, 'customer_request.Expiration_time'),
+                                            '$.customer_request.is_partial_fill_allowed',   getJval(pjReqObj, 'customer_request.is_partial_fill_allowed'),
+                                            '$.customer_request.payment_method',            v_cr_payment_method,
+                                            '$.customer_request.date_of_purchase',          DATE_FORMAT(v_cr_date_of_purchase, '%Y-%m-%dT%H:%i:%sZ')
+                                        );
 
-            -- Buy Gold Products
+            -- -------------------------------------------------------------------
+            -- BUY : Physical Products
+            -- Required : buy_items array, payment_method
+            -- order_cat forced to DO
+            -- -------------------------------------------------------------------
             ELSEIF v_order_sub_type = 'Products' THEN
 
                 IF isFalsy(getJval(pjReqObj, 'buy_items')) THEN
@@ -251,73 +338,39 @@ BEGIN
                     LEAVE main_block;
                 END IF;
 
+                SET v_order_cat = 'DO';
+
                 SET v_order_json = JSON_SET(v_order_json,
-                    '$.order_number',                           v_order_number,
-                    '$.receipt_number',                         v_receipt_number,
-                    '$.order_date',                             v_order_date,
-                    '$.order_status',                           v_order_status,
-                    '$.next_action_required',                   v_next_action_required,
-                    '$.order_cat',                              v_order_cat,
-                    '$.order_type',                             v_order_type,
-                    '$.metal',                                  v_metal,
-                    '$.customer_info.customer_rec_id',          v_customer_rec_id,
-                    '$.customer_info.customer_name',            getJval(pjReqObj, 'customer_info.customer_name'),
-                    '$.customer_info.customer_account_number',  v_account_number,
-                    '$.customer_info.customer_phone',           getJval(pjReqObj, 'customer_info.customer_phone'),
-                    '$.customer_info.whatsapp',                 getJval(pjReqObj, 'customer_info.whatsapp'),
-                    '$.customer_info.customer_email',           getJval(pjReqObj, 'customer_info.customer_email'),
-                    '$.customer_info.customer_address',         getJval(pjReqObj, 'customer_info.customer_address'),
-                    '$.customer_info.customer_ip_address',      getJval(pjReqObj, 'customer_info.customer_ip_address'),
-                    '$.customer_info.latitude',                 getJval(pjReqObj, 'customer_info.latitude'),
-                    '$.customer_info.longitude',                getJval(pjReqObj, 'customer_info.longitude'),
-                    '$.buy_items',                              getJval(pjReqObj, 'buy_items'),
-                    '$.customer_request.payment_method',        getJval(pjReqObj, 'customer_request.payment_method'),
-                    '$.customer_request.date_of_purchase',      v_order_date,
-                    '$.rate_info.rate_rec_id',                  v_rate_rec_id,
-                    '$.rate_info.spot_rate',                    v_spot_rate,
-                    '$.rate_info.currency_unit',                v_currency_unit,
-                    '$.rate_info.rate_source',                  v_rate_source,
-                    '$.rate_info.foreign_exchange_rate',        v_fx_rate,
-                    '$.rate_info.foreign_exchange_source',      v_fx_source
+                    '$.order_cat',                          v_order_cat,
+                    '$.buy_items',                          getJval(pjReqObj, 'buy_items'),
+                    '$.customer_request.payment_method',    v_cr_payment_method,
+                    '$.customer_request.date_of_purchase',  DATE_FORMAT(v_cr_date_of_purchase, '%Y-%m-%dT%H:%i:%sZ')
                 );
 
+            ELSE
+                SET psResObj = JSON_OBJECT(
+                    'status',       'error',
+                    'status_code',  '5',
+                    'message',      'Unknown order_sub_type for Buy. Must be Market, Limit or Products'
+                );
+                LEAVE main_block;
             END IF; -- End Buy sub types
-
-            START TRANSACTION;
-                CALL getSequence('ORDER.ORDER_NUM',   NULL, NULL, 'insertOrder sp', v_order_number);
-                CALL getSequence('ORDER.RECEIPT_NUM', NULL, NULL, 'insertOrder sp', v_receipt_number);
-
-                INSERT INTO orders
-                    SET customer_rec_id         = v_customer_rec_id,
-                        account_number          = v_account_number,
-                        order_number            = v_order_number,
-                        receipt_number          = v_receipt_number,
-                        order_date              = v_order_date,
-                        order_status            = v_order_status,
-                        next_action_required    = v_next_action_required,
-                        order_cat               = v_order_cat,
-                        order_type              = v_order_type,
-                        metal                   = v_metal,
-                        order_json              = v_order_json,
-                        row_metadata            = v_row_metadata;
-
-                SET v_order_rec_id = LAST_INSERT_ID();
-            COMMIT;
-
-        -- -----------------------------------------------------------------------
+        
+        -- =======================================================================
         -- SELL
-        -- Sub types: Market / Auto-Select, Manual
-        -- -----------------------------------------------------------------------
+        -- Sub types: Market, Limit
+        -- =======================================================================
         ELSEIF v_order_type = 'Sell' THEN
 
-            SET v_order_status          = 'pending';
-            SET v_next_action_required  = 'approved';
-
-            -- Sell Market / Auto Select
+            -- -------------------------------------------------------------------
+            -- SELL : Market Order (sell at current spot rate immediately)
+            -- Required : weight, payment_method
+            -- order_cat forced to DO
+            -- -------------------------------------------------------------------
             IF v_order_sub_type = 'Market' THEN
 
                 IF isFalsy(getJval(pjReqObj, 'customer_request.weight')) THEN
-                    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'weight is required for Market Sell order');
+                    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'customer_request.weight is required for Sell Market order');
                 END IF;
 
                 IF JSON_LENGTH(v_errors) > 0 THEN
@@ -328,45 +381,34 @@ BEGIN
                 SET v_order_cat = 'DO';
 
                 SET v_order_json = JSON_SET(v_order_json,
-                    '$.order_number',                           v_order_number,
-                    '$.receipt_number',                         v_receipt_number,
-                    '$.order_date',                             v_order_date,
-                    '$.order_status',                           v_order_status,
-                    '$.next_action_required',                   v_next_action_required,
                     '$.order_cat',                              v_order_cat,
-                    '$.order_type',                             v_order_type,
-                    '$.metal',                                  v_metal,
-                    '$.customer_info.customer_rec_id',          v_customer_rec_id,
-                    '$.customer_info.customer_name',            getJval(pjReqObj, 'customer_info.customer_name'),
-                    '$.customer_info.customer_account_number',  v_account_number,
-                    '$.customer_info.customer_phone',           getJval(pjReqObj, 'customer_info.customer_phone'),
-                    '$.customer_info.whatsapp',                 getJval(pjReqObj, 'customer_info.whatsapp'),
-                    '$.customer_info.customer_email',           getJval(pjReqObj, 'customer_info.customer_email'),
-                    '$.customer_info.customer_address',         getJval(pjReqObj, 'customer_info.customer_address'),
-                    '$.customer_info.customer_ip_address',      getJval(pjReqObj, 'customer_info.customer_ip_address'),
-                    '$.customer_info.latitude',                 getJval(pjReqObj, 'customer_info.latitude'),
-                    '$.customer_info.longitude',                getJval(pjReqObj, 'customer_info.longitude'),
+                    '$.sell_items',                             getJval(pjReqObj, 'sell_items'),
                     '$.customer_request.weight',                getJval(pjReqObj, 'customer_request.weight'),
-                    '$.customer_request.date_of_purchase',      v_order_date,
-                    '$.rate_info.rate_rec_id',                  v_rate_rec_id,
-                    '$.rate_info.spot_rate',                    v_spot_rate,
-                    '$.rate_info.currency_unit',                v_currency_unit,
-                    '$.rate_info.rate_source',                  v_rate_source,
-                    '$.rate_info.foreign_exchange_rate',        v_fx_rate,
-                    '$.rate_info.foreign_exchange_source',      v_fx_source
+                    '$.customer_request.payment_method',        v_cr_payment_method,
+                    '$.customer_request.date_of_purchase',      DATE_FORMAT(v_cr_date_of_purchase, '%Y-%m-%dT%H:%i:%sZ')
                 );
 
-            -- Sell Manual
-            ELSEIF v_order_sub_type = 'Manual' THEN
+            -- -------------------------------------------------------------------
+            -- SELL : Limit Order (sell at customer's target rate)
+            -- Required : rate, weight, Expiration_time, payment_method
+            -- order_cat : GTC or IOC from request
+            -- -------------------------------------------------------------------
+            ELSEIF v_order_sub_type = 'Limit' THEN
 
                 IF isFalsy(getJval(pjReqObj, 'customer_request.rate')) THEN
-                    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'rate is required for Manual Sell order');
+                    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'customer_request.rate is required for Sell Limit order');
                 END IF;
+
                 IF isFalsy(getJval(pjReqObj, 'customer_request.weight')) THEN
-                    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'weight is required for Manual Sell order');
+                    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'customer_request.weight is required for Sell Limit order');
                 END IF;
+
                 IF isFalsy(getJval(pjReqObj, 'customer_request.Expiration_time')) THEN
-                    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'Expiration_time is required for Manual Sell order');
+                    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'customer_request.Expiration_time is required for Sell Limit order');
+                END IF;
+
+                IF isFalsy(v_order_cat) OR v_order_cat NOT IN ('GTC', 'IOC') THEN
+                    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'order_cat must be GTC or IOC for Sell Limit order');
                 END IF;
 
                 IF JSON_LENGTH(v_errors) > 0 THEN
@@ -375,216 +417,83 @@ BEGIN
                 END IF;
 
                 SET v_order_json = JSON_SET(v_order_json,
-                    '$.order_number',                               v_order_number,
-                    '$.receipt_number',                             v_receipt_number,
-                    '$.order_date',                                 v_order_date,
-                    '$.order_status',                               v_order_status,
-                    '$.next_action_required',                       v_next_action_required,
                     '$.order_cat',                                  v_order_cat,
-                    '$.order_type',                                 v_order_type,
-                    '$.metal',                                      v_metal,
-                    '$.customer_info.customer_rec_id',              v_customer_rec_id,
-                    '$.customer_info.customer_name',                getJval(pjReqObj, 'customer_info.customer_name'),
-                    '$.customer_info.customer_account_number',      v_account_number,
-                    '$.customer_info.customer_phone',               getJval(pjReqObj, 'customer_info.customer_phone'),
-                    '$.customer_info.whatsapp',                     getJval(pjReqObj, 'customer_info.whatsapp'),
-                    '$.customer_info.customer_email',               getJval(pjReqObj, 'customer_info.customer_email'),
-                    '$.customer_info.customer_address',             getJval(pjReqObj, 'customer_info.customer_address'),
-                    '$.customer_info.customer_ip_address',          getJval(pjReqObj, 'customer_info.customer_ip_address'),
-                    '$.customer_info.latitude',                     getJval(pjReqObj, 'customer_info.latitude'),
-                    '$.customer_info.longitude',                    getJval(pjReqObj, 'customer_info.longitude'),
+                    '$.sell_items',                                 getJval(pjReqObj, 'sell_items'),
                     '$.customer_request.rate',                      getJval(pjReqObj, 'customer_request.rate'),
                     '$.customer_request.weight',                    getJval(pjReqObj, 'customer_request.weight'),
                     '$.customer_request.amount',                    getJval(pjReqObj, 'customer_request.amount'),
                     '$.customer_request.Expiration_time',           getJval(pjReqObj, 'customer_request.Expiration_time'),
                     '$.customer_request.is_partial_fill_allowed',   getJval(pjReqObj, 'customer_request.is_partial_fill_allowed'),
-                    '$.customer_request.date_of_purchase',          v_order_date,
-                    '$.rate_info.rate_rec_id',                      v_rate_rec_id,
-                    '$.rate_info.spot_rate',                        v_spot_rate,
-                    '$.rate_info.currency_unit',                    v_currency_unit,
-                    '$.rate_info.rate_source',                      v_rate_source,
-                    '$.rate_info.foreign_exchange_rate',            v_fx_rate,
-                    '$.rate_info.foreign_exchange_source',          v_fx_source
+                    '$.customer_request.payment_method',            v_cr_payment_method,
+                    '$.customer_request.date_of_purchase',          DATE_FORMAT(v_cr_date_of_purchase, '%Y-%m-%dT%H:%i:%sZ')
                 );
 
+            ELSE
+                SET psResObj = JSON_OBJECT(
+                    'status',       'error',
+                    'status_code',  '5',
+                    'message',      'Unknown order_sub_type for Sell. Must be Market or Limit'
+                );
+                LEAVE main_block;
             END IF; -- End Sell sub types
 
-            START TRANSACTION;
-                CALL getSequence('ORDER.ORDER_NUM',   NULL, NULL, 'insertOrder sp', v_order_number);
-                CALL getSequence('ORDER.RECEIPT_NUM', NULL, NULL, 'insertOrder sp', v_receipt_number);
-
-                INSERT INTO orders
-                    SET customer_rec_id         = v_customer_rec_id,
-                        account_number          = v_account_number,
-                        order_number            = v_order_number,
-                        receipt_number          = v_receipt_number,
-                        order_date              = v_order_date,
-                        order_status            = v_order_status,
-                        next_action_required    = v_next_action_required,
-                        order_cat               = v_order_cat,
-                        order_type              = v_order_type,
-                        metal                   = v_metal,
-                        order_json              = v_order_json,
-                        row_metadata            = v_row_metadata;
-
-                SET v_order_rec_id = LAST_INSERT_ID();
-            COMMIT;
-
-        -- -----------------------------------------------------------------------
-        -- EXCHANGE
-        -- Two linked orders: one Sell (from_metal) + one Buy (to_metal)
-        -- -----------------------------------------------------------------------
         ELSEIF v_order_type = 'Exchange' THEN
 
-            IF isFalsy(getJval(pjReqObj, 'exchange.from_metal')) THEN
-                SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'from_metal is required for Exchange');
-            END IF;
-            IF isFalsy(getJval(pjReqObj, 'exchange.to_metal')) THEN
-                SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'to_metal is required for Exchange');
-            END IF;
-            IF isFalsy(getJval(pjReqObj, 'exchange.weight')) THEN
-                SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'weight is required for Exchange');
-            END IF;
+            -- Fetch from and to rates for the exchange asset codes
+            SELECT asset_rate_rec_id, asset_rate_history_json
+            INTO v_from_asset_rate_rec_id, v_from_rate_json
+            FROM asset_rate_history
+            WHERE asset_code = v_exchange_from_asset_code
+            ORDER BY rate_timestamp DESC
+            LIMIT 1;
 
-            IF JSON_LENGTH(v_errors) > 0 THEN
-                SET psResObj = JSON_OBJECT('status', 'error', 'status_code', '2', 'message', 'Validation failed', 'errors', v_errors);
+            IF isFalsy(v_from_rate_json) THEN
+                SET psResObj = JSON_OBJECT(
+                                            'status',       'error',
+                                            'status_code',  '4',
+                                            'message',      'Rate not found for exchange.from.asset_code',
+                                            'asset_code',   v_exchange_from_asset_code
+                                        );
                 LEAVE main_block;
             END IF;
 
-            SET v_order_status          = 'pending';
-            SET v_next_action_required  = 'approved';
-            SET v_order_cat             = 'DO';
-
-            /* Fetch rates separately for from_metal and to_metal */
-            SELECT  rate_rec_id,        spot_rate,          currency_unit,          rate_source,        foreign_exchange_rate,  foreign_exchange_source
-            INTO    v_from_rate_rec_id, v_from_spot_rate,   v_from_currency_unit,   v_from_rate_source, v_from_fx_rate,         v_from_fx_source
-            FROM    rates
-            WHERE   metal       = getJval(pjReqObj, 'exchange.from_metal')
-            AND     is_active   = 1
-            ORDER BY created_at DESC
+            SELECT asset_rate_rec_id, asset_rate_history_json
+            INTO v_to_asset_rate_rec_id, v_to_rate_json
+            FROM asset_rate_history
+            WHERE asset_code = v_exchange_to_asset_code
+            ORDER BY rate_timestamp DESC
             LIMIT 1;
 
-            SELECT  rate_rec_id,        spot_rate,          currency_unit,          rate_source,        foreign_exchange_rate,  foreign_exchange_source
-            INTO    v_to_rate_rec_id,   v_to_spot_rate,     v_to_currency_unit,     v_to_rate_source,   v_to_fx_rate,           v_to_fx_source
-            FROM    rates
-            WHERE   metal       = getJval(pjReqObj, 'exchange.to_metal')
-            AND     is_active   = 1
-            ORDER BY created_at DESC
-            LIMIT 1;
+            IF isFalsy(v_to_rate_json) THEN
+                SET psResObj = JSON_OBJECT(
+                                            'status',       'error',
+                                            'status_code',  '4',
+                                            'message',      'Rate not found for exchange.to.asset_code',
+                                            'asset_code',   v_exchange_to_asset_code
+                                        );
+                LEAVE main_block;
+            END IF;
 
-            /* Sequences generated INSIDE transaction */
-            START TRANSACTION;
+            SET v_order_cat = 'DO';
 
-                CALL getSequence('ORDER.ORDER_NUM',   NULL, NULL, 'insertOrder sp', v_order_number);
-                CALL getSequence('ORDER.RECEIPT_NUM', NULL, NULL, 'insertOrder sp', v_receipt_number);
-                CALL getSequence('ORDER.ORDER_NUM',   NULL, NULL, 'insertOrder sp', v_exchange_order_number);
-                CALL getSequence('ORDER.RECEIPT_NUM', NULL, NULL, 'insertOrder sp', v_exchange_receipt_number);
+            SET v_order_json = JSON_SET(v_order_json,
+                                        '$.order_cat',                           v_order_cat,
+                                        '$.order_type',                          v_order_type,
+                                        '$.order_sub_type',                      v_order_sub_type,
+                                        '$.metal',                               v_exchange_from_metal,
+                                        '$.exchange.from.metal',                 v_exchange_from_metal,
+                                        '$.exchange.from.asset_code',            v_exchange_from_asset_code,
+                                        '$.exchange.to.metal',                   v_exchange_to_metal,
+                                        '$.exchange.to.asset_code',              v_exchange_to_asset_code,
+                                        '$.exchange.weight',                     v_exchange_weight,
+                                        '$.sell_items',                          JSON_ARRAY(JSON_OBJECT('metal', v_exchange_from_metal, 'asset_code', v_exchange_from_asset_code, 'weight', v_exchange_weight)),
+                                        '$.buy_items',                           JSON_ARRAY(JSON_OBJECT('metal', v_exchange_to_metal, 'asset_code', v_exchange_to_asset_code, 'weight', v_exchange_weight)),
+                                        '$.rate_info.from_rate_rec_id',          v_from_asset_rate_rec_id,
+                                        '$.rate_info.from_rate_json',            v_from_rate_json,
+                                        '$.rate_info.to_rate_rec_id',            v_to_asset_rate_rec_id,
+                                        '$.rate_info.to_rate_json',              v_to_rate_json
+                                    );
 
-                -- Leg 1: SELL order (from_metal)
-                SET v_order_json = getTemplate('orders');
-                SET v_order_json = JSON_SET(v_order_json,
-                    '$.order_number',                           v_order_number,
-                    '$.receipt_number',                         v_receipt_number,
-                    '$.order_date',                             v_order_date,
-                    '$.order_status',                           v_order_status,
-                    '$.next_action_required',                   v_next_action_required,
-                    '$.order_cat',                              v_order_cat,
-                    '$.order_type',                             'Sell',
-                    '$.metal',                                  getJval(pjReqObj, 'exchange.from_metal'),
-                    '$.customer_info.customer_rec_id',          v_customer_rec_id,
-                    '$.customer_info.customer_name',            getJval(pjReqObj, 'customer_info.customer_name'),
-                    '$.customer_info.customer_account_number',  v_account_number,
-                    '$.customer_info.customer_phone',           getJval(pjReqObj, 'customer_info.customer_phone'),
-                    '$.customer_info.whatsapp',                 getJval(pjReqObj, 'customer_info.whatsapp'),
-                    '$.customer_info.customer_email',           getJval(pjReqObj, 'customer_info.customer_email'),
-                    '$.customer_info.customer_address',         getJval(pjReqObj, 'customer_info.customer_address'),
-                    '$.customer_info.customer_ip_address',      getJval(pjReqObj, 'customer_info.customer_ip_address'),
-                    '$.customer_info.latitude',                 getJval(pjReqObj, 'customer_info.latitude'),
-                    '$.customer_info.longitude',                getJval(pjReqObj, 'customer_info.longitude'),
-                    '$.customer_request.weight',                getJval(pjReqObj, 'exchange.weight'),
-                    '$.customer_request.date_of_purchase',      v_order_date,
-                    '$.rate_info.rate_rec_id',                  v_from_rate_rec_id,
-                    '$.rate_info.spot_rate',                    v_from_spot_rate,
-                    '$.rate_info.currency_unit',                v_from_currency_unit,
-                    '$.rate_info.rate_source',                  v_from_rate_source,
-                    '$.rate_info.foreign_exchange_rate',        v_from_fx_rate,
-                    '$.rate_info.foreign_exchange_source',      v_from_fx_source
-                );
-
-                INSERT INTO orders
-                    SET customer_rec_id         = v_customer_rec_id,
-                        account_number          = v_account_number,
-                        order_number            = v_order_number,
-                        receipt_number          = v_receipt_number,
-                        order_date              = v_order_date,
-                        order_status            = v_order_status,
-                        next_action_required    = v_next_action_required,
-                        order_cat               = v_order_cat,
-                        order_type              = 'Sell',
-                        metal                   = getJval(pjReqObj, 'exchange.from_metal'),
-                        order_json              = v_order_json,
-                        row_metadata            = v_row_metadata;
-
-                SET v_exchange_sell_rec_id = LAST_INSERT_ID();
-
-                -- Leg 2: BUY order (to_metal)
-                SET v_order_json = getTemplate('orders');
-                SET v_order_json = JSON_SET(v_order_json,
-                    '$.order_number',                           v_exchange_order_number,
-                    '$.receipt_number',                         v_exchange_receipt_number,
-                    '$.order_date',                             v_order_date,
-                    '$.order_status',                           v_order_status,
-                    '$.next_action_required',                   v_next_action_required,
-                    '$.order_cat',                              v_order_cat,
-                    '$.order_type',                             'Buy',
-                    '$.metal',                                  getJval(pjReqObj, 'exchange.to_metal'),
-                    '$.customer_info.customer_rec_id',          v_customer_rec_id,
-                    '$.customer_info.customer_name',            getJval(pjReqObj, 'customer_info.customer_name'),
-                    '$.customer_info.customer_account_number',  v_account_number,
-                    '$.customer_info.customer_phone',           getJval(pjReqObj, 'customer_info.customer_phone'),
-                    '$.customer_info.whatsapp',                 getJval(pjReqObj, 'customer_info.whatsapp'),
-                    '$.customer_info.customer_email',           getJval(pjReqObj, 'customer_info.customer_email'),
-                    '$.customer_info.customer_address',         getJval(pjReqObj, 'customer_info.customer_address'),
-                    '$.customer_info.customer_ip_address',      getJval(pjReqObj, 'customer_info.customer_ip_address'),
-                    '$.customer_info.latitude',                 getJval(pjReqObj, 'customer_info.latitude'),
-                    '$.customer_info.longitude',                getJval(pjReqObj, 'customer_info.longitude'),
-                    '$.customer_request.weight',                getJval(pjReqObj, 'exchange.to_weight'),
-                    '$.customer_request.date_of_purchase',      v_order_date,
-                    '$.rate_info.rate_rec_id',                  v_to_rate_rec_id,
-                    '$.rate_info.spot_rate',                    v_to_spot_rate,
-                    '$.rate_info.currency_unit',                v_to_currency_unit,
-                    '$.rate_info.rate_source',                  v_to_rate_source,
-                    '$.rate_info.foreign_exchange_rate',        v_to_fx_rate,
-                    '$.rate_info.foreign_exchange_source',      v_to_fx_source
-                );
-
-                INSERT INTO orders
-                    SET customer_rec_id         = v_customer_rec_id,
-                        account_number          = v_account_number,
-                        order_number            = v_exchange_order_number,
-                        receipt_number          = v_exchange_receipt_number,
-                        order_date              = v_order_date,
-                        order_status            = v_order_status,
-                        next_action_required    = v_next_action_required,
-                        order_cat               = v_order_cat,
-                        order_type              = 'Buy',
-                        metal                   = getJval(pjReqObj, 'exchange.to_metal'),
-                        order_json              = v_order_json,
-                        row_metadata            = v_row_metadata;
-
-                SET v_exchange_buy_rec_id = LAST_INSERT_ID();
-
-                UPDATE orders SET linked_order_rec_id = v_exchange_buy_rec_id  WHERE order_rec_id = v_exchange_sell_rec_id;
-                UPDATE orders SET linked_order_rec_id = v_exchange_sell_rec_id WHERE order_rec_id = v_exchange_buy_rec_id;
-
-                SET v_order_rec_id = v_exchange_sell_rec_id;
-
-            COMMIT;
-
-        -- -----------------------------------------------------------------------
-        -- REDEEM
-        -- Multiple products as array in buy_items, single order row
-        -- -----------------------------------------------------------------------
         ELSEIF v_order_type = 'Redeem' THEN
 
             IF isFalsy(getJval(pjReqObj, 'buy_items')) THEN
@@ -592,74 +501,64 @@ BEGIN
             END IF;
 
             IF JSON_LENGTH(v_errors) > 0 THEN
-                SET psResObj = JSON_OBJECT('status', 'error', 'status_code', '2', 'message', 'Validation failed', 'errors', v_errors);
+                SET psResObj = JSON_OBJECT(
+                                            'status', 'error',
+                                            'status_code', '2',
+                                            'message', 'Validation failed',
+                                            'errors', v_errors
+                                        );
                 LEAVE main_block;
             END IF;
 
-            SET v_order_status          = 'pending';
-            SET v_next_action_required  = 'approved';
-            SET v_order_cat             = 'DO';
+            SET v_order_cat = 'DO';
 
             SET v_order_json = JSON_SET(v_order_json,
-                '$.order_number',                           v_order_number,
-                '$.receipt_number',                         v_receipt_number,
-                '$.order_date',                             v_order_date,
-                '$.order_status',                           v_order_status,
-                '$.next_action_required',                   v_next_action_required,
-                '$.order_cat',                              v_order_cat,
-                '$.order_type',                             v_order_type,
-                '$.metal',                                  v_metal,
-                '$.customer_info.customer_rec_id',          v_customer_rec_id,
-                '$.customer_info.customer_name',            getJval(pjReqObj, 'customer_info.customer_name'),
-                '$.customer_info.customer_account_number',  v_account_number,
-                '$.customer_info.customer_phone',           getJval(pjReqObj, 'customer_info.customer_phone'),
-                '$.customer_info.whatsapp',                 getJval(pjReqObj, 'customer_info.whatsapp'),
-                '$.customer_info.customer_email',           getJval(pjReqObj, 'customer_info.customer_email'),
-                '$.customer_info.customer_address',         getJval(pjReqObj, 'customer_info.customer_address'),
-                '$.customer_info.customer_ip_address',      getJval(pjReqObj, 'customer_info.customer_ip_address'),
-                '$.customer_info.latitude',                 getJval(pjReqObj, 'customer_info.latitude'),
-                '$.customer_info.longitude',                getJval(pjReqObj, 'customer_info.longitude'),
-                '$.buy_items',                              getJval(pjReqObj, 'buy_items'),
-                '$.order_pickup_info.pickup_required',      TRUE,
-                '$.order_pickup_info.pickup_status',        'Pending',
-                '$.rate_info.rate_rec_id',                  v_rate_rec_id,
-                '$.rate_info.spot_rate',                    v_spot_rate,
-                '$.rate_info.currency_unit',                v_currency_unit,
-                '$.rate_info.rate_source',                  v_rate_source,
-                '$.rate_info.foreign_exchange_rate',        v_fx_rate,
-                '$.rate_info.foreign_exchange_source',      v_fx_source
-            );
-
-            START TRANSACTION;
-                CALL getSequence('ORDER.ORDER_NUM',   NULL, NULL, 'insertOrder sp', v_order_number);
-                CALL getSequence('ORDER.RECEIPT_NUM', NULL, NULL, 'insertOrder sp', v_receipt_number);
-
-                INSERT INTO orders
-                    SET customer_rec_id         = v_customer_rec_id,
-                        account_number          = v_account_number,
-                        order_number            = v_order_number,
-                        receipt_number          = v_receipt_number,
-                        order_date              = v_order_date,
-                        order_status            = v_order_status,
-                        next_action_required    = v_next_action_required,
-                        order_cat               = v_order_cat,
-                        order_type              = v_order_type,
-                        metal                   = v_metal,
-                        order_json              = v_order_json,
-                        row_metadata            = v_row_metadata;
-
-                SET v_order_rec_id = LAST_INSERT_ID();
-            COMMIT;
+                                        '$.order_cat',                              v_order_cat,
+                                        '$.order_type',                             v_order_type,
+                                        '$.order_sub_type',                         v_order_sub_type,
+                                        '$.metal',                                  v_metal,
+                                        '$.buy_items',                              getJval(pjReqObj, 'buy_items'),
+                                        '$.customer_request.payment_method',        v_cr_payment_method,
+                                        '$.customer_request.date_of_purchase',      DATE_FORMAT(v_cr_date_of_purchase, '%Y-%m-%dT%H:%i:%sZ'),
+                                        '$.rate_info.rate_rec_id',                  v_asset_rate_rec_id,
+                                        '$.rate_info.spot_rate',                    getJval(v_rate_json, 'spot_rate'),
+                                        '$.rate_info.currency_unit',                getJval(v_rate_json, 'currency_unit'),
+                                        '$.rate_info.rate_source',                  getJval(v_rate_json, 'source_info.rate_source'),
+                                        '$.rate_info.foreign_exchange_rate',        getJval(v_rate_json, 'foreign_exchange.foreign_exchange_rate'),
+                                        '$.rate_info.foreign_exchange_source',      getJval(v_rate_json, 'foreign_exchange.foreign_exchange_source')
+                                    );
 
         ELSE
-            -- Unknown order type
+
             SET psResObj = JSON_OBJECT(
                                         'status',       'error',
-                                        'status_code',  '3',
-                                        'message',      'Unknown order_type. Must be Buy, Sell, Exchange or Redeem'
-                                      );
+                                        'status_code',  '6',
+                                        'message',      'order_type not yet implemented. Currently Buy, Sell and Exchange are supported'
+                                    );
             LEAVE main_block;
-        END IF;
+
+        END IF; -- End order_type branch
+
+        /* ===================== Step 12: INSERT into orders table ===================== */
+        START TRANSACTION;
+
+            INSERT INTO orders
+                SET customer_rec_id         = v_customer_rec_id,
+                    account_number          = v_account_number,
+                    order_number            = v_order_number,
+                    receipt_number          = v_receipt_number,
+                    order_date              = v_order_date,
+                    order_status            = v_order_status,
+                    next_action_required    = v_next_action_required,
+                    order_cat               = v_order_cat,
+                    order_type              = v_order_type,
+                    metal                   = v_metal,
+                    order_json              = v_order_json,
+                    row_metadata            = v_row_metadata;
+
+            SET v_order_rec_id = LAST_INSERT_ID();
+
+        COMMIT;
 
         /* ===================== Success Response ===================== */
         SET psResObj = JSON_OBJECT(
@@ -670,8 +569,10 @@ BEGIN
                                     'order_number',     v_order_number,
                                     'receipt_number',   v_receipt_number,
                                     'order_type',       v_order_type,
-                                    'order_sub_type',   v_order_sub_type
-                                  );
+                                    'order_sub_type',   v_order_sub_type,
+                                    'order_cat',        v_order_cat,
+                                    'order_json',       v_order_json
+                                );
 
     END; -- main_block
 

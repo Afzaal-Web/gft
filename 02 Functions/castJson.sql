@@ -401,7 +401,9 @@ BEGIN
 								"unit"                    : "gram",                         "_comment_unit"                     : "Unit for spot rate",
 								"current_rate"            : 4433.85,                        "_comment_current_rate"              : "Current market rate",
 								"currency"                : "USD",                          "_comment_currency"                  : "Currency of rate",
-								"quality"                 : "24K",                          "_comment_quality"                   : "Purity or quality of the commodity"
+								"quality"                 : "24K",                          "_comment_quality"                   : "Purity or quality of the commodity",
+								"foreign_exchange_rate"   : 278.50,            
+								"foreign_exchange_source" : "OpenExchange"  
 							},
 							"media_library" : [
 									{
@@ -578,6 +580,7 @@ BEGIN
 							"inventory_rec_id":            0,                                              "_comment_inventory_rec_id":           "Auto-increment inventory record ID",
 							"product_rec_id":              0,                                              "_comment_product_rec_id":             "Linked product record ID",
 							"item_name":                   "Gold Bar - 1000g",                             "_comment_item_name":                  "Inventory item name",
+              "item_code":                   "GLD-241212",                                   "_comment_item_code":                  "Inventory item code",
 							"item_type":                   "Bar",                                          "_comment_item_type":                  "Inventory item type like: Bar,Gold Ring, Bracelet, Locket, Jwellery etc",
 							"asset_type":                  "Gold",                                         "_comment_asset_type":                 "Type of asset like Gold, silver , etc",  
 							"availability_status":         "Available",                                    "_comment_availability_status":        "Current availability status like: Available,Sold, redeemed, Slice Bought",

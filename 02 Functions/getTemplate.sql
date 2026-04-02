@@ -333,13 +333,15 @@ BEGIN
 							},
 
 							"spot_rate" : {
-								"updated_at"           : null,
-								"api_name"             : null,
-								"url"                  : null,
-								"unit"                 : null,
-								"current_rate"         : null,
-								"currency"             : null,
-								"quality"              : null
+								"updated_at"           		 : null,
+								"api_name"             		 : null,
+								"url"                  		 : null,
+								"unit"                 		 : null,
+								"current_rate"         		 : null,
+								"currency"             		 : null,
+								"quality"              		 : null,
+								"foreign_exchange_rate"		 : null,
+								"foreign_exchange_source"    : null
 							},
 
 							"media_library" : [
@@ -516,6 +518,7 @@ BEGIN
 							"inventory_rec_id"       :  null,
 							"product_rec_id"         :  null,
 							"item_name"              :  null,
+              "item_code"              :  null, 
 							"item_type"              :  null,
 							"asset_type"             :  null,
 							"availability_status"    :  null,

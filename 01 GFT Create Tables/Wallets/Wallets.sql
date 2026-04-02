@@ -42,8 +42,8 @@ SET
     forex_code             		= 'XAU',
     available_to_customers 		= TRUE,
 
-	tradable_assets_json 		= castJson('tradable_assets'),
-	row_metadata 				= castJson('row_metadata');
+	tradable_assets_json 		    = castJson('tradable_assets'),
+	row_metadata 			      	  = castJson('row_metadata');
 
 -- ===============================================
 -- tradable_assets table ended

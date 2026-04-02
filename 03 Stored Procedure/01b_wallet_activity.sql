@@ -14,7 +14,10 @@ CREATE PROCEDURE wallet_activity (
 									IN p_wallet_id 				VARCHAR(100),
 									IN p_activity_type 			ENUM('CREATE','CREDIT','DEBIT'),
 									IN p_amount 				DECIMAL(20,6),
-									IN p_reason 				VARCHAR(255)
+									IN p_reason 				VARCHAR(255),
+									IN p_order_rec_id 			INT,
+									IN p_order_number 			VARCHAR(50),
+									IN p_transaction_num 		VARCHAR(50)
 								)
 BEGIN
     /* =============== VARIABLE DECLARATIONS ============= */
@@ -117,6 +120,9 @@ BEGIN
 										'$.wallet_title', 								v_wallet_title,
 										'$.asset_code',									v_asset_code,
 										'$.asset_name', 								v_asset_name,
+										'$.order_rec_id',								p_order_rec_id,
+										'$.order_number',								p_order_number,
+										'$.transaction_number',							p_transaction_num,
 										'$.transaction_type', 							p_activity_type,
 
 										'$.ledger_transaction.transaction_at', 			NOW(),
@@ -141,6 +147,9 @@ BEGIN
         wallet_title			= v_wallet_title,
         asset_code				= v_asset_code,
         asset_name				= v_asset_name,
+        order_rec_id			= p_order_rec_id,
+        order_number			= p_order_number,
+        transaction_number		= p_transaction_num,
         transaction_type		= CASE p_activity_type WHEN 'CREATE' THEN 'WALLET_CREATE' ELSE p_activity_type END,
         wallet_ledger_json		= v_wallet_ledger_json,
         row_metadata			= JSON_SET(v_row_metadata,

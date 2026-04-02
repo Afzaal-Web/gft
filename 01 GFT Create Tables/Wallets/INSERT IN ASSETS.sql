@@ -44,7 +44,9 @@ SET @metal_type_gold = CAST(
                                 "api_name"                  : "metals-api",
                                 "currency"                  : "USD",
                                 "updated_at"                : "2026-01-16T06:00:00Z",
-                                "current_rate"              : 4433.85
+                                "current_rate"              : 4433.85,
+                                "foreign_exchange_rate"     : 278.50,            
+                                "foreign_exchange_source"   : "OpenExchange"   
                             },
 
                             "media_library" : [
@@ -112,7 +114,9 @@ SET @metal_type_silver = CAST('{
                                     "api_name"                  : "metals-api",
                                     "currency"                  : "USD",
                                     "updated_at"                : "2026-01-16T06:00:00Z",
-                                    "current_rate"              : 55.32
+                                    "current_rate"              : 55.32,
+                                    "foreign_exchange_rate"     : 278.50,            
+                                    "foreign_exchange_source"   : "OpenExchange" 
                                 },                          
 
                                 "media_library" : [
@@ -181,7 +185,9 @@ SET @metal_type_platinum = CAST('{
                                 "api_name"                  : "metals-api",
                                 "currency"                  : "USD",
                                 "updated_at"                : "2026-01-16T06:00:00Z",
-                                "current_rate"              : 3100.45
+                                "current_rate"              : 3100.45,
+                                "foreign_exchange_rate"     : 278.50,            
+                                "foreign_exchange_source"   : "OpenExchange" 
                             },                      
 
                             "media_library" : [
@@ -250,7 +256,9 @@ SET @cash_usd = CAST('{
                            "api_name"                  : "forex-api",
                            "currency"                  : "USD",
                            "updated_at"                : "2026-01-16T06:00:00Z",
-                           "current_rate"              : 1.0
+                           "current_rate"              : 1.0,
+                           "foreign_exchange_rate"     : 278.50,            
+                           "foreign_exchange_source"   : "OpenExchange" 
                        },
 
                        "media_library" : [

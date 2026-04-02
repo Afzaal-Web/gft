@@ -97,7 +97,10 @@ BEGIN
 						  v_wallet_id,           -- wallet_id
 						  'CREATE',              -- activity type
 						  0,                     -- amount
-						  'Wallet created'       -- reason
+						  'Wallet created',      -- reason
+						  NULL,                  -- order_rec_id
+						  NULL,                  -- order_number
+						  NULL                   -- transaction_num
 					    );
 
 END $$
