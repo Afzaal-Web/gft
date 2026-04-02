@@ -83,11 +83,11 @@ BEGIN
         GET STACKED DIAGNOSTICS CONDITION 1 v_err_msg = MESSAGE_TEXT;
         ROLLBACK;
         SET psResObj = JSON_OBJECT(
-            'status',       'error',
-            'status_code',  '1',
-            'message',      'Insertion failed',
-            'system_error', v_err_msg
-        );
+                                    'status',       'error',
+                                    'status_code',  '1',
+                                    'message',      'Insertion failed',
+                                    'system_error', v_err_msg
+                                );
     END;
 
 main_block: BEGIN
@@ -186,8 +186,8 @@ main_block: BEGIN
     SET v_next_action_required = 'approved';
 
     /* ===================== Step 7: Load Order Template & Row Metadata ===================== */
-    SET v_order_json = getTemplate('orders');
-    SET v_row_metadata = getTemplate('row_metadata');
+    SET v_order_json        = getTemplate('orders');
+    SET v_row_metadata      = getTemplate('row_metadata');
 
     /* ===================== Step 8: Populate Customer & Rate Info & top level fields ===================== */
     SET v_order_json = JSON_SET(v_order_json,
