@@ -106,19 +106,21 @@
         "transaction_num"                        : "TXN-2026-0001",                           "_comment_transaction_num"                      : "Unique transaction reference number",
         "transaction_type"                       : "Credit",                                  "debit or credit"                               : "Indicates whether the transaction is a debit or credit",
         "wallet_type"                            : "Gold",                                    "_comment_wallet_type"                          : "Weight purchased",
+        "asset_code"                             : "GLD",                                     "_comment_asset_code"                           : "Asset code for the wallet",
         "balance_before"                         : "3 g" ,                                    "_comment_product_weight_before_transaction"    : "Weight before",
         "transaction_amount"                     : "2 g",                                     "_comment_buy_quantity"                         : "Quantity purchased",
         "balance_after"                          : "5 g",                                     "_comment_product_weight_after_transaction"     : "Weight after",
-        "ledger_id"                              : 12,                                        "_comment_ledger_id"                            : "Ledger entry reference ID"
+        "wallet_id"                              : "wld-121",                                   "_comment_wallet_id"                            : "Wallet reference ID"
     },
     { 
         "transaction_num"                        : "TXN-2026-0001",                          "_comment_transaction_num"                      : "Unique transaction reference number",
         "transaction_type"                       : "Debit",                                  "debit or credit"                               : "Indicates whether the transaction is a debit or credit",
         "wallet_type"                            : "Cash",                                   "_comment_buy_weight"                           : "Weight purchased",
+         "asset_code"                            : "CSH", 
         "balance_before"                         : "245,000.00" ,                            "_comment_cash_before_transaction"              : "Weight before",
         "transaction_amount"                     : "45,000.00",                              "_comment_buy_quantity"                         : "Quantity purchased",
         "balance_after"                          : "200,000.00",                             "_comment_product_weight_after_transaction"     : "Weight after",
-        "ledger_id"                              : 12,                                       "_comment_ledger_id"                           : "Ledger entry reference ID"
+        "wallet_id"                              : "wld-121",                                       "_comment_wallet_id"                           : "Wallet entry reference ID"
     }
     ],
     

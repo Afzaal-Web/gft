@@ -14,11 +14,11 @@ BEGIN
     BEGIN
         GET STACKED DIAGNOSTICS CONDITION 1 v_err_msg = MESSAGE_TEXT;
         SET psResObj = JSON_OBJECT(
-            'status',       'error',
-            'status_code',  '1',
-            'message',      'Procedure failed',
-            'system_error', v_err_msg
-        );
+                                    'status',       'error',
+                                    'status_code',  '1',
+                                    'message',      'Procedure failed',
+                                    'system_error', v_err_msg
+                                );
     END;
 
     SET v_order_type = getJval(pjReqObj, 'order_type');

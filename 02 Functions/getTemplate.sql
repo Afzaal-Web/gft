@@ -957,6 +957,7 @@ BEGIN
 								"transaction_num"             : null,
 								"transaction_type"            : null,
 								"wallet_type"                 : null,
+                "asset_code"                  : null,
 								"balance_before"              : null,
 								"transaction_amount"          : null,
 								"balance_after"               : null,

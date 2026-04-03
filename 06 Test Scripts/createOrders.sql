@@ -634,6 +634,31 @@ SELECT  JSON_UNQUOTE(JSON_EXTRACT(@res, '$.status'))                        AS e
         JSON_LENGTH (JSON_EXTRACT(@res, '$.order_json.transactions'))       AS expect_2_transactions;
 
 
+-- TEST A-15 : PRODUCT — invalid order_sub_type
+-- Expected  : status=error, status_code=5
+SELECT '=== TEST A-15 : PRODUCT — invalid order_sub_type ===' AS test_case;
+
+SET @req = JSON_OBJECT(
+    'account_number',   'P-501',
+    'asset_code',       'GLD',
+    'order_sub_type',   'Limit',
+    'metal',            'Gold',
+    'product_type',     'PRODUCT',
+    'buy_items',        JSON_ARRAY(
+                            JSON_OBJECT(
+                                'item_code',     'GLD-BAR-1G',
+                                'item_weight',   1.0,
+                                'item_quantity', 2
+                            )
+                        ),
+    'customer_request', JSON_OBJECT(
+                            'payment_method',   'Bank Transfer',
+                            'amount',           8867.70
+                        )
+);
+
+CALL createBuyOrder(@req, @res);
+SELECT JSON_PRETTY(@res) AS result;
 /* =====================================================================
    SECTION F : Side-Effect Verification
    Run after successful tests to confirm DB state is correct
@@ -700,3 +725,38 @@ FROM    customers c,
             '$[*]' COLUMNS (value JSON PATH '$')
         ) AS w
 WHERE   c.account_number = 'CUS-001';
+
+
+
+
+-- Test Script for createBuyOrder Stored Procedure
+-- This script tests the createBuyOrder procedure with sample data for PRODUCT type.
+
+-- Set up the request JSON for a PRODUCT buy order
+SET @req = JSON_OBJECT(
+    'account_number',   'P-501',
+    'asset_code',       'GLD',
+    'order_sub_type',   'Limit',  -- This will be ignored for PRODUCT
+    'metal',            'Gold',
+    'product_type',     'PRODUCT',
+    'buy_items',        JSON_ARRAY(
+                            JSON_OBJECT(
+                                'item_code',     'GLD-RNG-1001',
+                                'item_weight',   1.0,
+                                'item_quantity', 2
+                            )
+                        ),
+    'customer_request', JSON_OBJECT(
+                            'payment_method',   'Bank Transfer',
+                            'amount',           8867.70
+                        )
+);
+
+-- Call the procedure
+CALL createBuyOrder(@req, @res);
+
+-- Display the result
+SELECT JSON_PRETTY(@res) AS result;
+
+-- Optional: Check the inserted order
+-- SELECT order_number, order_status, limit_or_market FROM orders WHERE order_number = JSON_UNQUOTE(JSON_EXTRACT(@res, '$.order_number'));
