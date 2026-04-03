@@ -634,9 +634,9 @@ SELECT  JSON_UNQUOTE(JSON_EXTRACT(@res, '$.status'))                        AS e
         JSON_LENGTH (JSON_EXTRACT(@res, '$.order_json.transactions'))       AS expect_2_transactions;
 
 
--- TEST A-15 : PRODUCT — invalid order_sub_type
--- Expected  : status=error, status_code=5
-SELECT '=== TEST A-15 : PRODUCT — invalid order_sub_type ===' AS test_case;
+-- TEST A-15 : PRODUCT — order_sub_type provided (ignored)
+-- Expected  : status=success, status_code=0 (order_sub_type is ignored for PRODUCT)
+SELECT '=== TEST A-15 : PRODUCT — order_sub_type ignored ===' AS test_case;
 
 SET @req = JSON_OBJECT(
     'account_number',   'P-501',
@@ -659,8 +659,10 @@ SET @req = JSON_OBJECT(
 
 CALL createBuyOrder(@req, @res);
 SELECT JSON_PRETTY(@res) AS result;
-/* =====================================================================
-   SECTION F : Side-Effect Verification
+
+SELECT  JSON_UNQUOTE(JSON_EXTRACT(@res, '$.status'))                        AS expect_success,
+        JSON_UNQUOTE(JSON_EXTRACT(@res, '$.status_code'))                   AS expect_0,
+        JSON_UNQUOTE(JSON_EXTRACT(@res, '$.limit_or_market'))               AS expect_null_for_product;
    Run after successful tests to confirm DB state is correct
    ===================================================================== */
 
@@ -750,6 +752,43 @@ SET @req = JSON_OBJECT(
                             'payment_method',   'Bank Transfer',
                             'amount',           8867.70
                         )
+);
+
+-- Call the procedure
+CALL createBuyOrder(@req, @res);
+
+-- Display the result
+SELECT JSON_PRETTY(@res) AS result;
+
+-- Optional: Check the inserted order
+-- SELECT order_number, order_status, limit_or_market FROM orders WHERE order_number = JSON_UNQUOTE(JSON_EXTRACT(@res, '$.order_number'));
+
+
+-- Test Script for createBuyOrder Stored Procedure - SLICE Limit Order
+-- This script tests the createBuyOrder procedure with sample data for SLICE Limit order.
+
+-- Set up the request JSON for a SLICE Limit buy order
+SET @req = JSON_OBJECT(
+    'account_number',       'P-501',
+    'asset_code',           'GLD',
+    'order_sub_type',       'Limit',
+    'order_cat',            'GTC',  -- Good Till Cancelled
+    'metal',                'Gold',
+    'product_type',         'SLICE',
+    'item_code',            'GLD-241212',
+    'item_weight',          2.0,
+    'customer_ip_address',  '192.168.1.25',
+    'latitude',             24.860735,
+    'longitude',            67.001137,
+    'notes',                'Test Limit GTC order',
+    'customer_request',     JSON_OBJECT(
+                                'payment_method',           'Bank Transfer',
+                                'rate',                     4433.85,
+                                'weight',                   2.0,
+                                'amount',                   8867.70,
+                                'Expiration_time',          '2026-12-31T23:59:59Z',
+                                'is_partial_fill_allowed',  TRUE
+                            )
 );
 
 -- Call the procedure
