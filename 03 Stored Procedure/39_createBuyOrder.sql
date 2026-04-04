@@ -219,7 +219,7 @@ main_block: BEGIN
                                 '$.customer_info.customer_phone',           getJval(v_customer_json, 'phone'),
                                 '$.customer_info.whatsapp',                 getJval(v_customer_json, 'whatsapp'),
                                 '$.customer_info.customer_email',           getJval(v_customer_json, 'email'),
-                                '$.customer_info.customer_address',         getJval(v_customer_json, 'residential_address'),
+                                '$.customer_info.customer_address',         CAST(getJval(v_customer_json, 'residential_address') AS JSON),
                                 '$.customer_info.customer_ip_address',      getJval(pjReqObj, 'customer_ip_address'),
                                 '$.customer_info.latitude',                 getJval(pjReqObj, 'latitude'),
                                 '$.customer_info.longitude',                getJval(pjReqObj, 'longitude'),
