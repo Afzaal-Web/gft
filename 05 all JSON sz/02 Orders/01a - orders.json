@@ -32,7 +32,7 @@
         "rate"                                    : 4433.85,                                      "_comment_customer_requested_rate"          : "Customer requested rate for the order",
         "amount"                                  : 44338.50,                                     "_comment_customer_requested_amount"        : "Customer requested  amount for the order",
         "weight"                                  : "2 g",                                        "_comment_customer_requested_weight"        : "Customer requested weight for the order",
-        "Expiration_time"                         : "2026-12-31T23:59:59Z",                       "_comment_customer_request_expiration"      : "Expiration time for the customer's requested rate/amount/weight",
+        "expiration_time"                         : "2026-12-31T23:59:59Z",                       "_comment_customer_request_expiration"      : "Expiration time for the customer's requested rate/amount/weight",
         "is_partial_fill_allowed"                 : true,                                         "_comment_customer_request_partial_fill"    : "Indicates if partial fills are allowed for the customer's request",
         "qty_to_buy"                              : 5,                                            "_comment_customer_request_qty_to_buy"      : "Quantity customer wants to buy",
         "date_of_purchase"                        : "NOW()",                                      "_comment_customer_request_date_of_purchase" : "Date when customer made the request",

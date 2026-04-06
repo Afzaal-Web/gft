@@ -64,7 +64,8 @@ BEGIN
     DECLARE v_items_count               INT DEFAULT 0;
 
     /* --- Transaction / wallet variables --- */
-    DECLARE v_txn_num                   VARCHAR(50);
+    DECLARE v_txn_num_debit             VARCHAR(50);
+    DECLARE v_txn_num_credit            VARCHAR(50);
     DECLARE v_transactions_output       JSON;
 
     DECLARE v_metal_wallet_id           VARCHAR(100);
@@ -152,7 +153,18 @@ main_block: BEGIN
     SELECT  customer_rec_id 
     INTO    v_customer_rec_id
     FROM    customer
-    WHERE   account_num = v_account_number;
+    WHERE   account_num = v_account_number
+    LIMIT 1;
+
+    -- check if customer record exists for the provided account_number
+    IF v_customer_rec_id IS NULL THEN
+        SET psResObj = JSON_OBJECT(
+                                    'status',       'error',
+                                    'status_code',  '3',
+                                    'message',      'Customer not found'
+                                );
+        LEAVE main_block;
+    END IF;
 
     CALL getCustomer(JSON_OBJECT('P_CUSTOMER_REC_ID', v_customer_rec_id), v_customer_json);
 
@@ -169,10 +181,12 @@ main_block: BEGIN
     SET v_customer_json = getJval(v_customer_json, 'customer_data');
 
     /* ===================== Step 4: Fetch Latest Rate for Asset rate history ===================== */
-    SELECT  tradable_assets_rec_id,      tradable_assets_json
-    INTO    v_tradable_assets_rec_id,    v_rate_json
-    FROM    tradable_assets
-    WHERE   asset_code = v_asset_code;
+    SELECT   tradable_assets_rec_id,      tradable_assets_json
+    INTO     v_tradable_assets_rec_id,    v_rate_json
+    FROM     tradable_assets
+    WHERE    asset_code = v_asset_code
+    ORDER BY tradable_assets_rec_id DESC
+    LIMIT 1;
 
     IF isFalsy(v_rate_json) THEN
         SET psResObj = JSON_OBJECT(
@@ -587,6 +601,15 @@ main_block: BEGIN
                                 + v_taxes 
                                 - v_total_discounts;
 
+    /* Now validate */
+    IF v_total_order_amount < 0 THEN
+        SET psResObj = JSON_OBJECT(
+                                    'status',       'error',
+                                    'status_code',  '10',
+                                    'message',      'Net Buy amount cannot be negative'
+                                );
+        LEAVE main_block;
+    END IF;  
     /* --- Populate order_summary in order_json --- */
     SET v_order_json = JSON_SET(v_order_json,
                                 '$.order_summary.total_buy_items',      v_total_buy_items,
@@ -633,6 +656,16 @@ main_block: BEGIN
 
     /*  11.1 : Read customer_wallets array  */
     SET v_wallets_arr   = getJval(v_customer_json, 'customer_wallets');
+
+    IF v_wallets_arr IS NULL OR JSON_LENGTH(v_wallets_arr) = 0 THEN
+        SET psResObj = JSON_OBJECT(
+                                    'status',       'error',
+                                    'status_code',  '11',
+                                    'message',      'Customer wallets not found'
+                                );
+        LEAVE main_block;
+    END IF;
+
     SET v_wallet_count  = JSON_LENGTH(v_wallets_arr);
 
     SET v_metal_wallet_id  = NULL;
@@ -648,13 +681,14 @@ main_block: BEGIN
         /* Match METAL wallet by asset_code (e.g. GLD matches v_asset_code) */
         IF v_wallet_asset_code = v_asset_code AND v_wallet_type = 'METAL' THEN
             SET v_metal_wallet_id           = JSON_UNQUOTE(JSON_EXTRACT(v_wallet_item, '$.wallet_id'));
-            SET v_metal_balance_before      = COALESCE(JSON_EXTRACT(v_wallet_item, '$.wallet_balance'), 0);
+            SET v_metal_balance_before      = COALESCE(CAST(JSON_UNQUOTE(JSON_EXTRACT(v_wallet_item, '$.wallet_balance')) AS DECIMAL(20,6)), 0);
+
         END IF;
 
         /* Match CASH wallet by wallet_type */
         IF v_wallet_type = 'CASH' THEN
             SET v_cash_wallet_id            = JSON_UNQUOTE(JSON_EXTRACT(v_wallet_item, '$.wallet_id'));
-            SET v_cash_balance_before       = COALESCE(JSON_EXTRACT(v_wallet_item, '$.wallet_balance'), 0); 
+            SET v_cash_balance_before       = COALESCE(CAST(JSON_UNQUOTE(JSON_EXTRACT(v_wallet_item, '$.wallet_balance')) AS DECIMAL(20,6)), 0);
         END IF;
 
         SET v_wallet_loop_idx = v_wallet_loop_idx + 1;
@@ -684,18 +718,6 @@ main_block: BEGIN
 
     /* ---- 11.3 : Calculate transaction amounts ---- */
 
-    /* Metal credit = sum of item_weight * item_quantity across all buy_items */
-    -- SET v_metal_txn_amount = 0;
-    -- SET v_items_count      = JSON_LENGTH(getJval(v_order_json, 'buy_items'));
-    -- SET v_loop_idx         = 0;
-
-    -- WHILE v_loop_idx < v_items_count DO
-    --     SET v_single_item = JSON_EXTRACT(getJval(v_order_json, 'buy_items'), CONCAT('$[', v_loop_idx, ']'));
-    --     SET v_metal_txn_amount = v_metal_txn_amount
-    --                              + CAST(JSON_UNQUOTE(JSON_EXTRACT(v_single_item, '$.item_weight')) AS DECIMAL(20,6)) * CAST(JSON_UNQUOTE(JSON_EXTRACT(v_single_item, '$.item_quantity')) AS DECIMAL(20,6));
-    --     SET v_loop_idx = v_loop_idx + 1;
-    -- END WHILE;
-
     /* Metal credit = already calculated in order summary */
     SET v_metal_txn_amount = v_total_buy_weight;
 
@@ -718,15 +740,16 @@ main_block: BEGIN
         LEAVE main_block;
     END IF;
 
-    /* ---- 11.5 : Generate transaction number (one shared num for both legs) ---- */
-    CALL getSequence('ORDERS.TXN_NUM', 'TXN-', 5000, 'createBuyOrder', v_txn_num);
+    /* ---- 11.5 : Generate transaction numbers for each leg ---- */
+    CALL getSequence('ORDERS.TXN_NUM', 'TXN-', 5000, 'createBuyOrder', v_txn_num_credit);
+    CALL getSequence('ORDERS.TXN_NUM', 'TXN-', 5000, 'createBuyOrder', v_txn_num_debit);
 
     /* ---- 11.6 : Build transactions array ---- */
     SET v_transactions_output = JSON_ARRAY(
 
         /* TXN-A : Metal CREDIT */
         JSON_OBJECT(
-                    'transaction_num',      v_txn_num,
+                    'transaction_num',      v_txn_num_credit,
                     'transaction_type',     'Credit',
                     'wallet_type',          'Metal',
                     "asset_code",           v_asset_code,
@@ -738,7 +761,7 @@ main_block: BEGIN
 
         /* TXN-B : Cash DEBIT */
         JSON_OBJECT(
-                    'transaction_num',      v_txn_num,
+                    'transaction_num',      v_txn_num_debit,
                     'transaction_type',     'Debit',
                     'wallet_type',          'Cash',
                     "asset_code",           'CSH',
@@ -765,7 +788,7 @@ main_block: BEGIN
                             CONCAT('Buy order credited: ', v_order_number),
                             v_order_rec_id,
                             v_order_number,
-                            v_txn_num
+                            v_txn_num_credit
                         );
 
     /* ---- 11.9 : Call wallet_activity - CASH DEBIT ---- */
@@ -777,9 +800,8 @@ main_block: BEGIN
                             CONCAT('Buy order debited: ', v_order_number),
                             v_order_rec_id,
                             v_order_number,
-                            v_txn_num
-                        );
-
+                            v_txn_num_debit
+                            );
 
     /* ===================== Step 12: Success Response ===================== */
     SET psResObj = JSON_OBJECT(

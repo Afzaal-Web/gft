@@ -894,7 +894,7 @@ BEGIN
 								"rate"                        : null,
 								"amount"                      : null,
 								"weight"                      : null,
-								"Expiration_time"             : null,
+								"expiration_time"             : null,
 								"is_partial_fill_allowed"     : null,
 								"qty_to_buy"                  : null,
 								"date_of_purchase"            : null,
