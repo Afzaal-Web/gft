@@ -626,32 +626,6 @@ main_block: BEGIN
                                 '$.order_summary.total_order_amount',   v_total_order_amount
                             );
 
-    /* ===================== Step 10: INSERT into orders table ===================== */
-    
-        INSERT INTO orders
-            SET customer_rec_id         = v_customer_rec_id,
-                account_number          = v_account_number,
-                order_number            = v_order_number,
-                receipt_number          = v_receipt_number,
-                order_date              = v_order_date,
-                order_status            = v_order_status,
-                next_action_required    = v_next_action_required,
-                order_cat               = v_order_cat,
-                order_type              = v_order_type,
-                limit_or_market         = v_order_sub_type,
-                metal                   = v_metal,
-                order_json              = v_order_json,
-                row_metadata            = v_row_metadata;
-
-        SET v_order_rec_id = LAST_INSERT_ID();
-
-        SET v_order_json = JSON_SET(v_order_json, '$.order_rec_id', v_order_rec_id);
-
-        UPDATE  orders
-        SET     order_json   = v_order_json
-        WHERE   order_rec_id = v_order_rec_id;
-    
-
     /* ===================== Step 11: Build Transactions, Update Wallets, Call wallet_activity ============== */
 
     /*  11.1 : Read customer_wallets array  */
@@ -772,12 +746,33 @@ main_block: BEGIN
                 )
     );
 
-    /* ---- 11.7 : Write transactions into order_json and persist ---- */
-    SET v_order_json = JSON_SET(v_order_json, '$.transactions', v_transactions_output);
+    /* ===================== Step 10: INSERT into orders table ===================== */
+    
+        INSERT INTO orders
+            SET customer_rec_id         = v_customer_rec_id,
+                account_number          = v_account_number,
+                order_number            = v_order_number,
+                receipt_number          = v_receipt_number,
+                order_date              = v_order_date,
+                order_status            = v_order_status,
+                next_action_required    = v_next_action_required,
+                order_cat               = v_order_cat,
+                order_type              = v_order_type,
+                limit_or_market         = v_order_sub_type,
+                metal                   = v_metal,
+                order_json              = v_order_json,
+                row_metadata            = v_row_metadata;
 
-    UPDATE  orders
-    SET     order_json   = v_order_json
-    WHERE   order_rec_id = v_order_rec_id;
+        SET v_order_rec_id = LAST_INSERT_ID();
+
+        SET v_order_json = JSON_SET(v_order_json, '$.order_rec_id', v_order_rec_id);
+
+        /* ---- 11.7 : Write transactions into order_json and persist ---- */
+        SET v_order_json = JSON_SET(v_order_json, '$.transactions', v_transactions_output);
+
+        UPDATE  orders
+        SET     order_json   = v_order_json
+        WHERE   order_rec_id = v_order_rec_id;
 
     /* ---- 11.8 : Call wallet_activity - METAL CREDIT ---- */
     CALL wallet_activity(

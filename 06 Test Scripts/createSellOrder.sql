@@ -222,13 +222,13 @@ SET @req = JSON_OBJECT(
     'order_sub_type',   'Limit',
     'order_cat',        'GTC',
     'metal',            'Gold',
-    'item_code',        'GLD-2412',
+    'item_code',        'GLD-241212',
     'customer_request', JSON_OBJECT(
                             'payment_method',            'Bank Transfer',
                             'weight',                    2.0,
                             'rate',                      4400.00,
                             'amount',                    8800.00,
-                            'Expiration_time',           '2026-12-31T23:59:59Z',
+                            'Expiration_time',           '2025-01-25   23:59',
                             'is_partial_fill_allowed',   'false'
                         )
 );

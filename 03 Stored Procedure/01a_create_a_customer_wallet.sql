@@ -62,9 +62,6 @@ BEGIN
 					   'WID-',
 						1122,
 						'createCustomerWallet',
-                        null,
-                        null,
-                        null,
                         @wallet_id
 					);
     SET v_wallet_id = @wallet_id;
