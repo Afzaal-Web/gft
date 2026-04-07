@@ -896,12 +896,11 @@ BEGIN
 								"weight"                      : null,
 								"expiration_time"             : null,
 								"is_partial_fill_allowed"     : null,
-								"qty_to_buy"                  : null,
+								"total_qty_to_buy"            : null,
 								"date_of_purchase"            : null,
 								"quality"                     : null,
 								"payment_method"              : null,
 								"additional_notes"            : null,
-								"product_images"              : null
 							},
 							"rate_info" :
 							{
@@ -957,7 +956,7 @@ BEGIN
 								"transaction_num"             : null,
 								"transaction_type"            : null,
 								"wallet_type"                 : null,
-                "asset_code"                  : null,
+                				"asset_code"                  : null,
 								"balance_before"              : null,
 								"transaction_amount"          : null,
 								"balance_after"               : null,

@@ -34,12 +34,11 @@
         "weight"                                  : "2 g",                                        "_comment_customer_requested_weight"        : "Customer requested weight for the order",
         "expiration_time"                         : "2026-12-31T23:59:59Z",                       "_comment_customer_request_expiration"      : "Expiration time for the customer's requested rate/amount/weight",
         "is_partial_fill_allowed"                 : true,                                         "_comment_customer_request_partial_fill"    : "Indicates if partial fills are allowed for the customer's request",
-        "qty_to_buy"                              : 5,                                            "_comment_customer_request_qty_to_buy"      : "Quantity customer wants to buy",
+        "total_qty_to_buy"                        : 5,                                            "_comment_customer_request_qty_to_buy"      : "Quantity customer wants to buy",
         "date_of_purchase"                        : "NOW()",                                      "_comment_customer_request_date_of_purchase" : "Date when customer made the request",
         "quality"                                 : "24K",                                        "_comment_customer_request_quality"         : "Quality of the metal requested by the customer",
         "payment_method"                          : "Bank Transfer",                              "_comment_customer_request_payment_method"   : "Customer's preferred payment method",
-        "additional_notes"                        : "Customer prefers delivery within 3 days",    "_comment_customer_request_additional_notes" : "Any additional notes or instructions from the customer regarding their request",
-        "product_images"                          : ["array of product images urls"],             "_comment_customer_request_product_images" : "URLs of product images provided by the customer"
+        "additional_notes"                        : "Customer prefers delivery within 3 days",    "_comment_customer_request_additional_notes" : "Any additional notes or instructions from the customer regarding their request"
     },
     
     "rate_info" :

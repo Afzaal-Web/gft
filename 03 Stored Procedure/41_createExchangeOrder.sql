@@ -433,6 +433,8 @@ main_block: BEGIN
     END IF;
 
     SET v_order_json = JSON_SET(v_order_json,
+                                '$.customer_request.total_qty_to_sell', v_total_sell_items,
+                                '$.customer_request.total_qty_to_buy',  v_total_buy_items,
                                 '$.order_summary.total_sell_items',     v_total_sell_items,
                                 '$.order_summary.total_sell_amount',    v_total_sell_amount,
                                 '$.order_summary.total_sell_weight',    v_total_sell_weight,

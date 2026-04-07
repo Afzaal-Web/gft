@@ -267,14 +267,10 @@ main_block: BEGIN
         END IF;
 
         /* ---------------------------------------------------------------
-           SLICE: validate item_code + item_weight (common to Market & Limit)
-           --------------------------------------------------------------- */   /* added block start */
+           SLICE: validate item_code + customer_request.weight (common to Market & Limit)
+           --------------------------------------------------------------- */  
         IF isFalsy(getJval(pjReqObj, 'item_code')) THEN
             SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'item_code is required for SLICE order');
-        END IF;
-
-        IF isFalsy(getJval(pjReqObj, 'item_weight')) THEN
-            SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'item_weight is required for SLICE order');
         END IF;
 
         IF JSON_LENGTH(v_errors) > 0 THEN
@@ -290,8 +286,7 @@ main_block: BEGIN
         /* ---------------------------------------------------------------
            SLICE: lookup item_name + item_type from inventory table
            --------------------------------------------------------------- */
-        SET v_item_code   = getJval(pjReqObj, 'item_code');
-        SET v_item_weight = getJval(pjReqObj, 'item_weight');
+        SET v_item_code         = getJval(pjReqObj, 'item_code');
 
         SELECT  inventory_json
         INTO    v_inventory_json
@@ -309,6 +304,7 @@ main_block: BEGIN
             LEAVE main_block;
         END IF;
 
+        SET v_item_weight      = getJval(pjReqObj, 'item_weight');
         SET v_item_name        = getJval(v_inventory_json, 'item_name');
         SET v_item_type        = getJval(v_inventory_json, 'item_type');
         SET v_bought_price     = v_spot_rate * v_item_weight;
@@ -329,8 +325,13 @@ main_block: BEGIN
 
         /* ------- sub-branch: Market ------- */
         IF v_order_sub_type = 'Market' THEN
+
             IF isFalsy(getJval(pjReqObj, 'customer_request.amount')) THEN
                 SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'customer_request.amount is required for Market order');
+            END IF;
+
+            IF isFalsy(getJval(pjReqObj, 'item_weight')) THEN
+                SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'item_weight is required for Market order');
             END IF;
 
             IF JSON_LENGTH(v_errors) > 0 THEN
@@ -346,9 +347,9 @@ main_block: BEGIN
             SET v_order_cat = 'DO';
             SET v_order_json = JSON_SET(v_order_json,
                                         '$.order_cat',                              v_order_cat,
-                                        '$.buy_items',                              v_buy_items_output,             /* changed: was getJval(pjReqObj, 'buy_items') */
+                                        '$.buy_items',                              v_buy_items_output,            
                                         '$.customer_request.amount',                getJval(pjReqObj, 'customer_request.amount'),
-                                        '$.customer_request.payment_method',        v_cr_payment_method,            /* changed: was getJval(pjReqObj, 'payment_method') */
+                                        '$.customer_request.payment_method',        v_cr_payment_method,            
                                         '$.customer_request.date_of_purchase',      DATE_FORMAT(NOW(), '%Y-%m-%dT%H:%i:%sZ')
                                     );
 
@@ -612,6 +613,7 @@ main_block: BEGIN
     END IF;  
     /* --- Populate order_summary in order_json --- */
     SET v_order_json = JSON_SET(v_order_json,
+                                '$.customer_request.total_qty_to_buy',  v_total_buy_items,
                                 '$.order_summary.total_buy_items',      v_total_buy_items,
                                 '$.order_summary.total_buy_amount',     v_total_buy_amount,
                                 '$.order_summary.total_buy_weight',     v_total_buy_weight,
