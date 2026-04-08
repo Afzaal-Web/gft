@@ -25,12 +25,12 @@
         DECLARE v_asset_code                VARCHAR(10);
         DECLARE v_product_type              VARCHAR(20);
         DECLARE v_cr_payment_method         VARCHAR(50);        
-        DECLARE v_cr_rate                   DECIMAL(18,6);  
-        DECLARE v_cr_weight                 DECIMAL(18,6);       
+        DECLARE v_cr_rate                   DECIMAL(20,6);  
+        DECLARE v_cr_weight                 DECIMAL(20,6);       
 
         DECLARE v_tradable_assets_rec_id    INT;
         DECLARE v_rate_json                 JSON;
-        DECLARE v_spot_rate                 DECIMAL(18,6);      
+        DECLARE v_spot_rate                 DECIMAL(20,6);      
 
         DECLARE v_customer_json             JSON;
         DECLARE v_order_json                JSON;
@@ -41,9 +41,9 @@
         DECLARE v_item_code                 VARCHAR(50);
         DECLARE v_item_name                 VARCHAR(100);
         DECLARE v_item_type                 VARCHAR(50);
-        DECLARE v_item_weight               DECIMAL(18,6);
+        DECLARE v_item_weight               DECIMAL(20,6);
         DECLARE v_item_quantity             INT;
-        DECLARE v_bought_price              DECIMAL(18,2);
+        DECLARE v_bought_price              DECIMAL(20,6);
         DECLARE v_buy_items_output          JSON;
 
         /* Order Summary Variables */
@@ -448,10 +448,6 @@
             SET v_loop_idx         = 0;
             SET v_buy_items_output = JSON_ARRAY();
 
-            IF isFalsy(getJval(pjReqObj, 'customer_request.amount')) THEN
-                    SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'customer_request.amount is required for PRODUCT order');
-            END IF;
-
             IF JSON_LENGTH(v_errors) > 0 THEN
                     SET psResObj = JSON_OBJECT(
                                                 'status',       'error',
@@ -572,9 +568,9 @@
 
             SET v_single_item = JSON_EXTRACT(v_buy_items_output, CONCAT('$[', v_loop_idx, ']'));
             
-            SET v_total_buy_items   = v_total_buy_items + CAST(JSON_UNQUOTE(JSON_EXTRACT(v_single_item, '$.item_quantity')) AS UNSIGNED);
-            SET v_total_buy_weight  = v_total_buy_weight + CAST(JSON_UNQUOTE(JSON_EXTRACT(v_single_item, '$.item_weight')) AS DECIMAL(20,6)) * CAST(JSON_UNQUOTE(JSON_EXTRACT(v_single_item, '$.item_quantity')) AS DECIMAL(20,6));
-            SET v_total_buy_amount  = v_total_buy_amount + CAST(JSON_UNQUOTE(JSON_EXTRACT(v_single_item, '$.bought_price')) AS DECIMAL(20,6));
+            SET v_total_buy_items   = v_total_buy_items +  CAST(getJval(v_single_item, 'item_quantity') AS UNSIGNED);
+            SET v_total_buy_weight  = v_total_buy_weight + CAST(getJval(v_single_item, 'item_weight')   AS DECIMAL(20,6)) * CAST(getJval(v_single_item, 'item_quantity') AS DECIMAL(20,6));
+            SET v_total_buy_amount  = v_total_buy_amount + CAST(getJval(v_single_item, 'bought_price')  AS DECIMAL(20,6));
         
             SET v_loop_idx = v_loop_idx + 1;
 
@@ -656,28 +652,27 @@
         WHILE v_wallet_loop_idx < v_wallet_count DO
 
             SET v_wallet_item        = JSON_EXTRACT(v_wallets_arr, CONCAT('$[', v_wallet_loop_idx, ']'));
-            SET v_wallet_asset_code  = JSON_UNQUOTE(JSON_EXTRACT(v_wallet_item, '$.asset_code'));
-            SET v_wallet_type        = JSON_UNQUOTE(JSON_EXTRACT(v_wallet_item, '$.wallet_type'));
+            SET v_wallet_asset_code  = getJval(v_wallet_item, 'asset_code');
+            SET v_wallet_type        = getJval(v_wallet_item, 'wallet_type');
 
             /* Match METAL wallet by asset_code (e.g. GLD matches v_asset_code) */
             IF v_wallet_asset_code = v_asset_code AND v_wallet_type = 'METAL' THEN
-                SET v_metal_wallet_id           = JSON_UNQUOTE(JSON_EXTRACT(v_wallet_item, '$.wallet_id'));
-                SET v_metal_balance_before      = COALESCE(CAST(JSON_UNQUOTE(JSON_EXTRACT(v_wallet_item, '$.wallet_balance')) AS DECIMAL(20,6)), 0);
-
+                SET v_metal_wallet_id          = getJval(v_wallet_item, 'wallet_id');
+                SET v_metal_balance_before     = COALESCE( CAST(getJval(v_wallet_item, 'wallet_balance') AS DECIMAL(20,6)), 0);
             END IF;
 
             /* Match CASH wallet by wallet_type */
             IF v_wallet_type = 'CASH' THEN
-                SET v_cash_wallet_id            = JSON_UNQUOTE(JSON_EXTRACT(v_wallet_item, '$.wallet_id'));
-                SET v_cash_balance_before       = COALESCE(CAST(JSON_UNQUOTE(JSON_EXTRACT(v_wallet_item, '$.wallet_balance')) AS DECIMAL(20,6)), 0);
+                SET v_cash_wallet_id            = getJval(v_wallet_item, 'wallet_id');
+                SET v_cash_balance_before       = COALESCE(CAST(getJval(v_wallet_item, 'wallet_balance') AS DECIMAL(20,6)), 0);
             END IF;
 
-            SET v_wallet_loop_idx = v_wallet_loop_idx + 1;
+            SET v_wallet_loop_idx               = v_wallet_loop_idx + 1;
 
         END WHILE;
 
-        /* ---- 11.2 : Guard - both wallets must exist ---- */
-        IF isFalsy(v_metal_wallet_id) THEN
+        /* ---- 11.2 : Guard - wallets must exist ---- */
+        IF v_product_type != 'PRODUCT' AND isFalsy(v_metal_wallet_id) THEN
             SET psResObj = JSON_OBJECT(
                                         'status',       'error',
                                         'status_code',  '7',
@@ -699,14 +694,20 @@
 
         /* ---- 11.3 : Calculate transaction amounts ---- */
 
-        /* Metal credit = already calculated in order summary */
-        SET v_metal_txn_amount = v_total_buy_weight;
+        /* Metal credit = already calculated in order summary (only for SLICE) */
+        IF v_product_type != 'PRODUCT' THEN
+            SET v_metal_txn_amount = v_total_buy_weight;
+        ELSE
+            SET v_metal_txn_amount = 0;
+        END IF;
 
         /* Cash debit = total_order_amount from order_summary */
         SET v_cash_txn_amount    = v_total_order_amount;
 
         /* ---- 11.4 : Calculate balances after ---- */
-        SET v_metal_balance_after = v_metal_balance_before + v_metal_txn_amount;
+        IF v_product_type != 'PRODUCT' THEN
+            SET v_metal_balance_after = v_metal_balance_before + v_metal_txn_amount;
+        END IF;
         SET v_cash_balance_after  = v_cash_balance_before  - v_cash_txn_amount;
 
         /* ---- 11.4b : Guard - insufficient cash balance ---- */
@@ -726,32 +727,46 @@
         CALL getSequence('ORDERS.TXN_NUM', 'TXN-', 5000, 'createBuyOrder', v_txn_num_debit);
 
         /* ---- 11.6 : Build transactions array ---- */
-        SET v_transactions_output = JSON_ARRAY(
-
-            /* TXN-A : Metal CREDIT */
-            JSON_OBJECT(
-                        'transaction_num',      v_txn_num_credit,
-                        'transaction_type',     'Credit',
-                        'wallet_type',          'Metal',
-                        "asset_code",           v_asset_code,
-                        'wallet_id',            v_metal_wallet_id,
-                        'balance_before',       v_metal_balance_before,
-                        'transaction_amount',   v_metal_txn_amount,
-                        'balance_after',        v_metal_balance_after
-                    ),
-
-            /* TXN-B : Cash DEBIT */
-            JSON_OBJECT(
-                        'transaction_num',      v_txn_num_debit,
-                        'transaction_type',     'Debit',
-                        'wallet_type',          'Cash',
-                        "asset_code",           'CSH',
-                        'wallet_id',            v_cash_wallet_id,
-                        'balance_before',       v_cash_balance_before,
-                        'transaction_amount',   v_cash_txn_amount,
-                        'balance_after',        v_cash_balance_after
-                    )
-        );
+        IF v_product_type = 'PRODUCT' THEN
+            SET v_transactions_output = JSON_ARRAY(
+                /* TXN-B : Cash DEBIT */
+                JSON_OBJECT(
+                            'transaction_num',      v_txn_num_debit,
+                            'transaction_type',     'Debit',
+                            'wallet_type',          'Cash',
+                            "asset_code",           'CSH',
+                            'wallet_id',            v_cash_wallet_id,
+                            'balance_before',       v_cash_balance_before,
+                            'transaction_amount',   v_cash_txn_amount,
+                            'balance_after',        v_cash_balance_after
+                        )
+            );
+        ELSE
+            SET v_transactions_output = JSON_ARRAY(
+                /* TXN-A : Metal CREDIT */
+                JSON_OBJECT(
+                            'transaction_num',      v_txn_num_credit,
+                            'transaction_type',     'Credit',
+                            'wallet_type',          'Metal',
+                            "asset_code",           v_asset_code,
+                            'wallet_id',            v_metal_wallet_id,
+                            'balance_before',       v_metal_balance_before,
+                            'transaction_amount',   v_metal_txn_amount,
+                            'balance_after',        v_metal_balance_after
+                        ),
+                /* TXN-B : Cash DEBIT */
+                JSON_OBJECT(
+                            'transaction_num',      v_txn_num_debit,
+                            'transaction_type',     'Debit',
+                            'wallet_type',          'Cash',
+                            "asset_code",           'CSH',
+                            'wallet_id',            v_cash_wallet_id,
+                            'balance_before',       v_cash_balance_before,
+                            'transaction_amount',   v_cash_txn_amount,
+                            'balance_after',        v_cash_balance_after
+                        )
+            );
+        END IF;
 
         /* ===================== Step 10: INSERT into orders table ===================== */
         
@@ -781,17 +796,19 @@
             SET     order_json   = v_order_json
             WHERE   order_rec_id = v_order_rec_id;
 
-        /* ---- 11.8 : Call wallet_activity - METAL CREDIT ---- */
-        CALL wallet_activity(
-                                v_customer_rec_id,
-                                v_metal_wallet_id,
-                                'CREDIT',
-                                v_metal_txn_amount,
-                                CONCAT('Buy order credited: ', v_order_number),
-                                v_order_rec_id,
-                                v_order_number,
-                                v_txn_num_credit
-                            );
+        /* ---- 11.8 : Call wallet_activity - METAL CREDIT (only for SLICE) ---- */
+        IF v_product_type != 'PRODUCT' THEN
+            CALL wallet_activity(
+                                    v_customer_rec_id,
+                                    v_metal_wallet_id,
+                                    'CREDIT',
+                                    v_metal_txn_amount,
+                                    CONCAT('Buy order credited: ', v_order_number),
+                                    v_order_rec_id,
+                                    v_order_number,
+                                    v_txn_num_credit
+                                );
+        END IF;
 
         /* ---- 11.9 : Call wallet_activity - CASH DEBIT ---- */
         CALL wallet_activity(
@@ -804,6 +821,42 @@
                                 v_order_number,
                                 v_txn_num_debit
                                 );
+
+        /* ---- 11.10 : Update customer_products for PRODUCT orders ---- */
+        IF v_product_type = 'PRODUCT' THEN
+
+            -- Initialize customer_products if not exists
+            IF getJVal(v_customer_json, 'customer_products') IS NULL THEN
+                SET v_customer_json = JSON_SET(v_customer_json, '$.customer_products', JSON_ARRAY());
+            END IF;
+
+            -- Loop through buy_items and append to customer_products
+            SET v_loop_idx = 0;
+            WHILE v_loop_idx < v_items_count DO
+            SET v_single_item     = JSON_EXTRACT(v_buy_items_output, CONCAT('$[', v_loop_idx, ']'));
+            SET v_customer_json   = JSON_ARRAY_APPEND(v_customer_json,
+                                                      '$.customer_products', JSON_OBJECT(
+                                                                                        'asset_code',           v_asset_code,
+                                                                                        'product_name',         getJVal(v_single_item, 'item_name'),
+                                                                                        'product_type',         getJVal(v_single_item, 'item_type'),
+                                                                                        'product_price',        getJVal(v_single_item, 'bought_price'),
+                                                                                        'product_weight',       getJVal(v_single_item, 'item_weight'),
+                                                                                        'status',               'Not Picked up',
+                                                                                        'product_quantity',     getJVal(v_single_item, 'item_quantity'),
+                                                                                        'order_rec_id',         v_order_rec_id,
+                                                                                        'purchase_date',        DATE_FORMAT(NOW(), '%Y-%m-%dT%H:%i:%sZ'),
+                                                                                        'item_code',            getJval(v_single_item, 'item_code')
+                                                                                        )
+                                                  );
+                                                    
+
+                SET v_loop_idx = v_loop_idx + 1;
+            END WHILE;
+
+            UPDATE customer 
+            SET   customer_json   = v_customer_json
+            WHERE customer_rec_id = v_customer_rec_id;
+        END IF;
 
         /* ===================== Step 12: Success Response ===================== */
         SET psResObj = JSON_OBJECT(

@@ -206,15 +206,15 @@ main_block: BEGIN
         LEAVE main_block;
     END IF;
 
-    SET v_customer_json = JSON_EXTRACT(v_customer_json, '$.customer_data');
+    SET v_customer_json = getJval(v_customer_json, 'customer_data');
 
     /* ===================== Step 4: Fetch Rates for Both Assets ===================== */
 
     /* --- FROM asset rate --- */
-    SELECT  tradable_assets_rec_id,     tradable_assets_json
-    INTO    v_from_tradable_assets_rec_id,  v_from_rate_json
-    FROM    tradable_assets
-    WHERE   asset_code = v_from_asset_code
+    SELECT   tradable_assets_rec_id,         tradable_assets_json
+    INTO     v_from_tradable_assets_rec_id,  v_from_rate_json
+    FROM     tradable_assets
+    WHERE    asset_code = v_from_asset_code
     ORDER BY tradable_assets_rec_id DESC
     LIMIT 1;
 
@@ -231,10 +231,10 @@ main_block: BEGIN
     SET v_from_spot_rate = getJval(v_from_rate_json, 'spot_rate.current_rate');
 
     /* --- TO asset rate --- */
-    SELECT  tradable_assets_rec_id,     tradable_assets_json
-    INTO    v_to_tradable_assets_rec_id,    v_to_rate_json
-    FROM    tradable_assets
-    WHERE   asset_code = v_to_asset_code
+    SELECT   tradable_assets_rec_id,         tradable_assets_json
+    INTO     v_to_tradable_assets_rec_id,    v_to_rate_json
+    FROM     tradable_assets
+    WHERE    asset_code = v_to_asset_code
     ORDER BY tradable_assets_rec_id DESC
     LIMIT 1;
 
@@ -251,18 +251,18 @@ main_block: BEGIN
     SET v_to_spot_rate = getJval(v_to_rate_json, 'spot_rate.current_rate');
 
     /* ===================== Step 5: Generate Order & Receipt Numbers ===================== */
-    CALL getSequence('ORDERS.ORDER_NUM',   NULL,   3000, 'createExchangeOrder', v_order_number);
+    CALL getSequence('ORDERS.ORDER_NUM',   NULL,    3000, 'createExchangeOrder', v_order_number);
     CALL getSequence('ORDERS.RECEIPT_NUM', 'RECP-', 3000, 'createExchangeOrder', v_receipt_number);
 
     /* ===================== Step 6: Set Common Order Header Values ===================== */
     SET v_order_date            = NOW();
     SET v_order_status          = 'Pending';
-    SET v_next_action_required  = 'approved';
+    SET v_next_action_required  = 'approval';
     SET v_order_cat             = 'DO';
 
     /* ===================== Step 7: Load Order Template & Row Metadata ===================== */
-    SET v_order_json    = getTemplate('orders');
-    SET v_row_metadata  = getTemplate('row_metadata');
+    SET v_order_json            = getTemplate('orders');
+    SET v_row_metadata          = getTemplate('row_metadata');
 
     SET v_row_metadata = JSON_SET(v_row_metadata,
                                     '$.status',     v_order_status,
@@ -283,11 +283,11 @@ main_block: BEGIN
                                 '$.customer_info.customer_phone',           getJval(v_customer_json, 'phone'),
                                 '$.customer_info.whatsapp',                 getJval(v_customer_json, 'whatsapp'),
                                 '$.customer_info.customer_email',           getJval(v_customer_json, 'email'),
-                                '$.customer_info.customer_address',         JSON_EXTRACT(v_customer_json, '$.residential_address'),
-                                '$.customer_info.customer_ip_address',      getJval(pjReqObj, 'customer_ip_address'),
-                                '$.customer_info.latitude',                 getJval(pjReqObj, 'latitude'),
-                                '$.customer_info.longitude',                getJval(pjReqObj, 'longitude'),
-                                '$.customer_info.notes',                    getJval(pjReqObj, 'notes'),
+                                '$.customer_info.customer_address',         getJval(v_customer_json, 'residential_address'),
+                                '$.customer_info.customer_ip_address',      getJval(pjReqObj,        'customer_ip_address'),
+                                '$.customer_info.latitude',                 getJval(pjReqObj,        'latitude'),
+                                '$.customer_info.longitude',                getJval(pjReqObj,        'longitude'),
+                                '$.customer_info.notes',                    getJval(pjReqObj,        'notes'),
 
                                 /* Store both rate records - from and to */
                                 '$.rate_info.from_rate_rec_id',             v_from_tradable_assets_rec_id,
@@ -474,25 +474,25 @@ main_block: BEGIN
     WHILE v_wallet_loop_idx < v_wallet_count DO
 
         SET v_wallet_item       = JSON_EXTRACT(v_wallets_arr, CONCAT('$[', v_wallet_loop_idx, ']'));
-        SET v_wallet_asset_code = JSON_UNQUOTE(JSON_EXTRACT(v_wallet_item, '$.asset_code'));
-        SET v_wallet_type       = JSON_UNQUOTE(JSON_EXTRACT(v_wallet_item, '$.wallet_type'));
+        SET v_wallet_asset_code = getJval(v_wallet_item, 'asset_code');
+        SET v_wallet_type       = getJval(v_wallet_item, 'wallet_type');
 
         /* Match FROM metal wallet */
         IF v_wallet_asset_code = v_from_asset_code AND v_wallet_type = 'METAL' THEN
-            SET v_from_wallet_id        = JSON_UNQUOTE(JSON_EXTRACT(v_wallet_item, '$.wallet_id'));
-            SET v_from_balance_before   = COALESCE(CAST(JSON_UNQUOTE(JSON_EXTRACT(v_wallet_item, '$.wallet_balance')) AS DECIMAL(20,6)), 0);
+            SET v_from_wallet_id        = getJval(v_wallet_item, 'wallet_id');
+            SET v_from_balance_before   = COALESCE(CAST(getJval(v_wallet_item, 'wallet_balance') AS DECIMAL(20,6)), 0);
         END IF;
 
         /* Match TO metal wallet */
         IF v_wallet_asset_code = v_to_asset_code AND v_wallet_type = 'METAL' THEN
-            SET v_to_wallet_id          = JSON_UNQUOTE(JSON_EXTRACT(v_wallet_item, '$.wallet_id'));
-            SET v_to_balance_before     = COALESCE(CAST(JSON_UNQUOTE(JSON_EXTRACT(v_wallet_item, '$.wallet_balance')) AS DECIMAL(20,6)), 0);
+            SET v_to_wallet_id          = getJval(v_wallet_item, 'wallet_id');
+            SET v_to_balance_before     = COALESCE(CAST(getJval(v_wallet_item, 'wallet_balance') AS DECIMAL(20,6)), 0);
         END IF;
 
            /* Match CASH wallet */                                                         
         IF v_wallet_type = 'CASH' THEN                                                
-            SET v_cash_wallet_id        = JSON_UNQUOTE(JSON_EXTRACT(v_wallet_item, '$.wallet_id'));        
-            SET v_cash_balance_before   = COALESCE(CAST(JSON_UNQUOTE(JSON_EXTRACT(v_wallet_item, '$.wallet_balance')) AS DECIMAL(20,6)), 0); 
+            SET v_cash_wallet_id        = getJval(v_wallet_item, 'wallet_id');        
+            SET v_cash_balance_before   = COALESCE(CAST(getJval(v_wallet_item, 'wallet_balance') AS DECIMAL(20,6)), 0); 
         END IF;  
 
         SET v_wallet_loop_idx = v_wallet_loop_idx + 1;
@@ -531,9 +531,9 @@ main_block: BEGIN
     END IF; 
 
     /* 11.3: Transaction amounts */
-    SET v_from_txn_amount = v_from_weight;          /* weight leaving from_metal wallet  */
-    SET v_to_txn_amount   = v_to_weight;            /* weight entering to_metal wallet   */
-    SET v_cash_txn_amount   = v_total_order_amount;  /* cash amount leaving cash wallet for charges */
+    SET v_from_txn_amount   = v_from_weight;          /* weight leaving from_metal wallet  */
+    SET v_to_txn_amount     = v_to_weight;            /* weight entering to_metal wallet   */
+    SET v_cash_txn_amount   = v_total_order_amount;   /* cash amount leaving cash wallet for charges */
     
 
     /* 11.4: Balances after */

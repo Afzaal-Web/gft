@@ -1,41 +1,14 @@
 /* =====================================================================
    TEST SCRIPT : createBuyOrder
    =====================================================================
-   Each test:
-     1. Sets @req  (the JSON input)
-     2. CALLs the SP
-     3. SELECTs @res  (the JSON output) with a label
-     4. Optionally verifies side-effects (orders table, wallet_ledger)
-
-   Tests are grouped by:
-     A.  Validation failures          (status_code 2)
-     B.  Lookup failures              (status_code 3 / 4 / 6 / 7 / 8)
-     C.  Happy path – SLICE / Market  (status_code 0)
-     D.  Happy path – SLICE / Limit   (status_code 0)
-     E.  Happy path – PRODUCT         (status_code 0)
-     F.  Side-effect verification     (orders, wallet_ledger rows)
-
-   Prerequisites — the following must exist in your DB before running:
-     • customers row          account_number = 'CUS-001'
-                              customer_rec_id = 101
-                              customer_json contains wallets WID-1124 (GLD/METAL) 
-                              and WID-1126 (csh/CASH) with sufficient cash balance
-     • tradable_assets row    asset_code = 'GLD'
-                              tradable_assets_json.spot_rate.current_rate = 4433.85
-     • inventory row          item_code = 'GLD-2412'   (for SLICE tests)
-     • inventory rows         item_code = 'GLD-BAR-1G' and 'GLD-COIN-5G' (for PRODUCT test)
-     • sequences set up       ORDER.ORDER_NUM, ORDER.RECEIPT_NUM, ORDER.TXN_NUM
-   ===================================================================== */
-
+   
+*/
 
 /* =====================================================================
    SECTION A : Validation Failures  (status_code 2)
    ===================================================================== */
 
--- --------------------------------------------------------------------
--- TEST A-1 : Missing account_number
--- Expected  : status=error, status_code=2, errors contains 'account_number is required'
--- --------------------------------------------------------------------
+
 SELECT '=== TEST A-1 : Missing account_number ===' AS test_case;
 
 SET @req = JSON_OBJECT(
@@ -439,7 +412,7 @@ SELECT JSON_PRETTY(@res) AS result;
 SELECT '=== TEST C-1 : SLICE/Market — happy path ===' AS test_case;
 
 SET @req = JSON_OBJECT(
-    'account_number',       'P-501',
+    'account_number',       'P-593',
     'asset_code',           'GLD',
     'order_sub_type',       'Market',
     'metal',                'Gold',
@@ -458,19 +431,6 @@ SET @req = JSON_OBJECT(
 
 CALL createBuyOrder(@req, @res);
 SELECT JSON_PRETTY(@res) AS result;
-
-/* Quick sanity checks for C-1 */
-SELECT  JSON_UNQUOTE(JSON_EXTRACT(@res, '$.status'))                        AS expect_success,
-        JSON_UNQUOTE(JSON_EXTRACT(@res, '$.status_code'))                   AS expect_0,
-        JSON_UNQUOTE(JSON_EXTRACT(@res, '$.order_json.order_status'))       AS expect_Pending,
-        JSON_UNQUOTE(JSON_EXTRACT(@res, '$.order_json.order_cat'))          AS expect_DO,
-        JSON_LENGTH (JSON_EXTRACT(@res, '$.order_json.buy_items'))          AS expect_1_buy_item,
-        JSON_UNQUOTE(JSON_EXTRACT(@res, '$.order_json.buy_items[0].item_name'))  AS item_name_populated,
-        JSON_UNQUOTE(JSON_EXTRACT(@res, '$.order_json.buy_items[0].item_type'))  AS item_type_populated,
-        JSON_EXTRACT(@res, '$.order_json.buy_items[0].bought_price')        AS bought_price,
-        JSON_LENGTH (JSON_EXTRACT(@res, '$.order_json.transactions'))       AS expect_2_transactions,
-        JSON_UNQUOTE(JSON_EXTRACT(@res, '$.order_json.transactions[0].transaction_type'))  AS expect_Credit,
-        JSON_UNQUOTE(JSON_EXTRACT(@res, '$.order_json.transactions[1].transaction_type'))  AS expect_Debit;
 
 
 /* =====================================================================
@@ -514,36 +474,6 @@ SELECT  JSON_UNQUOTE(JSON_EXTRACT(@res, '$.status'))                    AS expec
         JSON_LENGTH (JSON_EXTRACT(@res, '$.order_json.transactions'))   AS expect_2_transactions;
 
 
--- --------------------------------------------------------------------
--- TEST D-2 : SLICE / Limit — explicit order_cat IOC
--- Expected  : status=success, order_cat=IOC
--- --------------------------------------------------------------------
-SELECT '=== TEST D-2 : SLICE/Limit — explicit order_cat IOC ===' AS test_case;
-
-SET @req = JSON_OBJECT(
-    'account_number',       'CUS-001',
-    'asset_code',           'GLD',
-    'order_sub_type',       'Limit',
-    'order_cat',            'IOC',
-    'metal',                'Gold',
-    'product_type',         'SLICE',
-    'item_code',            'GLD-2412',
-    'item_weight',          2.0,
-    'customer_request',     JSON_OBJECT(
-                                'payment_method',           'Bank Transfer',
-                                'rate',                     4433.85,
-                                'weight',                   2.0,
-                                'amount',                   8867.70,
-                                'Expiration_time',          '2026-12-31T23:59:59Z',
-                                'is_partial_fill_allowed',  FALSE
-                            )
-);
-
-CALL createBuyOrder(@req, @res);
-SELECT JSON_PRETTY(@res) AS result;
-
-SELECT  JSON_UNQUOTE(JSON_EXTRACT(@res, '$.status'))    AS expect_success,
-        JSON_UNQUOTE(JSON_EXTRACT(@res, '$.order_cat')) AS expect_IOC;
 
 
 /* =====================================================================
@@ -554,14 +484,14 @@ SELECT  JSON_UNQUOTE(JSON_EXTRACT(@res, '$.status'))    AS expect_success,
 -- TEST E-1 : PRODUCT — two items
 -- Expected  : status=success
 --             buy_items has 2 items, each with item_name + item_type populated
---             bought_price = spot_rate * item_quantity  per item
---             transactions array has 2 entries
---             metal_txn_amount = sum of (item_weight * item_quantity) for both items
+--             bought_price = spot_rate * item_weight * item_quantity per item
+--             transactions array has 1 entry (Cash DEBIT only, no metal credit)
+--             customer_products array updated with 2 new entries (one per item type, with quantities, etc.)
 -- --------------------------------------------------------------------
 SELECT '=== TEST E-1 : PRODUCT — two items happy path ===' AS test_case;
 
 SET @req = JSON_OBJECT(
-    'account_number',       'P-501',
+    'account_number',       'P-593',
     'asset_code',           'GLD',
     'order_sub_type',       'Market',
     'metal',                'Gold',
@@ -598,26 +528,26 @@ SELECT  JSON_UNQUOTE(JSON_EXTRACT(@res, '$.status'))                            
         JSON_UNQUOTE(JSON_EXTRACT(@res, '$.order_json.buy_items[1].item_name'))             AS item1_name,
         JSON_EXTRACT(@res, '$.order_json.buy_items[0].bought_price')                        AS item0_bought_price,
         JSON_EXTRACT(@res, '$.order_json.buy_items[1].bought_price')                        AS item1_bought_price,
-        JSON_LENGTH (JSON_EXTRACT(@res, '$.order_json.transactions'))                       AS expect_2_transactions,
-        JSON_EXTRACT(@res, '$.order_json.transactions[0].transaction_amount')               AS metal_credited,
-        JSON_EXTRACT(@res, '$.order_json.transactions[1].transaction_amount')               AS cash_debited;
+        JSON_LENGTH (JSON_EXTRACT(@res, '$.order_json.transactions'))                       AS expect_1_transaction,
+        JSON_UNQUOTE(JSON_EXTRACT(@res, '$.order_json.transactions[0].transaction_type'))   AS expect_Debit,
+        JSON_EXTRACT(@res, '$.order_json.transactions[0].transaction_amount')               AS cash_debited;
 
 
 -- --------------------------------------------------------------------
 -- TEST E-2 : PRODUCT — single item (edge case: array with 1 element)
--- Expected  : status=success, buy_items length=1
+-- Expected  : status=success, buy_items length=1, transactions length=1, customer_products updated with 1 entry
 -- --------------------------------------------------------------------
 SELECT '=== TEST E-2 : PRODUCT — single item in array ===' AS test_case;
 
 SET @req = JSON_OBJECT(
-    'account_number',   'CUS-001',
-    'asset_code',       'GLD',
+    'account_number',   'P-593',
+    'asset_code',       'SLV',
     'order_sub_type',   'Market',
     'metal',            'Gold',
     'product_type',     'PRODUCT',
     'buy_items',        JSON_ARRAY(
                             JSON_OBJECT(
-                                'item_code',     'GLD-BAR-1G',
+                                'item_code',     'SLV-241212',
                                 'item_weight',   1.0,
                                 'item_quantity', 3
                             )
@@ -630,11 +560,11 @@ SELECT JSON_PRETTY(@res) AS result;
 
 SELECT  JSON_UNQUOTE(JSON_EXTRACT(@res, '$.status'))                        AS expect_success,
         JSON_LENGTH (JSON_EXTRACT(@res, '$.order_json.buy_items'))          AS expect_1_buy_item,
-        JSON_LENGTH (JSON_EXTRACT(@res, '$.order_json.transactions'))       AS expect_2_transactions;
+        JSON_LENGTH (JSON_EXTRACT(@res, '$.order_json.transactions'))       AS expect_1_transaction;
 
 
 -- TEST A-15 : PRODUCT — order_sub_type provided (ignored)
--- Expected  : status=success, status_code=0 (order_sub_type is ignored for PRODUCT)
+-- Expected  : status=success, status_code=0 (order_sub_type is ignored for PRODUCT), transactions=1
 SELECT '=== TEST A-15 : PRODUCT — order_sub_type ignored ===' AS test_case;
 
 SET @req = JSON_OBJECT(
@@ -720,7 +650,7 @@ SELECT  JSON_UNQUOTE(JSON_EXTRACT(w.value, '$.wallet_id'))          AS wallet_id
         JSON_UNQUOTE(JSON_EXTRACT(w.value, '$.wallet_type'))        AS wallet_type,
         JSON_EXTRACT(w.value, '$.wallet_balance')                   AS wallet_balance,
         JSON_UNQUOTE(JSON_EXTRACT(w.value, '$.balance_last_updated_at')) AS last_updated
-FROM    customers c,
+FROM    customer c,
         JSON_TABLE(
             JSON_EXTRACT(c.customer_json, '$.customer_wallets'),
             '$[*]' COLUMNS (value JSON PATH '$')

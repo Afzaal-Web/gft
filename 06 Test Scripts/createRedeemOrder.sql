@@ -563,3 +563,12 @@ FROM wallet_ledger wl
 WHERE wl.order_number LIKE 'ORD-%'
 ORDER BY wl.wallet_ledger_rec_id DESC
 LIMIT 5;
+
+-- --------------------------------------------------------------------
+-- TEST D-3 : Verify customer_products updated for redeem order
+-- --------------------------------------------------------------------
+SELECT '=== TEST D-3 : Verify customer_products updated ===' AS test_case;
+
+SELECT JSON_PRETTY(JSON_EXTRACT(c.customer_json, '$.customer_products')) AS customer_products
+FROM customer c
+WHERE c.account_num = 'P-501';

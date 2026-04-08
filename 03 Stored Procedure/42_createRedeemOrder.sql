@@ -163,13 +163,13 @@ main_block: BEGIN
         LEAVE main_block;
     END IF;
 
-    SET v_customer_json = JSON_EXTRACT(v_customer_json, '$.customer_data');
+    SET v_customer_json = getJval(v_customer_json, 'customer_data');
 
     /* ===================== Step 4: Fetch Latest Rate ===================== */
-    SELECT  tradable_assets_rec_id,     tradable_assets_json
-    INTO    v_tradable_assets_rec_id,   v_rate_json
-    FROM    tradable_assets
-    WHERE   asset_code = v_asset_code
+    SELECT     tradable_assets_rec_id,     tradable_assets_json
+    INTO       v_tradable_assets_rec_id,   v_rate_json
+    FROM       tradable_assets
+    WHERE      asset_code = v_asset_code
     ORDER BY tradable_assets_rec_id DESC
     LIMIT 1;
 
@@ -192,7 +192,7 @@ main_block: BEGIN
     /* ===================== Step 6: Set Common Order Header Values ===================== */
     SET v_order_date            = NOW();
     SET v_order_status          = 'Pending';
-    SET v_next_action_required  = 'approved';
+    SET v_next_action_required  = 'approval';
     SET v_order_cat             = 'DO';
 
     /* ===================== Step 7: Load Order Template & Row Metadata ===================== */
@@ -218,7 +218,7 @@ main_block: BEGIN
                                 '$.customer_info.customer_phone',           getJval(v_customer_json, 'phone'),
                                 '$.customer_info.whatsapp',                 getJval(v_customer_json, 'whatsapp'),
                                 '$.customer_info.customer_email',           getJval(v_customer_json, 'email'),
-                                '$.customer_info.customer_address',         JSON_EXTRACT(v_customer_json, '$.residential_address'),
+                                '$.customer_info.customer_address',         CAST(getJval(v_customer_json, 'residential_address') AS JSON),
                                 '$.customer_info.customer_ip_address',      getJval(pjReqObj, 'customer_ip_address'),
                                 '$.customer_info.latitude',                 getJval(pjReqObj, 'latitude'),
                                 '$.customer_info.longitude',                getJval(pjReqObj, 'longitude'),
@@ -323,8 +323,8 @@ main_block: BEGIN
             LEAVE main_block;
         END IF;
 
-        SET v_item_name    = getJval(v_inventory_json, 'item_name');
-        SET v_item_type    = getJval(v_inventory_json, 'item_type');
+        SET v_item_name     = getJval(v_inventory_json, 'item_name');
+        SET v_item_type     = getJval(v_inventory_json, 'item_type');
 
         /* bought_price = spot_rate * item_weight * item_quantity  (identical to createBuyOrder PRODUCT) */
         SET v_bought_price = v_spot_rate * v_item_weight * v_item_quantity;
@@ -366,7 +366,7 @@ main_block: BEGIN
         LEAVE main_block;
     END IF;
 
-    /* Stored as 'buy_items' in order_json (consistent with orders template) */
+    /* Stored as 'buy_items' in order_json */
     SET v_order_json = JSON_SET(v_order_json,
                                 '$.buy_items',                              v_buy_items_output,
                                 '$.customer_request.weight',                v_cr_weight,
@@ -382,10 +382,10 @@ main_block: BEGIN
 
         SET v_single_item           = JSON_EXTRACT(v_buy_items_output, CONCAT('$[', v_loop_idx, ']'));
 
-        SET v_total_redeem_items    = v_total_redeem_items  + CAST(JSON_UNQUOTE(JSON_EXTRACT(v_single_item, '$.item_quantity')) AS UNSIGNED);
-        SET v_total_redeem_weight   = v_total_redeem_weight + CAST(JSON_UNQUOTE(JSON_EXTRACT(v_single_item, '$.item_weight'))   AS DECIMAL(20,6))
-                                                          * CAST(JSON_UNQUOTE(JSON_EXTRACT(v_single_item, '$.item_quantity')) AS DECIMAL(20,6));
-        SET v_total_buy_amount      = v_total_buy_amount    + CAST(JSON_UNQUOTE(JSON_EXTRACT(v_single_item, '$.bought_price'))  AS DECIMAL(20,6));
+        SET v_total_redeem_items    = v_total_redeem_items  + CAST(getJval(v_single_item, 'item_quantity') AS UNSIGNED);
+        SET v_total_redeem_weight   = v_total_redeem_weight + CAST(getJval(v_single_item, 'item_weight')   AS DECIMAL(20,6))
+                                                            * CAST(getJval(v_single_item, 'item_quantity') AS DECIMAL(20,6));
+        SET v_total_buy_amount      = v_total_buy_amount    + CAST(getJval(v_single_item, 'bought_price')  AS DECIMAL(20,6));
 
         SET v_loop_idx              = v_loop_idx + 1;
 
@@ -452,17 +452,17 @@ main_block: BEGIN
     WHILE v_wallet_loop_idx < v_wallet_count DO
 
         SET v_wallet_item                = JSON_EXTRACT(v_wallets_arr, CONCAT('$[', v_wallet_loop_idx, ']'));
-        SET v_wallet_asset_code          = JSON_UNQUOTE(JSON_EXTRACT(v_wallet_item, '$.asset_code'));
-        SET v_wallet_type                = JSON_UNQUOTE(JSON_EXTRACT(v_wallet_item, '$.wallet_type'));
+        SET v_wallet_asset_code          = getJval(v_wallet_item, 'asset_code');
+        SET v_wallet_type                = getJval(v_wallet_item, 'wallet_type');
 
         IF v_wallet_asset_code = v_asset_code AND v_wallet_type = 'METAL' THEN
-            SET v_metal_wallet_id        = JSON_UNQUOTE(JSON_EXTRACT(v_wallet_item, '$.wallet_id'));
-            SET v_metal_balance_before   = COALESCE(CAST(JSON_UNQUOTE(JSON_EXTRACT(v_wallet_item, '$.wallet_balance')) AS DECIMAL(20,6)), 0);
+            SET v_metal_wallet_id        = getJval(v_wallet_item, 'wallet_id');
+            SET v_metal_balance_before   = COALESCE(CAST(getJval(v_wallet_item, 'wallet_balance') AS DECIMAL(20,6)), 0);
         END IF;
 
         IF v_wallet_type = 'CASH' THEN
-            SET v_cash_wallet_id        = JSON_UNQUOTE(JSON_EXTRACT(v_wallet_item, '$.wallet_id'));
-            SET v_cash_balance_before   = COALESCE(CAST(JSON_UNQUOTE(JSON_EXTRACT(v_wallet_item, '$.wallet_balance')) AS DECIMAL(20,6)), 0);
+            SET v_cash_wallet_id        = getJval(v_wallet_item, 'wallet_id');
+            SET v_cash_balance_before   = COALESCE(CAST(getJval(v_wallet_item, 'wallet_balance') AS DECIMAL(20,6)), 0);
         END IF;
 
         SET v_wallet_loop_idx = v_wallet_loop_idx + 1;
@@ -605,6 +605,38 @@ main_block: BEGIN
                             v_order_number,
                             v_txn_num_cash_debit
                         );
+
+    /* ---- 11.10 : Update customer_products for Redeem orders ---- */
+    -- Initialize customer_products if not exists
+    IF getJVal(v_customer_json, 'customer_products') IS NULL THEN
+        SET v_customer_json = JSON_SET(v_customer_json, '$.customer_products', JSON_ARRAY());
+    END IF;
+
+    -- Loop through buy_items and append to customer_products
+    SET v_loop_idx = 0;
+    WHILE v_loop_idx < v_items_count DO
+        SET v_single_item   = JSON_EXTRACT(v_buy_items_output, CONCAT('$[', v_loop_idx, ']'));
+        SET v_customer_json = JSON_ARRAY_APPEND(v_customer_json,
+                                                '$.customer_products', JSON_OBJECT(
+                                                                            'asset_code',           v_asset_code,
+                                                                            'product_name',         getJVal(v_single_item, 'item_name'),
+                                                                            'product_type',         getJVal(v_single_item, 'item_type'),
+                                                                            'product_price',        getJVal(v_single_item, 'bought_price'),
+                                                                            'product_weight',       getJVal(v_single_item, 'item_weight'),
+                                                                            'status',               'Redeem Request',
+                                                                            'product_quantity',     getJVal(v_single_item, 'item_quantity'),
+                                                                            'order_rec_id',         v_order_rec_id,
+                                                                            'purchase_date',        DATE_FORMAT(NOW(), '%Y-%m-%dT%H:%i:%sZ'),
+                                                                            'item_code',            getJval(v_single_item, 'item_code')
+                                                                        )
+                                              );
+
+        SET v_loop_idx = v_loop_idx + 1;
+    END WHILE;
+
+    UPDATE customer 
+    SET   customer_json   = v_customer_json
+    WHERE customer_rec_id = v_customer_rec_id;
 
     /* ===================== Step 12: Success Response ===================== */
     SET psResObj = JSON_OBJECT(

@@ -152,8 +152,8 @@ BEGIN
 														'$.customer_status',		v_customer_status,
 														'$.customer_type', 			v_customer_type,
 														'$.user_name', 				v_user_name,
-														'$.main_account_number',	v_account_seq,
-														'$.account_number',			v_account_seq
+														'$.main_account_num',		v_account_seq,
+														'$.account_num',			v_account_seq
 											  );
             
 			SET v_row_metadata				= JSON_SET( v_row_metadata,
