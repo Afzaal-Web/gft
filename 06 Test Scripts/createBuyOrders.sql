@@ -484,13 +484,12 @@ SELECT  JSON_UNQUOTE(JSON_EXTRACT(@res, '$.status'))                        AS e
 SELECT '=== TEST D-1 : SLICE/Limit — order_cat defaults to GTC ===' AS test_case;
 
 SET @req = JSON_OBJECT(
-    'account_number',       'CUS-001',
+    'account_number',       'P-501',
     'asset_code',           'GLD',
     'order_sub_type',       'Limit',
     'metal',                'Gold',
     'product_type',         'SLICE',
-    'item_code',            'GLD-2412',
-    'item_weight',          2.0,
+    'item_code',            'GLD-241212',
     'customer_ip_address',  '192.168.1.25',
     'latitude',             24.860735,
     'longitude',            67.001137,
@@ -562,7 +561,7 @@ SELECT  JSON_UNQUOTE(JSON_EXTRACT(@res, '$.status'))    AS expect_success,
 SELECT '=== TEST E-1 : PRODUCT — two items happy path ===' AS test_case;
 
 SET @req = JSON_OBJECT(
-    'account_number',       'CUS-001',
+    'account_number',       'P-501',
     'asset_code',           'GLD',
     'order_sub_type',       'Market',
     'metal',                'Gold',
@@ -573,12 +572,12 @@ SET @req = JSON_OBJECT(
     'notes',                'Test PRODUCT order two items',
     'buy_items',            JSON_ARRAY(
                                 JSON_OBJECT(
-                                    'item_code',     'GLD-BAR-1G',
+                                    'item_code',     'GLD-241212',
                                     'item_weight',   1.0,
                                     'item_quantity', 2
                                 ),
                                 JSON_OBJECT(
-                                    'item_code',     'GLD-COIN-5G',
+                                    'item_code',     'GLD-RNG-1001',
                                     'item_weight',   5.0,
                                     'item_quantity', 1
                                 )

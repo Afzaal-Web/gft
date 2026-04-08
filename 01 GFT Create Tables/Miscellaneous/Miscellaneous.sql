@@ -838,3 +838,12 @@ SET
 -- Company Bank table ended
 -- ===============================================
 
+-- ===============================================
+-- Debug Table for logging and troubleshooting
+-- ===============================================
+CREATE TABLE debug_tbl (
+        row_id                INT           NOT NULL          AUTO_INCREMENT PRIMARY KEY,
+        logging_object        VARCHAR(64)   DEFAULT NULL,
+        desc_msg              TEXT,
+        created_at            TIMESTAMP     NULL DEFAULT      CURRENT_TIMESTAMP
+);

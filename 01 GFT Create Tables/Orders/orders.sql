@@ -14,22 +14,22 @@ DROP TABLE IF EXISTS orders;
 -- Create corporate_account table
 -- ===============================================
 CREATE TABLE IF NOT EXISTS orders (	
-    order_rec_id					INT 																PRIMARY KEY AUTO_INCREMENT,
+    order_rec_id				INT 																PRIMARY KEY AUTO_INCREMENT,
     customer_rec_id				INT,
     account_number				VARCHAR(50),
-    order_number					VARCHAR(50)															UNIQUE,
+    order_number				VARCHAR(50)															UNIQUE,
     receipt_number 				VARCHAR(50)															UNIQUE,
     
-    order_date			 			DATETIME,
-    order_status 					ENUM('pending','approved', 'rejected', 'completed', 'failed'),
-    next_action_required	ENUM('pending','approved', 'rejected', 'completed', 'failed'),
-    order_cat 						ENUM('DO','IOC', 'GTC'),   											-- ('DO - day order','IOC - immediate or cancel', 'GTC - good till cancel')
-    order_type 						ENUM('Buy','Sell', 'Exchange', 'Redeem')							NOT NULL,
-    limit_or_market       VARCHAR(100),
-    metal							    VARCHAR(50),
+    order_date			 		DATETIME,
+    order_status 				ENUM('pending', 'approved', 'rejected', 'completed', 'failed'),
+    next_action_required	    ENUM('approval', 'approved', 'in_progress', 'rejected', 'completed', 'failed'),
+    order_cat 					ENUM('DO','IOC', 'GTC'),   											-- ('DO - day order','IOC - immediate or cancel', 'GTC - good till cancel')
+    order_type 					ENUM('Buy','Sell', 'Exchange', 'Redeem')							NOT NULL,
+    limit_or_market             VARCHAR(100),
+    metal						VARCHAR(50),
     
-    order_json			 			JSON, -- JSON column to store the entire order details in JSON format
-    row_metadata 					JSON
+    order_json			 		JSON,
+    row_metadata 				JSON
 );
 
 -- ===============================================
@@ -38,22 +38,22 @@ CREATE TABLE IF NOT EXISTS orders (
 
 INSERT INTO orders
 SET
-	  order_rec_id			    = 0,
+	order_rec_id		  = 0,
     customer_rec_id	      = 0,
     account_number        = 'aaa000',
-    order_number        	= '0000',
-    receipt_number      	= '000',
+    order_number          = '0000',
+    receipt_number        = '000',
     
-    order_date          	= NOW(),
-    order_status        	= 'pending',
-    next_action_required	= 'approved',
-    order_cat	          	= 'GTC',
-    order_type		    	  = 'Buy', 
+    order_date            = NOW(),
+    order_status          = 'pending',
+    next_action_required  = 'approved',
+    order_cat	          = 'GTC',
+    order_type		      = 'Buy', 
     limit_or_market       = 'limit',
-    metal					        = 'Gold',
+    metal				  = 'Gold',
 
-   order_json            	=  castJson('orders'),
-   row_metadata         	=  castJson('row_metadata');
+   order_json             =  castJson('orders'),
+   row_metadata           =  castJson('row_metadata');
 
 
 -- ===============================================

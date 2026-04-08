@@ -195,7 +195,8 @@ BEGIN
 						"is_face_id_enabled"         			  : null,
 						"is_fingerprint_enabled"     			  : null
 					},
-                    "customer_wallets": []
+                    "customer_wallets": [],
+					"customer_products": []
 				}' AS JSON);
 
 -- =======================================================================
@@ -900,7 +901,7 @@ BEGIN
 								"date_of_purchase"            : null,
 								"quality"                     : null,
 								"payment_method"              : null,
-								"additional_notes"            : null,
+								"additional_notes"            : null
 							},
 							"rate_info" :
 							{

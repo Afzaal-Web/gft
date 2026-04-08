@@ -113,6 +113,10 @@ BEGIN
 			IF isFalsy(getJval(pjReqObj,'password')) THEN
 				SET v_errors		= JSON_ARRAY_APPEND(v_errors,'$','Password is required');
 			END IF;
+
+			IF JSON_EXTRACT(pjReqObj, '$.residential_address') IS NULL THEN
+    			SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'residential_address is required or invalid');
+			END IF;
         
         /* ===================== Check the INSERT uniqueness ===================== */
 
