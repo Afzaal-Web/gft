@@ -56,11 +56,7 @@ BEGIN
 										   'execution_duration', 	v_duration
                                            );
 
-    UPDATE  activity_log
-	SET 	json_response	 = v_jTemp,
-			response_time 	 = v_response_time,
-			failure_reason 	 = v_failure_reason
-    WHERE row_id 			 = v_request_id;
+    CALL activityLog(vThisObj, p_action_code, 'End of logging object', vjLogObj);
 
     RESIGNAL;
   END;
@@ -153,47 +149,7 @@ BEGIN
     --  Service: Common 
     -- ---------------------------------------------------------
     -- Process action_code for meta data
-    CASE p_action_code
-      WHEN 'CMN.S.GETVIEW' THEN
-
-          -- Gets the entire json response doc 
-          CALL debugLog(vThisObj, 'Calling getViewJSON');
-
-          SET vjResponse = getViewJSON(getJKeyValue(vjReqObj, 'jData.P_APP_NAME'),
-          getJKeyValue(vjReqObj, 'jData.P_VIEW_NAME'));
-
-      --          SET vjResponse = buildJSON(vjResponse, 'jData', vjTemp);
-
-
-
-
-      WHEN 'CMN.U.UPSERT_CONTENT' 					THEN CALL upsert_content(p_aff_num, p_app_name, vjReqObj, vjResponse);
-
-      WHEN 'CMN.D.DELETE_CONTENT' 					THEN CALL delete_content(p_aff_num, p_app_name, vjReqObj, vjResponse);
-
-      WHEN 'CMN.S.VIEW_CONTENT' 					THEN CALL get_view_content(p_aff_num, p_app_name, vjReqObj, vjResponse);
-
-      WHEN 'CMN.S.APP_CONTENT' 						THEN CALL get_app_content(p_aff_num, p_app_name, vjReqObj, vjResponse);
-
-      WHEN 'CMN.S.FORGOT_PASSWORD_OTP' 				THEN CALL get_forgot_password_otp(vjReqObj, vjResponse);
-
-      WHEN 'CMN.U.RESET_PASSWORD' 					THEN CALL reset_password(vjReqObj, vjResponse);
-
-      WHEN 'CMN.U.UPDATE_PASSWORD' 					THEN CALL update_password(vjReqObj, vjResponse);
-
-      WHEN 'CMN.S.GET_USERNAME' 					THEN CALL get_username_by_email_or_phone(vjReqObj, vjResponse);
-
-      WHEN 'CMN.S.BASE_OFFICE_CONTACT_DETAILS' 		THEN CALL get_base_office_contact_details(vjReqObj, vjResponse);
-            
-      WHEN 'CMN.I.RATING' 							THEN CALL create_rating(vjReqObj, vjResponse);
-      
-      WHEN 'CMN.S.HEATMAP_COORDINATES' 				THEN CALL get_heat_map_coordinates(vjReqObj, vjResponse);
-
-      WHEN 'CMN.request7'							THEN SET v_action = 'request5';
-      
-      ELSE SET v_action = 'request5';
-    END CASE;
-
+    
 
     CALL debugLog(vThisObj, 'Doing Switch for TRIP');
 

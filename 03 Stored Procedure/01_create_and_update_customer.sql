@@ -395,6 +395,7 @@ BEGIN
 									   'Customer created successfully',
 									   'Customer updated successfully'
                                    )
+								   
 		);
     END main_block;
     

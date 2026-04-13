@@ -97,8 +97,8 @@ BEGIN
             INTO 	v_customer_rec_id
             FROM    customer
             WHERE   email = v_login_id
-               OR  phone = v_login_id
-               OR  user_name = v_login_id
+               OR   phone = v_login_id
+               OR   user_name = v_login_id
             LIMIT 1;
 
             IF v_customer_rec_id IS NULL THEN

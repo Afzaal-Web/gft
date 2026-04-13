@@ -8,9 +8,9 @@ SET SESSION sql_mode='NO_AUTO_VALUE_ON_ZERO';
 -- ===============================================
 -- activity_log Table Started
 -- ===============================================
-DROP TABLE IF EXISTS activity_log;
+DROP TABLE IF EXISTS user_activity_log;
 
-CREATE TABLE IF NOT EXISTS activity_log (
+CREATE TABLE IF NOT EXISTS user_activity_log (
 
     activity_log_rec_id		INT 					PRIMARY KEY AUTO_INCREMENT,
     
@@ -18,12 +18,18 @@ CREATE TABLE IF NOT EXISTS activity_log (
     parent_table_name     	VARCHAR(64),
     parent_table_id       	INT,
 	log_time 				DATETIME,
-    
+
+    user_activity_log_json		JSON, move here 
 	user_info			  	JSON,
 
     web_request				JSON,
 
 	internal_call			JSON,
+    
+    request_json
+    response_json
+    ext_time
+    end_time
     
     row_meta_data 			JSON
 );
@@ -88,7 +94,7 @@ SET
 
 DROP TABLE IF EXISTS logs;
 -- ===============================================
--- Create money_manager table
+-- Create logs table
 -- ===============================================
 CREATE TABLE IF NOT EXISTS logs (
     log_rec_id              	INT                                  PRIMARY KEY AUTO_INCREMENT,
@@ -671,7 +677,7 @@ DROP TABLE IF EXISTS external_interfaces;
 -- ===============================================
 CREATE TABLE IF NOT EXISTS external_interfaces (
     external_interface_rec_id   	INT         								PRIMARY KEY AUTO_INCREMENT,
-    `description`                 	VARCHAR(255), 	
+    description                 	VARCHAR(255), 	
     provider_name               	VARCHAR(100), 	
     short_name                  	VARCHAR(50),  
     category                    	VARCHAR(50),  
@@ -696,7 +702,7 @@ CREATE TABLE IF NOT EXISTS external_interfaces (
 INSERT INTO external_interfaces
 SET
     external_interface_rec_id   = 0,
-    `description`                 = 'Demo Payment Gateway API',
+    description                 = 'Demo Payment Gateway API',
     provider_name               = 'PayGate',
     short_name                  = 'PAYG',
     category                    = 'Payment',
@@ -847,3 +853,24 @@ CREATE TABLE debug_tbl (
         desc_msg              TEXT,
         created_at            TIMESTAMP     NULL DEFAULT      CURRENT_TIMESTAMP
 );
+
+
+-- ===============================================
+-- IP_Whitelist
+-- ===============================================
+CREATE TABLE IP_Whitelist (
+            ip_whitelist_rec_id                 INT PRIMARY KEY     NOT NULL        AUTO_INCREMENT,
+            ip_address                          VARCHAR(45)         NOT NULL,
+            network_mask                        VARCHAR(45)         DEFAULT NULL,
+            description                         VARCHAR(255)        DEFAULT NULL,
+            row_meta_data                       JSON                NOT NULL,
+            UNIQUE KEY ip_address (ip_address)
+);
+
+INSERT INTO IP_Whitelist
+SET
+    ip_whitelist_rec_id          = 0,
+    ip_address                   = '127.0.0.0',
+    network_mask                 = '255.255.255.0',
+    description                  = 'Local Machine Access',
+    row_meta_data                = castJson('row_metadata');

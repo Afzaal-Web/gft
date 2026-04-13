@@ -1,0 +1,77 @@
+SET @reqObj = '
+{
+  "jHeader": {
+    "accessToken": "fad9017e31bd0927a6bc42996df9e22708b736112f3ef801fd30d7213c146a03",
+    "accessKey":   "0f5aac120ac2746e8548dcdb565b06d9772248b51ab669f45c08dc51a4291f16"
+  },
+  "jMetaData": {
+    "page": 1,
+    "limit": 10
+  },
+  "jData": {
+    "P_ACTION_CODE": "TRP.S.TRIP_BY_ID",
+    "P_APP_NAME": "driver-ios",
+    "P_TRIP_REC_ID": "477",
+
+    "first_name": "asad",
+    "last_name": "Khan",
+    "email": "khan@gmail.com",
+    "phone": "321-12121",
+    "national_id": "4546DF565465GRT",
+    "whatsapp_number": "+971501234567",
+    "password": "ASAQW4545",
+
+    "residential_address": {
+      "google_reference_number": "ChIJLahore123456",
+      "full_address": "House 123, Street 45, DHA Phase 5, Lahore, Pakistan",
+      "country": "Pakistan",
+      "building_number": "123",
+      "street_name": "Street 45",
+      "street_address_2": "DHA Phase 5",
+      "city": "Lahore",
+      "state": "Punjab",
+      "zip_code": "54000",
+      "directions": "Near Y Block Commercial Area",
+      "cross_street_1_name": "Khayaban-e-Iqbal",
+      "cross_street_2_name": "Main Boulevard DHA",
+      "latitude": "31.5204",
+      "longitude": "74.3587"
+    }
+  }
+}';
+  
+CALL requestHandler("127.0.0.0", "driver-ios", "TRP.S.TRIP_BY_ID", @reqObj, @pjObj);
+
+SELECT @pjObj;
+
+requestHandler (
+                                    IN    pClientIp       VARCHAR(45),
+                                    IN    pAppName        VARCHAR(32),
+                                    IN    pActionCode     VARCHAR(50),
+                                    IN    pJsonRequest    TEXT,
+                                    OUT   pJsonResponse   TEXT
+        )
+
+
+
+        WHEN 'reqResp' THEN
+			RETURN CAST(
+				'{
+				"jHeader": {
+					"responseCode": "1",
+					"message": 		"default error"
+				},
+				"jMetaData": {
+					"jDataType": 	"object",
+					"heading": 		[],
+					"pagination": 	{
+							"total": "0",
+							"hasNext": "false"
+					}
+				},
+				"jData": {
+					"someKey": "someVal",
+                    "contents": {
+                    }
+                }
+			}' AS JSON);

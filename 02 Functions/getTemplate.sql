@@ -1013,6 +1013,31 @@ BEGIN
 					"updated_by"   								  : null
 				}' AS JSON);
 		
+-- =======================================================================
+-- requestHandlerResponse for all Requests Handler SP
+-- =======================================================================
+		WHEN 'reqResp' THEN
+			RETURN CAST(
+				'{
+				"jHeader": {
+					"responseCode": "1",
+					"message": 		"default error"
+				},
+				"jMetaData": {
+					"jDataType": 	"object",
+					"heading": 		[],
+					"pagination": 	{
+							"total": "0",
+							"hasNext": "false"
+					}
+				},
+				"jData": {
+					"someKey": "someVal",
+                    "contents": {
+                    }
+                }
+			}' AS JSON);
+				
 		ELSE
             SIGNAL SQLSTATE '45000'
             SET MESSAGE_TEXT = 'Invalid p_table_name value';

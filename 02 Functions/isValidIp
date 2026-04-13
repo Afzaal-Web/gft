@@ -1,0 +1,17 @@
+DELIMITER $$
+
+CREATE FUNCTION isValidIP
+                        (	
+                            psIPAddress 	VARCHAR(64) 
+                        )
+ RETURNS tinyint(1)
+    DETERMINISTIC
+BEGIN
+
+    IF NOT EXISTS (SELECT 1 FROM IP_Whitelist WHERE ip_address = psIPAddress) THEN
+        RETURN FALSE;
+	ELSE
+		RETURN TRUE;
+    END IF;
+END $$
+DELIMITER ;
