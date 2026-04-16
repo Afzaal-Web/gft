@@ -790,29 +790,30 @@ BEGIN
 		WHEN 'activity_log' THEN
 			RETURN CAST(
 						'{
-						  "user_info": {
-										"app_name": null,
-										"user_id": null,
-										"device_info": null,
-										"client_ip": null,
-										"latitude": null,
-										"longitude": null
-									  },
-						  "web_request": {
-										"action_code": null,
-										"action_status": null,
-										"failure_reason": null,
-										"json_request": {},
-										"request_time": null,
-										"json_response": {},
-										"response_time": null,
-										"notes": null
-									  },
-						  "internal_call": {
-											"caller_name": null,
-											"result": null,
-											"notes": null
-										  }
+							"activity_log_rec_id":  null,
+							"logging_object":  		null,
+							"action_code":     	    null,
+    						"client_ip":          	null,
+							"log_time":		 		null,
+
+							"app_name":     		null,
+							"user_id":      		null,
+							"device_info":  		null,
+							"client_ip":    		null,
+							"latitude":     		null,
+							"longitude":    		null,
+					
+							"action_status":    	null,
+							"failure_reason":   	null,
+							"json_request":     	null,
+							"request_time":     	null,
+							"json_response":    	null,
+							"response_time":    	null,
+							"notes":            	null,
+							"proc_duration":    	null,	
+							
+							"result":       		null,
+							"notes":        		null
 						}' AS JSON);
 
 -- =======================================================================

@@ -1,0 +1,21 @@
+ SET @v_customer_json = '{
+				"jHeader": {
+					"responseCode": "1",
+					"message": 		"default error"
+				},
+				"jMetaData": {
+					"jDataType": 	"object",
+					"heading": 		[],
+					"pagination": 	{
+							"total": "0",
+							"hasNext": "false"
+					}
+				},
+				"jData": {
+					"someKey": "someVal",
+                    "contents": {
+                    }
+                }
+			}';
+ CALL getCustomer(JSON_OBJECT('P_ACCOUNT_NUMBER', 'P-593'), @v_customer_json);
+  SELECT @v_customer_json;

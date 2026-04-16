@@ -7,8 +7,8 @@ DROP PROCEDURE IF EXISTS loginCustomer;
 DELIMITER $$
 
 CREATE PROCEDURE loginCustomer(
-                                IN  pReqObj  JSON,
-                                OUT pResObj  JSON
+                                IN    pReqObj  JSON,
+                                INOUT pjRespObj  JSON
                               )
 BEGIN
     DECLARE v_login_id  		 	VARCHAR(255);
@@ -30,10 +30,10 @@ BEGIN
 
         -- Validate input
         IF v_login_id IS NULL OR v_password IS NULL THEN
-            SET pResObj = JSON_OBJECT(
-                'status',  'INVALID_REQUEST',
-                'message', 'Login ID and Password are required.'
-            );
+            
+            SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 1);
+	    	SET pjRespObj = buildJSONSmart( pjRespObj,'jHeader.message', 'Login ID and Password are required.');
+
             LEAVE main_block;
         END IF;
 
@@ -51,10 +51,10 @@ BEGIN
 
         -- User not found
         IF v_customer_rec_id IS NULL THEN
-            SET pResObj = JSON_OBJECT(
-                'status',  'USER_NOT_FOUND',
-                'message', 'No account matches the provided login ID.'
-            );
+
+            SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 1);
+	    	SET pjRespObj = buildJSONSmart( pjRespObj,'jHeader.message', 'USER_NOT_FOUND - No account matches the provided login ID.');
+
             LEAVE main_block;
         END IF;
 
@@ -62,20 +62,20 @@ BEGIN
         -- Validate password
         -- =========================
         IF SHA2(v_password,256) <> v_db_password THEN
-            SET pResObj = JSON_OBJECT(
-                'status', 'INVALID_PASSWORD',
-                'message', 'The password is incorrect.'
-            );
+
+            SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 1);
+	    	SET pjRespObj = buildJSONSmart( pjRespObj,'jHeader.message', 'INVALID_PASSWORD - The password is incorrect.');
+            
+
             LEAVE main_block;
         END IF;
 
         -- =========================
         -- Success response
         -- =========================
-        SET pResObj = JSON_OBJECT(
-            'status',  'LOGIN_SUCCESS',
-            'message', 'Login successful.'
-        );
+
+        SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 0);
+	    SET pjRespObj = buildJSONSmart( pjRespObj,'jHeader.message', 'LOGIN_SUCCESS - Login successful.');
 
     END main_block;
 

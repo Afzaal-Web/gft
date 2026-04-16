@@ -11,8 +11,8 @@ DROP PROCEDURE IF EXISTS verifiyExistingNumber;
 DELIMITER $$
 
 CREATE PROCEDURE verifiyExistingNumber(
-										IN  pjReqObj JSON,
-										OUT psResObj JSON
+										IN    pjReqObj JSON,
+										INOUT pjRespObj JSON
 									  )
 BEGIN
     DECLARE v_phone          			VARCHAR(20);
@@ -23,12 +23,11 @@ BEGIN
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         GET STACKED DIAGNOSTICS CONDITION 1 v_err_msg = MESSAGE_TEXT;
-        SET psResObj = JSON_OBJECT(
-									'status',        	'error',
-									'status_code',   	'1',
-									'message',       	'Verification failed',
-									'system_error',  	v_err_msg
-								);
+
+		SET pjRespObj       = buildJSONSmart( pjRespObj,  'jHeader.responseCode',   '1');
+        SET pjRespObj 	   = buildJSONSmart( pjRespObj,
+                                            'jHeader.message', CONCAT('Unexpected Error - Verification failed ', v_err_msg)
+                                            );            
     END;
 
     /* ===================== Main ===================== */
@@ -38,11 +37,10 @@ BEGIN
         SET v_phone 	= getJval(pjReqObj, 'P_PHONE_NUM');
 
         IF isFalsy(v_phone) THEN
-            SET psResObj = JSON_OBJECT(
-										'status',      	'error',
-										'status_code', 	'1',
-										'message',     	'Phone number is required'
-									);
+
+			SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.responseCode',   '1');
+			SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.message',        'Phone number is required'); 
+
             LEAVE main_block;
         END IF;
 
@@ -52,11 +50,10 @@ BEGIN
 					FROM customer
 					WHERE phone = v_phone
 		) THEN
-		  SET psResObj = JSON_OBJECT(
-										'status',      	'error',
-										'status_code', 	'1',
-										'message',     	'User already exists with this phone number'
-									);
+
+			SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.responseCode',   '1');
+			SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.message',        'User already exists with this phone number'); 									
+
 		  LEAVE main_block;
         END IF;
 
@@ -82,14 +79,26 @@ BEGIN
             WHERE 	phone = v_phone
             LIMIT 	1;
 
-            -- Generate OTP 
-            CALL genOtp('loginid', v_phone, 'For phone number verification at the time of signup');
+			SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 0);
 
-            SET psResObj = JSON_OBJECT(
-										'status',      		'success',
-										'status_code', 		'0',
-										'data',        		v_reverser_lookup_json
-            );
+	    	SET pjRespObj = buildJSONSmart( pjRespObj,
+								   		  'jHeader.message', 'Success - Phone exists in reverse lookup. Get the user info from jData.contents and proceed with registration.'
+								        );
+			
+			SET pjRespObj = buildJSONSmart( pjRespObj,
+								   		  'jData.contents', v_reverser_lookup_json
+								        );
+
+            -- Generate OTP 
+            CALL genOtp(JSON_OBJECT('P_CONTACT_TYPE', 'phone',
+									'P_DESTINATION',  v_phone,
+									'P_PURPOSE', 'For phone number verification at the time of signup'
+									),
+									pjRespObj
+									);
+
+
+	
 
             LEAVE main_block;
         END IF;
@@ -97,13 +106,19 @@ BEGIN
         /* ===================== 3. NEW USER ===================== */
 
         -- Generate OTP 
-        CALL genOtp( 'loginid', v_phone, 'PHONE REGISTRATION');
+        CALL genOtp(JSON_OBJECT('P_CONTACT_TYPE', 'phone',
+								'P_DESTINATION',  v_phone,
+								'P_PURPOSE', 'For phone number verification at the time of signup'
+						),
+						pjRespObj
+									);
 
-        SET psResObj = JSON_OBJECT(
-									'status',      'success',
-									'status_code', '0',
-									'source',      'new_user'
-								);
+		        /* =============== Success Response =============== */
+        SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 0);
+
+	    SET pjRespObj = buildJSONSmart( pjRespObj,
+								   'jHeader.message', 'New user - Phone number is not found, proceed with registration.'
+								);  								
 
     END main_block;
 END $$

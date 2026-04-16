@@ -8,8 +8,8 @@ DROP PROCEDURE IF EXISTS verifyOtp;
 DELIMITER $$
 
 CREATE PROCEDURE verifyOtp(
-                            IN pReqObj 		JSON,
-							OUT psResObj     	JSON
+                            IN    pjReqObj 	JSON,
+							INOUT pjRespObj   JSON
 						 )
 BEGIN
     DECLARE v_otp_rec_id    INT;
@@ -34,7 +34,7 @@ BEGIN
 		SET vContactType 		= getJval(pjReqObj, 'P_CONTACT_TYPE');
 		SET vDestination 		= getJval(pjReqObj, 'P_DESTINATION');
 		SET vOtpCode     		= getJval(pjReqObj, 'P_OTP_CODE');
-		SET vPurpose    		= getJval(pReqJson, 'P_PURPOSE');
+		SET vPurpose    		= getJval(pjReqObj, 'P_PURPOSE');
 
 		-- =========================
 		-- Get latest OTP
@@ -42,7 +42,7 @@ BEGIN
 		SELECT otp_rec_id, 		otp_code, 		expires_at, 	otp_retries
 		INTO   v_otp_rec_id, 	v_actual_otp, 	v_expiry, 		v_retries
 		FROM   otp
-		WHERE  contact_type = pContactType
+		WHERE  contact_type = vContactType
 		AND    destination  = vDestination
 		AND    purpose      = vPurpose
 		ORDER BY otp_rec_id DESC
@@ -53,7 +53,11 @@ BEGIN
 		-- No OTP found
 		-- =========================
 		IF v_otp_rec_id IS NULL THEN
-			SET psResObj = JSON_OBJECT('status','NOT_FOUND');
+			SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 1);
+
+	    	SET pjRespObj = buildJSONSmart( pjRespObj,
+								   			'jHeader.message', 'OTP not found'
+							               );  
 			
 			LEAVE main_block;
 		END IF;
@@ -62,7 +66,12 @@ BEGIN
 		-- OTP expired
 		-- =========================
 		IF NOW() > v_expiry THEN
-			SET psResObj = JSON_OBJECT('status','EXPIRED');
+
+			SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 1);
+
+	    	SET pjRespObj = buildJSONSmart( pjRespObj,
+								   			'jHeader.message', 'OTP EXPIRED'
+							               );  
 			
 			LEAVE main_block;
 		END IF;
@@ -89,10 +98,11 @@ BEGIN
 				SET v_retries 		= 0;
 			END IF;
 
-			SET psResObj = JSON_OBJECT(
-										'status',			 v_status,
-										'remaining_retries', v_retries
-									);
+			SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 1);
+
+	    	SET pjRespObj = buildJSONSmart( pjRespObj,
+								   			'jHeader.message', CONCAT('OTP IS ',v_status, ', ', v_retries, ' retries left.')
+							               );  
 			LEAVE main_block;
 		END IF;
 
@@ -105,7 +115,7 @@ BEGIN
 		WHERE otp_rec_id = v_otp_rec_id;
 		
 		-- =========================
-		-- Call Success Otp SP
+		-- Call Handle Otp Success SP
 		-- =========================
 		
 		CALL handleOtpSuccess(vContactType, vDestination, vPurpose, v_otp_token);
@@ -114,10 +124,14 @@ BEGIN
 			-- =========================
 			-- Final Success Response
 			-- =========================
-			SET psResObj = JSON_OBJECT(
-				'status', 'SUCCESS',
-				'token', v_otp_token
-			);
+
+			SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 0);
+
+	    	SET pjRespObj = buildJSONSmart( pjRespObj,
+								   			'jHeader.message', CONCAT('OTP verified successfully', 
+											IF(getJval(v_otp_token, 'jData.contents.reset_token') IS NOT NULL,
+											CONCAT(', token: ', getJval(v_otp_token, 'jData.contents.reset_token')), ''))
+							               );  
 			
     END main_block;
     -- logging

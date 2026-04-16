@@ -15,8 +15,8 @@ DROP PROCEDURE IF EXISTS upsertInventory;
 DELIMITER $$
 
 CREATE PROCEDURE upsertInventory(
-								IN  pjReqObj JSON,
-								OUT psResObj JSON
+								IN    pjReqObj JSON,
+								INOUT pjRespObj JSON
 							  )
 BEGIN
     /* ================ VARIABLE DECLARATIONS ================ */
@@ -37,18 +37,17 @@ BEGIN
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         GET STACKED DIAGNOSTICS CONDITION 1 v_err_msg = MESSAGE_TEXT;
-        SET psResObj = JSON_OBJECT(
-                                'status', 'error',
-                                'message', 'Inventory creation failed',
-                                'system_error', v_err_msg
-                                );
+        SET pjRespObj       = buildJSONSmart( pjRespObj,  'jHeader.responseCode',   '1');
+		SET pjRespObj 	   = buildJSONSmart( pjRespObj,
+													'jHeader.message', CONCAT('Unexpected Error - Inventory creation failed ', v_err_msg)
+													);                                
     END;
 
     main_block: BEGIN
     
     SET v_mode =
                 CASE
-                    WHEN isFalsy(getJval(pjReqObj,'inventory_rec_id')) THEN
+                    WHEN isFalsy(getJval(pjReqObj,'P_INVENTORY_REC_ID')) THEN
                     'INSERT'
                     ELSE
                     'UPDATE'
@@ -60,28 +59,25 @@ BEGIN
 
     /* =============== INVENTORTY Insert VALIDATIONS : If required fields are missing in reqObj ================ */
 
-		IF isFalsy(getJval(pjReqObj,'product_rec_id')) THEN
+		IF isFalsy(getJval(pjReqObj,'P_PRODUCT_REC_ID')) THEN
 			SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','product_rec_id is required');
 		END IF;
 
-		IF isFalsy(getJval(pjReqObj,'item_name')) THEN
+		IF isFalsy(getJval(pjReqObj,'P_ITEM_NAME')) THEN
 			SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','item_name is required');
 		END IF;
 
-		IF isFalsy(getJval(pjReqObj,'item_type')) THEN
+		IF isFalsy(getJval(pjReqObj,'P_ITEM_TYPE')) THEN
 			SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','item_type is required');
 		END IF;
 
-		IF isFalsy(getJval(pjReqObj,'availability_status')) THEN
+		IF isFalsy(getJval(pjReqObj,'P_AVAILABILITY_STATUS')) THEN
 			SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','availability_status is required');
 		END IF;
 
 		IF JSON_LENGTH(v_errors) > 0 THEN
-			SET psResObj = JSON_OBJECT(
-									   'status',      'error',
-									   'status_code', '1',
-									   'errors',      v_errors
-									);
+            SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.responseCode',   '1');
+			SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.message',        v_errors);                                    
         LEAVE main_block;
         END IF;
 
@@ -103,11 +99,11 @@ BEGIN
                                          );
 
         INSERT INTO inventory
-        SET product_rec_id       = getJval(pjReqObj,'product_rec_id'),
-            item_name            = getJval(pjReqObj,'item_name'),
-            item_type            = getJval(pjReqObj,'item_type'),
-            asset_type           = getJval(pjReqObj,'asset_type'),
-            availability_status  = getJval(pjReqObj,'availability_status'),
+        SET product_rec_id       = getJval(pjReqObj,'P_PRODUCT_REC_ID'),
+            item_name            = getJval(pjReqObj,'P_ITEM_NAME'),
+            item_type            = getJval(pjReqObj,'P_ITEM_TYPE'),
+            asset_type           = getJval(pjReqObj,'P_ASSET_TYPE'),
+            availability_status  = getJval(pjReqObj,'P_AVAILABILITY_STATUS'),
             inventory_json       = v_inventory_json,
             row_metadata         = v_row_metadata;
 
@@ -118,7 +114,7 @@ BEGIN
 
         -- get json of existed product from product table
         
-         SET v_product_json     = getProduct(getJval(pjReqObj,'product_rec_id'));
+         SET v_product_json     = getProduct(getJval(pjReqObj,'P_PRODUCT_REC_ID'));
 
 		-- fill the inventory json from product json
 		SET v_inventory_json 	= mergeIfMissing( v_inventory_json,
@@ -153,13 +149,13 @@ BEGIN
     WHEN 'UPDATE' THEN
         
         /* =============== Inventory Insert VALIDATIONS: UPDATE must target existing record ================ */
-        SET v_inventory_rec_id = getJval(pjReqObj,'inventory_rec_id');
+        SET v_inventory_rec_id = getJval(pjReqObj,'P_INVENTORY_REC_ID');
      
 		IF v_inventory_rec_id IS NOT NULL
 		AND NOT EXISTS (
                           SELECT 1
                           FROM   inventory
-                          WHERE  inventory_rec_id = getJval(pjReqObj,'inventory_rec_id')
+                          WHERE  inventory_rec_id = getJval(pjReqObj,'P_INVENTORY_REC_ID')
                         ) THEN
                                                               
 			   SET v_errors = JSON_ARRAY_APPEND( v_errors,'$','Invalid inventory_rec_id: record does not exist');
@@ -167,11 +163,10 @@ BEGIN
 
     
     IF JSON_LENGTH(v_errors) > 0 THEN
-        SET psResObj = JSON_OBJECT(
-								   'status',      'error',
-								   'status_code', '1',
-								   'errors',      v_errors
-                                );
+
+			SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.responseCode',   '1');
+			SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.message', 		v_errors);   
+
         LEAVE main_block;
     END IF;
 
@@ -207,17 +202,21 @@ BEGIN
         END IF;
 	END CASE;
 
-    SET psResObj = JSON_OBJECT(
-                                'status',      'success',
-                                'status_code', '0',
-                                'message',     IF(isFalsy(getJval(pjReqObj,'inventory_rec_id')),
-												   'Inventory saved successfully',
-												   'Inventory updated successfully'
-													)
-                              );
+     /* =============== Final response preparation: success response with updated/created inventory json ================ */
+   
+    SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 0);
+
+	SET pjRespObj = buildJSONSmart( pjRespObj,
+								   'jHeader.message', IF( isFalsy(getJval(pjReqObj, 'P_INVENTORY_REC_ID')),
+														  'Success - Inventory saved successfully',
+														  'Success - Inventory updated successfully'
+														)
+								);                              
 
     END main_block;
 
+    -- inert general code here like LOG
+	-- call log proc
 END $$
 
 DELIMITER ;

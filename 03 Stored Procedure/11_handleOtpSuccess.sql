@@ -8,10 +8,10 @@ DROP PROCEDURE IF EXISTS handleOtpSuccess;
 DELIMITER $$
 
 CREATE PROCEDURE handleOtpSuccess(
-									IN pContactType    ENUM('email','phone','loginid'),
-									IN pDestination    VARCHAR(255),
-                                    IN pPurpose        VARCHAR(100),
-                                    OUT pResObj			JSON
+									IN    pContactType    ENUM('email','phone','loginid'),
+									IN    pDestination    VARCHAR(255),
+                                    IN    pPurpose        VARCHAR(100),
+                                    OUT   pjRespObj		  JSON
 								)
 BEGIN
 
@@ -20,6 +20,11 @@ BEGIN
 	DECLARE v_email         	VARCHAR(255);
     DECLARE v_phone         	VARCHAR(20);
     DECLARE v_reset_token    	VARCHAR(100);
+    DECLARE v_json_response		JSON;
+
+    SET v_json_response = getTemplate('reqResp');
+
+    SET pjRespObj       = v_json_response;
 
     main_block: BEGIN
     
@@ -32,10 +37,9 @@ BEGIN
         
          -- If customer not found
         IF v_customer_rec_id IS NULL THEN
-            SET pResObj = JSON_OBJECT(
-										'status','FAILED',
-										'message','Customer not found'
-									);
+            SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 1);
+
+	    	SET pjRespObj = buildJSONSmart( pjRespObj,'jHeader.message', 'Customer not found');
             LEAVE main_block;
         END IF;
         CASE pPurpose
@@ -50,6 +54,7 @@ BEGIN
                     IF v_email IS NOT NULL THEN
                         INSERT INTO outbound_msgs(channel, recipient, message_body, created_at)
                         VALUES('email', v_email, CONCAT('Your Login ID is: ', v_login_id), NOW());
+                        -- also update here json of outbound_msgs with status of pending
                     END IF;
                     IF v_phone IS NOT NULL THEN
                         INSERT INTO outbound_msgs(channel, recipient, message_body, created_at)
@@ -60,11 +65,10 @@ BEGIN
                     INSERT INTO outbound_msgs(channel, recipient, message_body, created_at)
                     VALUES(pContactType, pDestination, CONCAT('Your Login ID is: ', v_login_id), NOW());
                 END IF;
-                    
-					SET pResObj = JSON_OBJECT(
-												'status','SUCCESS',
-												'message','Login ID sent successfully'
-											);	
+    
+            SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 0);
+
+	    	SET pjRespObj = buildJSONSmart( pjRespObj,'jHeader.message', 'Success - Please get login Id from outbound message tbl');
 
             
 
@@ -82,11 +86,19 @@ BEGIN
 										)
 			WHERE customer_rec_id = v_customer_id;
 						
-			SET pResObj = JSON_OBJECT(
+			SET pjRespObj = JSON_OBJECT(
 										'status',				'SUCCESS',
 										'reset_token', 			v_reset_token,
 										'expires_in_minutes', 	10
 									);
+            
+            SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 0);
+
+	    	SET pjRespObj = buildJSONSmart( pjRespObj,'jHeader.message', 'reset token generated successfully');
+
+            SET pjRespObj = buildJSONSmart( pjRespObj,'jData.contents.reset_token', v_reset_token);
+            SET pjRespObj = buildJSONSmart( pjRespObj,'jData.contents.reset_token_expires_in_minutes', 10);
+
 
 
             -- =====================================================
@@ -95,22 +107,19 @@ BEGIN
             WHEN 'REGISTER' THEN
             
 			-- some code
-            SET pResObj = JSON_OBJECT(
-                    'status','SUCCESS',
-                    'message','OTP verified for registration'
-                );
-                BEGIN END;
+            SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 0);
+
+	    	SET pjRespObj = buildJSONSmart( pjRespObj,'jHeader.message', 'OTP verified for registration');
 
             -- =====================================================
             -- DEFAULT (do nothing)
             -- =====================================================
             ELSE
             
-             SET pResObj = JSON_OBJECT(
-                    'status','FAILED',
-                    'message','Invalid purpose'
-                );
-                BEGIN END;
+    
+            SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 1);
+
+	    	SET pjRespObj = buildJSONSmart( pjRespObj,'jHeader.message', 'Invalid purpose');
 
         END CASE;
 

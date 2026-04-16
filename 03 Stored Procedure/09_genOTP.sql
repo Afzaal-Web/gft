@@ -2,7 +2,6 @@
 -- Procedure: 	genOtp
 -- Purpose:   	Generate OTP and insert into otp table and outbound_message table
 -- 				Handles resend automatically by generating a new OTP each time
--- 				Implements cooldown to prevent spamming (scoped by purpose)
 -- ==================================================================================================
 
 DROP PROCEDURE IF EXISTS genOtp;
@@ -10,8 +9,8 @@ DROP PROCEDURE IF EXISTS genOtp;
 DELIMITER $$
 
 CREATE PROCEDURE genOtp(
-						 IN  pReqObj JSON,
-						 OUT pResObj JSON
+						 IN  	pjReqObj JSON,
+						 INOUT  pjRespObj JSON
 					   )
 BEGIN
     -- =========================
@@ -19,7 +18,7 @@ BEGIN
     -- =========================
 	DECLARE v_contact_type      	VARCHAR(20);
     DECLARE v_destination       	VARCHAR(255);
-    DECLARE v_purpose           	VARCHAR(50);
+    DECLARE v_purpose           	TEXT;
     
     DECLARE v_otp                  	CHAR(6);
     DECLARE v_expiry               	DATETIME;
@@ -34,19 +33,19 @@ BEGIN
     -- =========================
     -- Extract Request Values
     -- =========================
-    SET v_contact_type = getJval(pReqObj, 'P_CONTACT_TYPE');
-    SET v_destination  = getJval(pReqObj, 'P_DESTINATION');
-    SET v_purpose      = getJval(pReqObj, 'P_PURPOSE');
+    SET v_contact_type = getJval(pjReqObj, 'P_CONTACT_TYPE');
+    SET v_destination  = getJval(pjReqObj, 'P_DESTINATION');
+    SET v_purpose      = getJval(pjReqObj, 'P_PURPOSE');
     
     main_block: BEGIN
 	-- =========================
     -- Basic Validation
     -- =========================
     IF v_contact_type IS NULL OR v_destination IS NULL OR v_purpose IS NULL THEN
-        SET pResObj = JSON_OBJECT(
-									'status', 'error',
-									'message', 'Missing required parameters'
-								);
+		
+        SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.responseCode',   '1');
+		SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.message',        'Missing required parameters');
+
         LEAVE main_block;
     END IF;
     
@@ -62,11 +61,11 @@ BEGIN
 
     IF v_last_sent_time IS NOT NULL 
     AND TIMESTAMPDIFF(SECOND, v_last_sent_time, NOW()) < 60 THEN
-         SET pResObj = JSON_OBJECT(
-									'status', 				'error',
-									'message', 				'Please wait before requesting OTP again.',
-									'next_otp_in_secs',		60 - TIMESTAMPDIFF(SECOND, v_last_sent_time, NOW())
-								);
+
+		SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.responseCode',   				'1');
+		SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.message',        				'Please wait before requesting OTP again.');
+		SET pjRespObj  = buildJSONSmart(pjRespObj,  'jData.contents.next_otp_in_secs',       60 - TIMESTAMPDIFF(SECOND, v_last_sent_time, NOW()));
+
         LEAVE main_block;
     END IF;
 
@@ -198,16 +197,18 @@ BEGIN
 											);
 
 		UPDATE  outbound_msgs
-		SET 	outbound_msgs_json = v_outbound_msgs_json
-		WHERE 	outbound_messages_rec_id = v_outbound_msgs_rec_id;
+		SET 	outbound_msgs_json 	 = v_outbound_msgs_json
+		WHERE 	outbound_msgs_rec_id = v_outbound_msgs_rec_id;
         
             -- =========================
     -- Success Response
     -- =========================
-		SET pResObj = JSON_OBJECT(
-									'status', 'success',
-									'message', 'OTP generated successfully'
-								);
+
+		SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 0);
+
+	    SET pjRespObj = buildJSONSmart( pjRespObj,
+								   'jHeader.message', 'OTP generated successfully'
+								);  
     
     END main_block;
     

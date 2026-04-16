@@ -15,8 +15,8 @@ DROP PROCEDURE IF EXISTS updateMoneyTransaction;
 DELIMITER $$
 
 CREATE PROCEDURE updateMoneyTransaction(
-										IN  pjReqObj JSON,
-										OUT psResObj JSON
+										IN    pjReqObj JSON,
+										INOUT pjRespObj JSON
 									  )
 BEGIN
     DECLARE v_mm_rec_id        INT;
@@ -35,18 +35,18 @@ BEGIN
     BEGIN
         ROLLBACK;
         GET STACKED DIAGNOSTICS CONDITION 1 v_err_msg = MESSAGE_TEXT;
-        SET psResObj = JSON_OBJECT(
-									'status','error',
-									'message','Money transaction update failed',
-									'system_error', v_err_msg
-								);
+
+        SET pjRespObj       = buildJSONSmart( pjRespObj,  'jHeader.responseCode',   '1');
+        SET pjRespObj 	   = buildJSONSmart( pjRespObj,
+                                            'jHeader.message', CONCAT('Unexpected Error - Money transaction update failed', v_err_msg)
+                                            );                                   
     END;
 
     main_block: BEGIN
 
         /* =============== Extract Inputs =============== */
-        SET v_mm_rec_id  		= CAST(getJval(pjReqObj,'money_manager_rec_id') AS UNSIGNED);
-        SET v_new_status 		= getJval(pjReqObj,'status');
+        SET v_mm_rec_id  		= CAST(getJval(pjReqObj,'P_MONEY_MANAGER_REC_ID') AS UNSIGNED);
+        SET v_new_status 		= getJval(pjReqObj,'P_STATUS');
 
         /* =============== Validations =============== */
         IF isFalsy(v_mm_rec_id) THEN
@@ -58,7 +58,10 @@ BEGIN
         END IF;
 
         IF JSON_LENGTH(v_errors) > 0 THEN
-            SET psResObj = JSON_OBJECT('status','validation_error','errors',v_errors);
+
+			SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.responseCode',   '1');
+			SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.message',        v_errors); 
+
             LEAVE main_block;
         END IF;
 
@@ -66,19 +69,19 @@ BEGIN
         SET v_mm_json = getMoneyManager(v_mm_rec_id);
 
         IF getJval(v_mm_json,'status') IS NULL THEN
-            SET psResObj = JSON_OBJECT(
-                'status','error',
-                'message','Transaction not found'
-            );
+
+            SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.responseCode',   '1');
+			SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.message',        'Transaction not found');
+
             LEAVE main_block;
         END IF;
 
         /* =============== Status Transition Rules =============== */
         IF getJval(v_mm_json,'status') = 'POSTED' THEN
-            SET psResObj = JSON_OBJECT(
-                'status','error',
-                'message','Posted transaction cannot be modified'
-            );
+
+            SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.responseCode',   '1');
+			SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.message',        'Posted transaction cannot be modified');
+
             LEAVE main_block;
         END IF;
         
@@ -86,32 +89,30 @@ BEGIN
 
        
            /* =============== get existed json of money manager and update with req obj  =============== */
-        SET v_mm_json	 = getMoneyManager(v_mm_rec_id);
+        SET v_mm_json	    = getMoneyManager(v_mm_rec_id);
 
          /* =============== Prepare Lifecycle Entry =============== */
-        SET v_life_cycle = getTemplate('transaction_life_cycle');
+        SET v_life_cycle    = getTemplate('transaction_life_cycle');
         
-        SET v_life_cycle 		= JSON_SET( v_life_cycle,
-											'$.status',     v_new_status,
-											'$.user_name',  getJval(pjReqObj,'user_name'),
-											'$.action_by',  getJval(pjReqObj,'action_by'),
-											'$.action_at',  COALESCE(getJval(pjReqObj,'action_at'), NOW()),
-											'$.notes',      getJval(pjReqObj,'notes')
-                                    );
+        SET v_life_cycle 	= JSON_SET( v_life_cycle,
+                                        '$.status',     v_new_status,
+                                        '$.user_name',  getJval(pjReqObj,           'P_USER_NAME'),
+                                        '$.action_by',  getJval(pjReqObj,           'P_ACTION_BY'),
+                                        '$.action_at',  COALESCE(getJval(pjReqObj,  'P_ACTION_AT'), NOW()),
+                                        '$.notes',      getJval(pjReqObj,           'P_NOTES')
+                                );
 
 	   /* ================ APPEND OBJ in life cycle array in money manager ============ */
-        SET v_mm_json 			= JSON_ARRAY_APPEND(
-													v_mm_json,
-													'$.life_cycle',
-													v_life_cycle
-												);
+        SET v_mm_json 			= JSON_ARRAY_APPEND( v_mm_json,
+													 '$.life_cycle',  v_life_cycle
+												  );
 
         /* =============== Update Row Metadata =============== */
         SET v_row_metadata = getTemplate('row_metadata');
         SET v_row_metadata = JSON_SET( v_row_metadata,
 									   '$.status',       v_new_status,
-									    '$.updated_at',   NOW(),
-										'$.updated_by',   getJval(v_mm_json,'action_by')
+									   '$.updated_at',   NOW(),
+									   '$.updated_by',   getJval(v_mm_json,'action_by')
 									);
 
         /* =============== Start Transaction =============== */
@@ -119,8 +120,8 @@ BEGIN
 
         UPDATE money_manager
         SET	  status             			= v_new_status,
-              backoffice_post_number		= getJval(pjReqObj,'backoffice_post_number'),
-              trans_posted_at				= getJval(pjReqObj,'trans_posted_at'),
+              backoffice_post_number		= getJval(pjReqObj,'P_BACKOFFICE_POST_NUMBER'),
+              trans_posted_at				= getJval(pjReqObj,'P_TRANS_POSTED_AT'),
               money_manager_json 			= v_mm_json,
 			  row_metadata       			= v_row_metadata
         WHERE money_manager_rec_id = v_mm_rec_id;
@@ -133,14 +134,13 @@ BEGIN
         
      /* ================ APPEND OBJ in life cycle array in credit card ============ */
 		SET v_cc_json	 		= JSON_ARRAY_APPEND( v_cc_json,
-													'$.life_cycle',
-													v_life_cycle
+													'$.life_cycle', v_life_cycle
 												  );		
         
             UPDATE credit_card
             SET	  status     				= v_new_status,
-                  backoffice_post_number	= getJval(pjReqObj,'backoffice_post_number'),
-				  trans_posted_at			= COALESCE(getJval(pjReqObj,'trans_posted_at'), NOW()),
+                  backoffice_post_number	= getJval(pjReqObj,         'P_BACKOFFICE_POST_NUMBER'),
+				  trans_posted_at			= COALESCE(getJval(pjReqObj,'P_TRANS_POSTED_AT'), NOW()),
                   card_json  				= v_cc_json,
                   row_metadata 				= v_row_metadata
             WHERE money_manager_rec_id = v_mm_rec_id;
@@ -150,10 +150,11 @@ BEGIN
         COMMIT;
 
         /* =============== Success Response =============== */
-        SET psResObj = JSON_OBJECT(
-            'status','success',
-            'message','Transaction updated successfully'
-        );
+        SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 0);
+
+	    SET pjRespObj = buildJSONSmart( pjRespObj,
+								   'jHeader.message', 'Success - Transaction updated successfully.'
+								);  
 
     END main_block;
 END$$

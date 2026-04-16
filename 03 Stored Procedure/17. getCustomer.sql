@@ -9,35 +9,33 @@ DELIMITER $$
 
 CREATE PROCEDURE getCustomer(
 							 IN  pReqObj JSON,
-							 OUT pResObj JSON
+							 INOUT pjRespObj JSON
 							)
 BEGIN
 
-	DECLARE v_customer_rec_id 	INT;
+	DECLARE v_account_num 	    VARCHAR(50);
     DECLARE v_customer_json 	JSON;
     
-    SET v_customer_rec_id = getJval(pReqObj, 'P_CUSTOMER_REC_ID');
+    SET v_account_num = getJval(pReqObj, 'P_ACCOUNT_NUMBER');
     
     -- Get customer JSON
     SELECT 	customer_json
     INTO 	v_customer_json
     FROM 	customer
-    WHERE customer_rec_id = v_customer_rec_id
+    WHERE   account_num = v_account_num
     LIMIT 1;
 
     -- If not found
     IF v_customer_json IS NULL THEN
-        SET pResObj = JSON_OBJECT(
-									'status', 'error',
-									'message', 'Customer does not exist',
-									'customer_rec_id', v_customer_rec_id
-								);
+          
+        SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 1);
+	    SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', CONCAT('Customer does not exist', ' for account number: ', v_account_num));
+   
     ELSE
-        SET pResObj = JSON_OBJECT(
-									'status', 'success',
-									'message', 'Customer found',
-									'customer_data', v_customer_json
-								);
+        SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 0);
+	    SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', CONCAT('Customer found', ' for account number: ', v_account_num));
+        SET pjRespObj = buildJSONSmart( pjRespObj, 'jData.contents', v_customer_json);
+        
     END IF;
 
 END $$

@@ -13,8 +13,8 @@ DROP PROCEDURE IF EXISTS createMoneyTransaction;
 DELIMITER $$
 
 CREATE PROCEDURE createMoneyTransaction(
-										 IN  pjReqObj JSON,
-										 OUT psResObj JSON
+										 IN    pjReqObj JSON,
+										 INOUT pjRespObj JSON
 									   )
 BEGIN
 
@@ -43,11 +43,10 @@ BEGIN
 		BEGIN
 				ROLLBACK;
 				GET STACKED DIAGNOSTICS CONDITION 1 v_err_msg = MESSAGE_TEXT;
-				SET psResObj = JSON_OBJECT(
-											'status', 'error',
-											'message', 'Money manager creation failed',
-											'system_error', v_err_msg
-											);
+				SET pjRespObj       = buildJSONSmart( pjRespObj,  'jHeader.responseCode',   '1');
+				SET pjRespObj 	   = buildJSONSmart( pjRespObj,
+													'jHeader.message', CONCAT('Unexpected Error - Money manager creation failed', v_err_msg)
+													);   
 		END;
    
    
@@ -55,9 +54,9 @@ BEGIN
 	main_block: BEGIN
     
     /* =============== Extract Required Fields ============= */
-		SET v_request_type     		= getJval(pjReqObj,'request_type');
-		SET v_transaction_type 		= getJval(pjReqObj,'transaction_type');
-		SET v_customer_rec_id 		= CAST(getJval(pjReqObj,'customer_rec_id') AS UNSIGNED);
+		SET v_request_type     		= getJval(pjReqObj,'P_REQUEST_TYPE');
+		SET v_transaction_type 		= getJval(pjReqObj,'P_TRANSACTION_TYPE');
+		SET v_customer_rec_id 		= CAST(getJval(pjReqObj,'P_CUSTOMER_REC_ID') AS UNSIGNED);
 
     /* =============== Basic Validations ============= */
 		IF isFalsy(v_request_type) THEN
@@ -85,11 +84,11 @@ BEGIN
 		END IF;
 
 	 /* =============== Amount Validation ============= */
-		IF isFalsy(getJval(pjReqObj,'sender_info.amount_sent') OR getJval(pjReqObj,'receiver_info.amount_received')) THEN
+		IF isFalsy(getJval(pjReqObj,'P_SENDER_INFO.P_AMOUNT_SENT') OR getJval(pjReqObj,'P_RECEIVER_INFO.P_AMOUNT_RECEIVED')) THEN
 			SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','amount is required');
 			
-		ELSEIF CAST(getJval(pjReqObj,'sender_info.amount_sent') AS DECIMAL(18,2)) 	   <= 0  OR 
-			   CAST(getJval(pjReqObj,'receiver_info.amount_received') AS DECIMAL(18,2))  <= 0  THEN
+		ELSEIF CAST(getJval(pjReqObj,'P_SENDER_INFO.P_AMOUNT_SENT') AS DECIMAL(18,2)) 	   <= 0  OR 
+			   CAST(getJval(pjReqObj,'P_RECEIVER_INFO.P_AMOUNT_RECEIVED') AS DECIMAL(18,2))  <= 0  THEN
 			SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','amount must be greater than zero');
 		
 		END IF;
@@ -103,15 +102,15 @@ BEGIN
 	/* =============== Credit Card Specific Validation ============= */
     
 		IF v_transaction_type = 'card_info.credit card' THEN
-		    IF isFalsy(getJval(pjReqObj,'card_number')) THEN
+		    IF isFalsy(getJval(pjReqObj,'P_CARD_NUMBER')) THEN
 				SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','card_number is required');
 			END IF;
 
-			IF isFalsy(getJval(pjReqObj,'card_info.cvv2')) THEN
+			IF isFalsy(getJval(pjReqObj,'P_CARD_INFO.P_CVV2')) THEN
 				SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','cvv2 is required');
 			END IF;
 
-			IF isFalsy(getJval(pjReqObj,'processor_name')) THEN
+			IF isFalsy(getJval(pjReqObj,'P_PROCESSOR_NAME')) THEN
 				SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','processor_name is required');
 			END IF;			
 		END IF;
@@ -120,10 +119,10 @@ BEGIN
     /* Stop execution if any validation failed */
     
 		IF JSON_LENGTH(v_errors) > 0 THEN
-			SET psResObj = JSON_OBJECT(
-										'status', 'validation_error',
-										'errors', v_errors
-									);
+
+			SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.responseCode',   '1');
+			SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.message',        v_errors); 
+
 			LEAVE main_block;
 		END IF;
         /* =============== All Validations Done ============= */
@@ -204,9 +203,9 @@ BEGIN
 			SET	money_manager_rec_id 	 = v_mm_rec_id,
 				status					 = v_status,
 				account_num				 = getJval(v_customer_json,'account_number'),
-				processor_name			 = getJval(pjReqObj,'processor_name'),
-				processor_token			 = getJval(pjReqObj,'processor_token'),
-				card_last_4				 = RIGHT(getJval(pjReqObj,'card_info.card_number'),4),
+				processor_name			 = getJval(pjReqObj,'P_PROCESSOR_NAME'),
+				processor_token			 = getJval(pjReqObj,'P_PROCESSOR_TOKEN'),
+				card_last_4				 = RIGHT(getJval(pjReqObj,'P_CARD_INFO.P_CARD_NUMBER'),4),
 				credit_card_json		 = v_cc_json,
 				row_metadata			 = v_row_metadata;
 		
@@ -230,11 +229,12 @@ BEGIN
     
     /* =============== Success Response ============= */
     
-	SET psResObj = JSON_OBJECT(
-								'status', 		 'success',
-								'status_code',    0,
-								'message',       'Your transaction has been submitted. It will be posted to your wallet within 3 business days.'
-							);
+
+	SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 0);
+
+	SET pjRespObj = buildJSONSmart( pjRespObj,
+								   'jHeader.message', 'Success - Your transaction has been submitted. It will be posted to your wallet within 3 business days.'
+								);  
 						
      END main_block;
      

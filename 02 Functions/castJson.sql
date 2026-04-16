@@ -884,30 +884,32 @@ BEGIN
 -- =======================================================================
 		WHEN 'activity_log' THEN
 			RETURN CAST(
-						'{
-						  "user_info": {
-							"app_name": "GFT App",
-							"user_id": "CUST_1001",
-							"device_info": "Android 14",
-							"client_ip": "192.168.1.10",
-							"latitude": "31.5204",
-							"longitude": "74.3587"
-						  },
-						  "web_request": {
-							"action_code": "LOGIN",
-                            "action_status": "success",
-							"failure_reason": null,
-							"json_request": { "loginId": "ali375", "password": "***" },
-                            "request_time": "2026-02-19 16:47:00",
-							"json_response": { "status": "success" },
-                            "response_time": "2026-02-19 16:47:00",
-                            "notes": null
-						  },
-						  "internal_call": {
-							"caller_name": "loginCustomer",
-							"result": "OK",
-							"notes": "Validated successfully"
-						  }
+						'{ 
+							"activity_log_rec_id":  0,
+							"logging_object":  		"request_handler",
+							"action_code":     	    "CUS.U.CUSTOMER",
+    						"client_ip":          	"192.168.0.10",
+							"log_time":		 		"2026-02-19 16:47:00",
+
+							"app_name":     		"GFT App",
+							"user_id":      		"CUST_1001",
+							"device_info":  		"Android 14",
+							"client_ip":    		"192.168.1.10",
+							"latitude":     		"31.5204",
+							"longitude":    		"74.3587",
+					
+							"action_status":    	"success",
+							"failure_reason":   	"un authorized hit",
+							"json_request":     	{ "loginId": "ali375", "password": "***" },
+							"request_time":     	"2026-02-19 16:47:00",
+							"json_response":    	{ "status": "success" },
+							"response_time":    	"2026-02-19 16:47:00",
+							"notes":            	null,
+							"proc_duration":    	300,
+
+							"caller_name":  		"loginCustomer",
+							"result":       		"OK",
+							"notes":        		"Validated successfully"
 						}' AS JSON);
 		
 -- =======================================================================

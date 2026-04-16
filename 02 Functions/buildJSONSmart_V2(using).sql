@@ -1,64 +1,70 @@
-DROP FUNCTION buildJSONSmart;
+DROP FUNCTION IF EXISTS `buildJSONSmart`;
 
 DELIMITER $$
-
-CREATE  FUNCTION buildJSONSmart(
-    json_obj JSON,
-    simple_key VARCHAR(255),
-    key_value TEXT
-) RETURNS json
-    DETERMINISTIC
+CREATE FUNCTION `buildJSONSmart`(
+                                    json_obj    JSON,
+                                    simple_key  VARCHAR(255),
+                                    key_value   TEXT
+                                )
+RETURNS json
+DETERMINISTIC
 BEGIN
-    DECLARE roots JSON;
-    DECLARE r INT DEFAULT 0;
-    DECLARE root_name VARCHAR(255);
 
-    DECLARE arr_len INT;
-    DECLARE a INT;
+    DECLARE roots           JSON;
+    DECLARE r               INT             DEFAULT 0;
+    DECLARE root_name       VARCHAR(255);
 
-    DECLARE child_keys JSON;
-    DECLARE c INT;
-    DECLARE child_name VARCHAR(255);
+    DECLARE arr_len         INT;
+    DECLARE a               INT;
 
-    DECLARE path VARCHAR(500);
-    DECLARE jsonValue JSON;
+    DECLARE child_keys      JSON;
+    DECLARE c               INT;
+    DECLARE child_name      VARCHAR(255);
 
-    -- ✅ ADD THIS: bootstrap NULL input just like buildJSON does
+    DECLARE path            VARCHAR(500);
+    DECLARE jsonValue       JSON;
+
+    /* ---------- NULL input ---------- */
     IF json_obj IS NULL THEN
         SET json_obj = JSON_OBJECT();
     END IF;
 
     /* ---------- VALUE TYPE DETECTION ---------- */
     IF key_value IS NULL THEN
-        SET jsonValue = CAST(NULL AS JSON);
-    ELSEIF JSON_VALID(key_value) THEN
-        SET jsonValue = CAST(key_value AS JSON);
-    ELSEIF key_value REGEXP '^-?[0-9]+(\\.[0-9]+)?$' THEN
-        SET jsonValue = CAST(key_value AS DECIMAL(20,6));
-    ELSEIF UPPER(key_value) IN ('TRUE','FALSE') THEN
-        SET jsonValue = IF(UPPER(key_value)='TRUE', TRUE, FALSE);
-    ELSE
-        SET jsonValue = JSON_QUOTE(key_value);
-    END IF;
-    
-    /* 0️⃣ TOP-LEVEL KEY SUPPORT */
-SET path = CONCAT('$.', simple_key);
-IF JSON_CONTAINS_PATH(json_obj, 'one', path) THEN
-    RETURN JSON_SET(json_obj, path, jsonValue);
-END IF;
+        SET jsonValue   = CAST(NULL AS JSON);
 
+    ELSEIF JSON_VALID(key_value) THEN
+        SET jsonValue   = CAST(key_value AS JSON);
+
+    ELSEIF key_value REGEXP '^-?[0-9]+(\\.[0-9]+)?$' THEN
+        SET jsonValue   = CAST(key_value AS DECIMAL(20,6));
+
+    ELSEIF UPPER(key_value) IN ('TRUE','FALSE') THEN
+        SET jsonValue   = IF(UPPER(key_value) = 'TRUE', TRUE, FALSE);
+
+    ELSE
+        SET jsonValue  = JSON_QUOTE(key_value);
+    END IF;
+
+    /* ----------  TOP-LEVEL KEY EXISTS ? update it ---------- */
+    SET path = CONCAT('$.', simple_key);
+    IF JSON_CONTAINS_PATH(json_obj, 'one', path) THEN
+        RETURN JSON_SET(json_obj, path, jsonValue);
+    END IF;
+
+    /* ---------- DEEP SEARCH ---------- */
     SET roots = JSON_KEYS(json_obj);
 
     ROOT_LOOP: WHILE r < JSON_LENGTH(roots) DO
         SET root_name = JSON_UNQUOTE(JSON_EXTRACT(roots, CONCAT('$[', r, ']')));
 
-        /* 1️⃣ root.key */
+        /* 1 root.key */
         SET path = CONCAT('$.', root_name, '.', simple_key);
         IF JSON_CONTAINS_PATH(json_obj, 'one', path) THEN
             RETURN JSON_SET(json_obj, path, jsonValue);
         END IF;
 
-        /* 2️⃣ root[index].key (ARRAY SAFE) */
+        /* 2 root[index].key  (root is an ARRAY) */
         IF JSON_TYPE(JSON_EXTRACT(json_obj, CONCAT('$.', root_name))) = 'ARRAY' THEN
             SET arr_len = JSON_LENGTH(JSON_EXTRACT(json_obj, CONCAT('$.', root_name)));
             SET a = 0;
@@ -69,9 +75,9 @@ END IF;
                     SET json_obj = JSON_SET(json_obj, path, jsonValue);
                 END IF;
                 SET a = a + 1;
-            END WHILE;
+            END WHILE ARRAY_LOOP;
 
-        /* 3️⃣ root.child.key (OBJECT ONLY) */
+        /* 3 root.child.key  (root is an OBJECT) */
         ELSEIF JSON_TYPE(JSON_EXTRACT(json_obj, CONCAT('$.', root_name))) = 'OBJECT' THEN
             SET child_keys = JSON_KEYS(JSON_EXTRACT(json_obj, CONCAT('$.', root_name)));
             SET c = 0;
@@ -83,12 +89,16 @@ END IF;
                     RETURN JSON_SET(json_obj, path, jsonValue);
                 END IF;
                 SET c = c + 1;
-            END WHILE;
+            END WHILE CHILD_LOOP;
+
         END IF;
 
         SET r = r + 1;
-    END WHILE;
+    END WHILE ROOT_LOOP;
 
-    RETURN json_obj;
-END $$
+    /* ---------- Key not found anywhere insert at top level ---------- */
+    SET path = CONCAT('$.', simple_key);
+    RETURN JSON_SET(json_obj, path, jsonValue);
+
+END$$
 DELIMITER ;

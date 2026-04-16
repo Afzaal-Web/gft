@@ -9,32 +9,43 @@ DROP PROCEDURE IF EXISTS logActivity;
 DELIMITER $$
 
 CREATE PROCEDURE logActivity(
-								IN p_logging_object     VARCHAR(64),
-								IN p_parent_table_name  VARCHAR(64),
-								IN p_parent_table_id    INT,
-								IN p_user_info          JSON,
-								IN p_web_request        JSON,
-								IN p_internal_call      JSON
+								IN psLoggingObj     VARCHAR(64),
+								IN pjlogJson        JSON
 							)
 BEGIN
 
-	DECLARE v_row_metadata 		JSON;
+    DECLARE v_activity_log_rec_id   INT;
+	DECLARE v_activity_log          JSON;
+    DECLARE v_row_metadata 		    JSON;
+
+
+    SET v_activity_log          = getTemplate('activity_log');
+    SET v_activity_log          = fillTemplate(pjlogJson, v_activity_log);
+
+    SET v_activity_log          = buildJSONSmart(v_activity_log,   'log_time',      NOW());
     
     SET v_row_metadata 			= getTemplate('row_metadata');
-    SET v_row_metadata			= JSON_SET(v_row_metadata, 
-										   '$.created_at', NOW(),
-                                           '$.created_by', p_parent_table_id
-										 );
+
+    SET v_row_metadata          = buildJSONSmart(v_row_metadata,   'created_at',      NOW());
+    SET v_row_metadata          = buildJSONSmart(v_row_metadata,   'created_by',      getJval(pjlogJson, 'P_CUSTOMER_REC_ID'));
+
+
+    INSERT INTO user_activity_log
+    SET logging_object          = psLoggingObj,
+        action_code       		= getJval(pjlogJson, 'action_code'),
+        client_ip           	= getJval(pjlogJson, 'client_ip'),
+        log_time              	= NOW(),
+
+        user_activity_log_json  = v_activity_log,
+        row_meta_data		    = v_row_metadata;
     
-    INSERT INTO activity_log
-    SET logging_object			= p_logging_object,
-        parent_table_name 		= p_parent_table_name,
-        parent_table_id 		= p_parent_table_id,
-        log_time				= NOW(),
-        user_info				= p_user_info,
-        web_request				= p_web_request,
-        internal_call			= p_internal_call,
-        row_meta_data			= v_row_metadata;
+    SET v_activity_log_rec_id   = LAST_INSERT_ID();
+
+    SET v_activity_log          = buildJSONSmart(v_activity_log, 'activity_log_rec_id', v_activity_log_rec_id);
+
+    UPDATE  user_activity_log
+	SET 	user_activity_log_json    = v_activity_log
+	WHERE   activity_log_rec_id       = v_activity_log_rec_id;
         
 END$$
 

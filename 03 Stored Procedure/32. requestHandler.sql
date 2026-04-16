@@ -11,7 +11,7 @@ CREATE PROCEDURE requestHandler (
                                 )
 BEGIN
     -- constants
-    DECLARE vdStart             TIMESTAMP                 DEFAULT CURRENT_TIMESTAMP;
+    DECLARE vdStart             DATETIME(3)               DEFAULT NOW(3);
     DECLARE vThisObj            VARCHAR(32)               DEFAULT 'requestHandler';
     DECLARE vAccessToken        VARCHAR(64)               DEFAULT 'fad9017e31bd0927a6bc42996df9e22708b736112f3ef801fd30d7213c146a03';
     DECLARE vAccessKey          VARCHAR(64)               DEFAULT '0f5aac120ac2746e8548dcdb565b06d9772248b51ab669f45c08dc51a4291f16';
@@ -24,16 +24,14 @@ BEGIN
 
     DECLARE vTemp               VARCHAR(255);
     DECLARE viTemp              INTEGER;
-    DECLARE vjTemp              JSON;
     DECLARE vjReqObj            JSON;
     DECLARE vjLogObj            JSON;
     DECLARE vjResponse          JSON                      DEFAULT getTemplate('reqResp');
 
-    DECLARE vRequestId          BIGINT;
     DECLARE vResponse           JSON;
     DECLARE vAction             VARCHAR(50);
-    DECLARE vResponseTime       TIMESTAMP;
-    DECLARE vDuration           INT;
+    DECLARE vResponseTime       DATETIME(3);
+    DECLARE vDuration           DECIMAL(10,3);   
     DECLARE vIsKnownAction      BOOLEAN                   DEFAULT TRUE;
     DECLARE vFailureReason      VARCHAR(100)              DEFAULT NULL;
 
@@ -41,25 +39,18 @@ BEGIN
     -- Exception handler
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
-        SET vResponseTime       = NOW();
-        SET vDuration           = TIMESTAMPDIFF(SECOND,     vdStart,    NOW());
+        SET vResponseTime       = NOW(3);                                        
+        SET vDuration           = TIMESTAMPDIFF(MICROSECOND, vdStart, vResponseTime) / 1000000.0;
         SET vFailureReason      = 'unexpected_error';
 
-        SET vjTemp              = JSON_OBJECT(
-                                                'error',                '*** Error ***: Unexpected error occurred',
-                                                'failure_reason',       vFailureReason,
-                                                'action_code',          pActionCode,
-                                                'client_ip',            pClientIp,
-                                                'request_time',         vdStart,
-                                                'response_time',        vResponseTime,
-                                                'execution_duration',   vDuration
-                                            );
+        SET vjLogObj            = buildJSONSmart(vjLogObj,  'failure_reason',   vFailureReason);
+        SET vjLogObj            = buildJSONSmart(vjLogObj,  'action_code',      pActionCode);
+        SET vjLogObj            = buildJSONSmart(vjLogObj,  'client_ip',        pClientIp);
+        SET vjLogObj            = buildJSONSmart(vjLogObj,  'request_time',     vdStart);
+        SET vjLogObj            = buildJSONSmart(vjLogObj,  'response_time',    vResponseTime);
+        SET vjLogObj            = buildJSONSmart(vjLogObj,  'proc_duration',    vDuration);                                    
 
-        UPDATE  activity_log
-        SET     json_response   = vjTemp,
-                response_time   = vResponseTime,
-                failure_reason  = vFailureReason
-        WHERE   row_id          = vRequestId;
+        CALL logActivity(vThisObj, vjLogObj);
 
         RESIGNAL;
     END;
@@ -73,8 +64,21 @@ BEGIN
     -- ---------------------------    House Keeping    --------------------------------------
     -- --------------------------------------------------------------------------------------
 
-    SET vjLogObj = buildJSONSmart(NULL,       'loggingObject',   vThisObj);
-    SET vjLogObj = buildJSONSmart(vjLogObj,   'requestTime',     vdStart);
+
+    SET vjLogObj    = buildJSONSmart(null,       'logging_object',   vThisObj);
+
+    SET vjLogObj    = buildJSONSmart(vjLogObj,   'action_code',    pActionCode);
+
+    SET vjLogObj    = buildJSONSmart(vjLogObj,   'json_request',     pJsonRequest);
+    SET vjLogObj    = buildJSONSmart(vjLogObj,   'request_time',     vdStart);
+
+    SET vjLogObj    = buildJSONSmart(vjLogObj,   'app_name',         pAppName);
+    SET vjLogObj    = buildJSONSmart(vjLogObj,   'user_id',          getJval(pJsonRequest, 'jData.P_ACCOUNT_NUM'));
+    SET vjLogObj    = buildJSONSmart(vjLogObj,   'device_info',      getJval(pJsonRequest, 'jHeader.P_DEVICE_INFO'));
+    SET vjLogObj    = buildJSONSmart(vjLogObj,   'client_ip',        pClientIp);
+    SET vjLogObj    = buildJSONSmart(vjLogObj,   'latitude',         getJval(pJsonRequest, 'jHeader.P_LATITUDE'));
+    SET vjLogObj    = buildJSONSmart(vjLogObj,   'longitude',        getJval(pJsonRequest, 'jHeader.P_LONGITUDE'));
+
 
     CALL debugLog(vThisObj, 'Create Temp Table');
     -- Create the temporary tables for static data
@@ -113,9 +117,8 @@ BEGIN
 
             LEAVE thisProc;
         END IF;
-
-        -- convert request to JSON object
-        SET vjReqObj = CONVERT(pJsonRequest, JSON);
+ -- convert request to JSON object
+    SET vjReqObj = CONVERT(pJsonRequest, JSON);
 
         IF      STRCMP(getJval(vjReqObj, 'jHeader.accessToken'),   vAccessToken)   <> 0
             OR  STRCMP(getJval(vjReqObj, 'jHeader.accessKey'),     vAccessKey)     <> 0 THEN
@@ -162,10 +165,9 @@ BEGIN
                 -- Gets the entire json response doc
                 CALL debugLog(vThisObj, 'Calling getViewJSON');
                 SET vjResponse = getViewJSON(
-                    getJval(vjReqObj, 'jData.PAPPNAME'),
-                    getJval(vjReqObj, 'jData.P_VIEW_NAME')
-                );
-      --          SET vjResponse = buildJSONSmart(vjResponse, 'jData', vjTemp);
+                                              getJval(vjReqObj, 'jData.PAPPNAME'),
+                                              getJval(vjReqObj, 'jData.P_VIEW_NAME')
+                                            );
 
         -- =====================================================
         -- CUSTOMER MODULE (CUS)
@@ -304,12 +306,17 @@ BEGIN
     SET pJsonResponse = vjResponse;
 
     -- Log request and response
-    SET vjLogObj = buildJSONSmart(vjLogObj,  'reqeustStatus',    vLogReqStatus);
-    SET vjLogObj = buildJSONSmart(vjLogObj,  'failReason',       vLogFailReason);
-    SET vjLogObj = buildJSONSmart(vjLogObj,  'procDuration',     TIMESTAMPDIFF(SECOND, NOW(), vdStart));
+    SET vResponseTime = NOW(3);
+    SET vDuration     = TIMESTAMPDIFF(MICROSECOND, vdStart, vResponseTime) / 1000000.0;
 
-    -- CALL activityLog(vThisObj, pActionCode, 'End of logging object', vjLogObj);
-    CALL logActivity(vThisObj, NULL, NULL, NULL, NULL, NULL);
+    SET vjLogObj      = buildJSONSmart(vjLogObj, 'action_status',    COALESCE(vLogReqStatus, 'SUCCESS'));
+    SET vjLogObj      = buildJSONSmart(vjLogObj, 'failure_reason',   COALESCE(vLogFailReason, getJval(vjResponse, 'jHeader.message')));
+
+    SET vjLogObj      = buildJSONSmart(vjLogObj,  'json_response',    pJsonResponse);
+    SET vjLogObj      = buildJSONSmart(vjLogObj, 'response_time',     vResponseTime);
+    SET vjLogObj      = buildJSONSmart(vjLogObj, 'proc_duration',     vDuration);
+
+    CALL logActivity(vThisObj, vjLogObj);
 
     -- Temp: debug info
     CALL debugLog(vThisObj, CAST(vjResponse AS CHAR));

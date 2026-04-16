@@ -14,37 +14,23 @@ CREATE TABLE IF NOT EXISTS user_activity_log (
 
     activity_log_rec_id		INT 					PRIMARY KEY AUTO_INCREMENT,
     
-    logging_object       	VARCHAR(64),          -- procedure / API name
-    parent_table_name     	VARCHAR(64),
-    parent_table_id       	INT,
+    logging_object       	VARCHAR(255),          -- procedure / API name
+    action_code     	    VARCHAR(255),
+    client_ip          	    VARCHAR(45),          -- supports IPv6
 	log_time 				DATETIME,
 
-    user_activity_log_json		JSON, move here 
-	user_info			  	JSON,
-
-    web_request				JSON,
-
-	internal_call			JSON,
-    
-    request_json
-    response_json
-    ext_time
-    end_time
-    
+    user_activity_log_json	JSON,
     row_meta_data 			JSON
 );
-INSERT INTO activity_log
+INSERT INTO user_activity_log
 SET
     activity_log_rec_id 		= 0,
-    logging_object             	= 'placeOrder',
-    parent_table_name			= 'Orders',
-    parent_table_id        		= 0,
+    logging_object             	= 'requestHandler',
+    action_code     	        = 'CUS.U.CUSTOMER',
+    client_ip          	        = 192.168.0.10,
     log_time              		= NOW(),
 
-	user_info					= JSON_EXTRACT(castJson('activity_log'),'$.user_info'),
-    web_request					= JSON_EXTRACT(castJson('activity_log'), '$.web_request'),
-    internal_call				= JSON_EXTRACT(castJson('activity_log'), '$.internal_call'),
-    
+	user_activity_log_json  	= castJson('activity_log'),
     row_meta_data				= castJson('row_metadata');
 
 

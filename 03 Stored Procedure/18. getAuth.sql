@@ -8,27 +8,34 @@ DROP PROCEDURE IF EXISTS getAuth;
 DELIMITER $$
 
 CREATE PROCEDURE getAuth(
-						  IN  pReqObj JSON,
-						  OUT pResObj JSON
+						  IN  	pReqObj JSON,
+						  INOUT pjRespObj JSON
 						)
 BEGIN
 
+	DECLARE v_account_num 	    VARCHAR(50);
 	DECLARE v_customer_rec_id 	INT;
     DECLARE v_auth_json       	JSON;
     
 	-- =========================
     -- Extract Customer ID
     -- =========================
-    SET v_customer_rec_id = getJval(pReqObj, 'P_CUSTOMER_REC_ID');
+    SET v_account_num = getJval(pReqObj, 'P_ACCOUNT_NUM');
+
+	SELECT 	customer_rec_id
+    INTO 	v_customer_rec_id
+    FROM 	customer
+    WHERE   account_num = v_account_num
+    LIMIT 1;
     
     main_block: BEGIN
     
 			-- Validation
-		IF v_customer_rec_id IS NULL THEN
-			SET pResObj = JSON_OBJECT(
-				'status', 'error',
-				'message', 'Missing customer_rec_id'
-			);
+		IF v_account_num IS NULL THEN
+
+			SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 1);
+	    	SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 'Missing Account Number');
+
 			LEAVE main_block;
 		END IF;
 		
@@ -36,22 +43,19 @@ BEGIN
 		-- Fetch auth JSON
 		SELECT  auth_json
 		INTO 	v_auth_json
-		FROM auth
+		FROM 	auth
 		WHERE parent_table_rec_id = v_customer_rec_id
 		LIMIT 1;
 
-		-- If not found
-		IF p_auth_json IS NULL THEN
-			SET pResObj  = JSON_OBJECT(
-										'status',			'error',
-										'message', 			'Customer does not exist',
-										'customer_rec_id',	 v_customer_rec_id
-									);
+	 	SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 1);
+	    SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', CONCAT('Customer does not exist', ' for account number: ', v_account_num));
+		
 		ELSE
-			SET pResObj = JSON_OBJECT(
-										'status', 'success',
-										'data', v_auth_json
-									);
+		
+			SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 0);
+	    	SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', CONCAT('Auth Record found', ' for account number: ', v_account_num));
+        	SET pjRespObj = buildJSONSmart( pjRespObj, 'jData.contents', v_auth_json);
+
 		END IF;
 	
     END main_block;
