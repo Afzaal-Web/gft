@@ -8,8 +8,8 @@ DROP PROCEDURE IF EXISTS queueOutboundMessage;
 DELIMITER $$
 
 CREATE PROCEDURE queueOutboundMessage (
-										IN  pjReqObj JSON,
-										OUT pResObj JSON
+										IN  	pjReqObj JSON,
+										INOUT 	pjRespObj JSON
 									)
 BEGIN
 	DECLARE v_outbound_msgs_rec_id		INT;
@@ -20,10 +20,10 @@ BEGIN
 
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
-        SET pResObj = JSON_OBJECT(
-									'status', 	'error',
-									'message', 	'Failed to queue message'
-								);
+ 
+		SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 	1);
+    	SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 		'Failed to queue message');
+
     END;
 
      -- =========================
@@ -43,22 +43,19 @@ BEGIN
     
     -- =========================
     -- Set default values to json
-    -- =========================    
-    SET v_outbound_msgs_json		= JSON_SET( v_outbound_msgs_json,
-												'$.message_guid',    					v_message_guid,
-												
-												'$.delivery_config.channel_number',   	1,
-												'$.delivery_config.priority_level',   	'Normal',
-												'$.delivery_config.is_need_tracking', 	TRUE,
-                                           
-												'$.scheduling.scheduled_at', 			NOW(),
-												'$.scheduling.retry_interval', 			15,
-												
-												'$.lifecycle_status.current_status', 	'Queued',
-												'$.lifecycle_status.delivery_status', 	'Pending',
-												'$.lifecycle_status.send_attempts', 	0,
-												'$.lifecycle_status.number_of_retries', 3
-											);
+    -- ========================= 
+	SET v_outbound_msgs_json   = buildJSONSmart( v_outbound_msgs_json, 'message_guid', 						v_message_guid);   
+	SET v_outbound_msgs_json   = buildJSONSmart( v_outbound_msgs_json, 'delivery_config.channel_number',   	1);
+	SET v_outbound_msgs_json   = buildJSONSmart( v_outbound_msgs_json, 'delivery_config.priority_level',   	'Normal');
+
+	SET v_outbound_msgs_json   = buildJSONSmart( v_outbound_msgs_json, 'delivery_config.is_need_tracking',   'TRUE');
+	SET v_outbound_msgs_json   = buildJSONSmart( v_outbound_msgs_json, 'scheduling.scheduled_at',   NOW());
+	SET v_outbound_msgs_json   = buildJSONSmart( v_outbound_msgs_json, 'scheduling.retry_interval',   15);
+
+	SET v_outbound_msgs_json   = buildJSONSmart( v_outbound_msgs_json, 'lifecycle_status.current_status',   'Queued');
+	SET v_outbound_msgs_json   = buildJSONSmart( v_outbound_msgs_json, 'lifecycle_status.delivery_status',   'Pending');
+	SET v_outbound_msgs_json   = buildJSONSmart( v_outbound_msgs_json, 'lifecycle_status.send_attempts',   	  0);
+	SET v_outbound_msgs_json   = buildJSONSmart( v_outbound_msgs_json, 'lifecycle_status.number_of_retries',  3);
 	-- =========================
     -- fill remaining data from ReqObj
     -- =========================                                          
@@ -67,10 +64,9 @@ BEGIN
                                             
 	
     SET v_row_metadata 			= getTemplate('row_metadata');
-    SET v_row_metadata  		= JSON_SET(v_row_metadata,
-										   '$.created_at', NOW(),
-										   '$.created_by', 'System'
-										);
+
+	SET v_outbound_msgs_json   = buildJSONSmart( v_outbound_msgs_json, 'created_at',   	  NOW());
+	SET v_outbound_msgs_json   = buildJSONSmart( v_outbound_msgs_json, 'created_by',  	 'System');
 
     INSERT INTO outbound_msgs
     SET message_guid					= v_message_guid, 
@@ -81,21 +77,16 @@ BEGIN
         row_metadata					= v_row_metadata;
         
 	SET v_outbound_msgs_rec_id 			= LAST_INSERT_ID();
-        
-	SET v_outbound_msgs_json			= JSON_SET(v_outbound_msgs_json,
-													'$.outbound_msgs_rec_id', v_outbound_msgs_rec_id
-                                                    );
+
+	SET v_outbound_msgs_json   			= buildJSONSmart( v_outbound_msgs_json, 'outbound_msgs_rec_id',   v_outbound_msgs_rec_id);
                                                     
 	UPDATE  outbound_msgs
 			SET 	outbound_msgs_json   = v_outbound_msgs_json
 			WHERE   outbound_msgs_rec_id = v_outbound_msgs_rec_id;
     
 
-	SET pResObj 						= JSON_OBJECT(
-														'status', 'success',
-														'message_guid', v_message_guid,
-														'message', 'Message queued successfully'
-													);
+	SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 			0);
+    SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.queuedMessage', 	   'Message queued successfully');
 
 END $$
 

@@ -9,8 +9,8 @@ DROP PROCEDURE IF EXISTS documentManagment;
 DELIMITER $$
 
 CREATE PROCEDURE documentManagment(
-									IN pjReqObj JSON,
-                                    OUT pjResObj JSON
+									IN     pjReqObj JSON,
+                                    INOUT  pjRespObj JSON
 								  )
 BEGIN
 	
@@ -34,12 +34,10 @@ BEGIN
 	DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         GET STACKED DIAGNOSTICS CONDITION 1 v_err_msg = MESSAGE_TEXT;
-        SET pjResObj = JSON_OBJECT(
-									'status', 			'error',
-									'status_code',		'1',
-									'message', 			'Failed to upload document',
-									'system_error',		v_err_msg
-								   );
+  
+        SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 	1);
+        SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 		CONCAT('Failed to upload document', ' ' v_err_msg));
+
     END;
     
     main_block: BEGIN
@@ -80,11 +78,10 @@ BEGIN
         END IF;
 
         IF JSON_LENGTH(v_errors) > 0 THEN
-            SET pjResObj = JSON_OBJECT(
-										'status',      'error',
-										'status_code', 0,
-										'errors',      v_errors
-									);
+
+            SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 	1);
+            SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 		v_errors);
+
             LEAVE main_block;
         END IF;
 
@@ -102,11 +99,10 @@ BEGIN
             LIMIT 1;
 
             IF v_customer_rec_id IS NULL THEN
-                SET pjResObj = JSON_OBJECT(
-											'status',		'error',
-											'status_code',	0,
-											'message',		'Customer not found'
-										);
+             
+                SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 	1);
+                SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 		'Customer not found.');
+
                 LEAVE main_block;
             END IF;
 		
@@ -121,11 +117,10 @@ BEGIN
             LIMIT 1;
 
             IF v_org_employee_rec_id IS NULL THEN
-                SET pjResObj = JSON_OBJECT(
-											'status',		'error',
-											'status_code',	0,
-											'message',		'Employee not found'
-										);
+       
+                 SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 	1);
+                SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 		'Employee not found');
+
                 LEAVE main_block;
             END IF;
 
@@ -139,6 +134,9 @@ BEGIN
 												'$.created_at',	 NOW(),
                                                 '$.created_by', v_login_id
                                                 );
+        SET v_row_metadata = buildJSONSmart( v_row_metadata, 'status',     NOW());
+        SET v_row_metadata = buildJSONSmart( v_row_metadata, 'updated_at', 'SYSTEM');
+        SET v_row_metadata = buildJSONSmart( v_row_metadata, 'updated_by', 'SYSTEM');
         
       /* ===================== Insert Document  ===================== */
 		IF v_user_type = 'CUSTOMER' THEN

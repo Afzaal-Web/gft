@@ -238,6 +238,10 @@ CREATE TABLE IF NOT EXISTS app_preferences (
     row_metadata            JSON
 );
 
+ALTER TABLE `app_preferences`
+ADD COLUMN `customer_rec_id` INT NULL
+AFTER `preference_rec_id`;
+
 
 -- ===============================================
 -- Demo row app_preferences_rec_id :  = 0
@@ -565,6 +569,7 @@ DROP TABLE IF EXISTS promotions;
 CREATE TABLE IF NOT EXISTS promotions (
     promotions_rec_id       INT         	PRIMARY KEY AUTO_INCREMENT,
     promo_code              VARCHAR(50) 	NULL,
+    status                  VARCHAR(20) 	NULL,   
     
     promotions_json         JSON,
     row_metadata            JSON
@@ -578,8 +583,11 @@ INSERT INTO promotions
 SET
     promotions_rec_id       = 0,
     promo_code              = 'WELCOME2026',
+    status                  = 'Active',
 
     promotions_json         = JSON_OBJECT(
+        'promotions_rec_id',                                      0,
+        'promo_code',                                           'WELCOME2026',
         'title', 'Welcome Bonus',                               '_comment_title', 'Promotion title',
         'description', 'Get 10% off on your first transaction', '_comment_description', 'Promotion description',
         'promo_type', 'Percentage',                              '_comment_promo_type', 'Type of promotion (Percentage/Flat)',
@@ -928,3 +936,29 @@ SET
     ),
 
     row_meta_data = castJson('row_metadata');
+
+
+-- ===============================================
+-- Metal News Tables
+-- ===============================================
+
+DROP TABLE IF EXISTS metal_news;
+
+CREATE TABLE metal_news (
+    metal_news_rec_id          INT              NOT NULL        PRIMARY KEY AUTO_INCREMENT,
+
+    asset_code                 VARCHAR(10),                                                      
+    
+    metal_news_json            JSON,
+    row_meta_data              JSON
+)
+
+INSERT INTO metal_news
+SET
+    metal_news_rec_id          = 0,
+
+    asset_code                 = "GLD", 
+        
+    metal_news_json            = castJson('metal_news'),
+    row_meta_data              = castJson('row_metadata');
+

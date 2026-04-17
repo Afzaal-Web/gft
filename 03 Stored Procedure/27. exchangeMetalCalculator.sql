@@ -8,8 +8,8 @@ DROP PROCEDURE IF EXISTS exchangeMetalCalculator;
 DELIMITER $$
 
 CREATE PROCEDURE exchangeMetalCalculator (
-											IN  pjReqObj JSON,
-											OUT pResObj JSON
+											IN  	pjReqObj JSON,
+											INOUT 	pjRespObj  JSON
 										)
 BEGIN
 	
@@ -38,19 +38,19 @@ BEGIN
     
      -- Validate asset codes
         IF v_from_asset_code IS NULL OR v_to_asset_code IS NULL THEN
-            SET pResObj = JSON_OBJECT(
-										'status','error',
-										'message','Invalid metal selection'
-									);
+    
+			SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 	1);
+            SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 		'Invalid metal selection');
+
             LEAVE main_block;
         END IF;
         
 	-- Prevent exchanging same metal
         IF v_from_asset_code = v_to_asset_code THEN
-            SET pResObj = JSON_OBJECT(
-										'status','error',
-										'message','Both metals cannot be same'
-									);
+        
+			SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 	1);
+            SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 		'Both metals cannot be same');
+
             LEAVE main_block;
         END IF;
     
@@ -65,10 +65,10 @@ BEGIN
 
     
     IF v_quantity IS NULL OR v_quantity <= 0 THEN
-    SET pResObj = JSON_OBJECT(
-								'status','error',
-								'message','Invalid or unsupported unit/quantity'
-							);
+  
+		SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 	1);
+        SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 		'Invalid or unsupported unit/quantity');
+
     LEAVE main_block;
 	END IF;
     
@@ -77,24 +77,20 @@ BEGIN
     SELECT 		asset_rate_history_json
     INTO 		v_from_json
     FROM 		asset_rate_history
-    WHERE 		asset_code = v_from_asset_code
-    ORDER BY 	id DESC
-    LIMIT 1;
+    WHERE 		asset_code = v_from_asset_code;
     
 	-- Get latest rate for TO metal
     SELECT 		asset_rate_history_json
     INTO 		v_to_json
     FROM 		asset_rate_history
-    WHERE 		asset_code = v_to_asset_code
-    ORDER BY 	id DESC
-    LIMIT 1;
+    WHERE 		asset_code = v_to_asset_code;
     
       -- Validation
     IF v_from_json IS NULL OR v_to_json IS NULL THEN
-        SET pResObj = JSON_OBJECT(
-									'status','error',
-									'message','Rate not found for selected metals'
-								);
+
+		SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 	1);
+        SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 		'Rate not found for selected metals');
+
         LEAVE main_block;
     END IF;
 
@@ -106,10 +102,9 @@ BEGIN
     -- Prevent divide by zero
 	IF v_to_spot IS NULL OR v_to_spot <= 0
     OR v_to_spot IS NULL OR v_to_spot <= 0 THEN
-		SET pResObj = JSON_OBJECT(
-									'status','error',
-									'message','Invalid spot rate'
-								);
+
+		SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 	1);
+        SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 		'Invalid spot rate');
         
 		LEAVE main_block;
 	END IF;
@@ -118,25 +113,27 @@ BEGIN
     SET v_value 			= v_quantity * v_from_spot;
     SET v_result_quantity 	= v_value / v_to_spot;
     
-    -- Response
-    SET pResObj = JSON_OBJECT(
-								'status', 					'success',
-								'exchange_from', 			v_from_asset_code,
-								'exchange_to', 				v_to_asset_code,
-								'input_quantity_grams', 	v_quantity,
-                                'from_spot_rate', 			v_from_spot,
-								'to_spot_rate', 			v_to_spot,
-								'result_quantity_grams', 	ROUND(v_result_quantity, 6),
-								'message', CONCAT(
-															'You can exchange ',
-															v_quantity, ' g of ',
-															v_from_asset_code,
-															' with ',
-															ROUND(v_result_quantity,6),
-															' g of ',
-															v_to_asset_code
-												)
-							);
+   
+	SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 				 	0);
+    SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 					 	'Exchange successful');
+
+	SET pjRespObj = buildJSONSmart(pjRespObj, 'jData.contents.exchange_from',        	 v_from_asset_code);
+	SET pjRespObj = buildJSONSmart(pjRespObj, 'jData.contents.exchange_to',          	 v_to_asset_code);
+	SET pjRespObj = buildJSONSmart(pjRespObj, 'jData.contents.input_quantity_grams', 	 v_quantity);
+	SET pjRespObj = buildJSONSmart(pjRespObj, 'jData.contents.from_spot_rate', 		 	 v_from_spot);
+	SET pjRespObj = buildJSONSmart(pjRespObj, 'jData.contents.to_spot_rate', 		 	 v_to_spot);
+
+	SET pjRespObj = buildJSONSmart(pjRespObj, 'jData.contents.result_quantity_grams',	 ROUND(v_result_quantity, 6));
+
+	SET pjRespObj = buildJSONSmart(pjRespObj, 'jData.contents.message', 				CONCAT(
+																									'You can exchange ',
+																									v_quantity, ' g of ',
+																									v_from_asset_code,
+																									' with ',
+																									ROUND(v_result_quantity,6),
+																									' g of ',
+																									v_to_asset_code
+																								));
     
     
 

@@ -9,8 +9,8 @@ DROP PROCEDURE IF EXISTS savePreferences;
 DELIMITER $$
 
 CREATE PROCEDURE savePreferences(
-									IN  pjReqObj JSON,
-									OUT pResObj JSON
+									IN      pjReqObj  JSON,
+									INOUT   pjRespObj JSON
 								)
 BEGIN
 
@@ -43,10 +43,10 @@ BEGIN
         -- Validation
         -- =========================
         IF isFalsy(v_login_id) OR isFalsy(v_preference_key) THEN
-            SET pResObj = JSON_OBJECT(
-										'status', 'error',
-										'message', 'Login ID, Preference Key are required.'
-									);
+    
+            SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 	1);
+            SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 		'Login ID, Preference Key are required.');
+
             LEAVE main_block;
         END IF;
 
@@ -62,10 +62,10 @@ BEGIN
         LIMIT 1;
 
         IF v_customer_rec_id IS NULL THEN
-            SET pResObj = JSON_OBJECT(
-										'status', 'error',
-										'message', 'Customer not found'
-									);
+
+            SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 	1);
+            SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 		'Customer not found.');
+
             LEAVE main_block;
         END IF;
 
@@ -120,25 +120,23 @@ BEGIN
         -- =========================
         SET v_app_preferences_json = getTemplate('app_preferences');
 
-        SET v_app_preferences_json = JSON_SET(
-												v_app_preferences_json,
-												'$.preference_behavior.is_user_editable', TRUE,
-												'$.preference_behavior.is_system_defined', TRUE,
-												'$.preference_behavior.effective_from', v_effective_from,
-												'$.preference_behavior.effective_until', v_effective_until
-											);
+        SET v_app_preferences_json = buildJSONSmart( v_app_preferences_json, 'preference_behavior.is_user_editable', TRUE);
+        SET v_app_preferences_json = buildJSONSmart( v_app_preferences_json, 'preference_behavior.is_system_defined', TRUE);
+        SET v_app_preferences_json = buildJSONSmart( v_app_preferences_json, 'preference_behavior.effective_from', v_effective_from);
+        SET v_app_preferences_json = buildJSONSmart( v_app_preferences_json, 'preference_behavior.effective_until', v_effective_until);
+
+        SET v_app_preferences_json = buildJSONSmart( v_app_preferences_json, 'preference_key', v_preference_key);
+        SET v_app_preferences_json = buildJSONSmart( v_app_preferences_json, 'preference_value', v_preference_value);
+
+        SET v_app_preferences_json = buildJSONSmart( v_app_preferences_json, 'customer_rec_id',   v_customer_rec_id);
 
         -- =========================
         -- Row metadata
         -- =========================
         SET v_row_metadata = getTemplate('row_metadata');
 
-        SET v_row_metadata = JSON_SET(
-										v_row_metadata,
-										'$.status', 'Active',
-										'$.updated_at', NOW(),
-										'$.updated_by', 'SYSTEM'
-									);
+        SET v_row_metadata = buildJSONSmart( v_row_metadata, 'status',     'Active');
+        SET v_row_metadata = buildJSONSmart( v_row_metadata, 'updated_at', NOW());
 
         -- =========================
         -- INSERT or UPDATE
@@ -154,10 +152,7 @@ BEGIN
 			
             SET v_preference_rec_id 	= LAST_INSERT_ID();
             
-			SET v_app_preferences_json	= JSON_SET( v_app_preferences_json,
-													'$.preference_rec_id', 	v_preference_rec_id,
-                                                    '$.customer_rec_id', 	v_customer_rec_id
-												  );
+            SET v_app_preferences_json = buildJSONSmart( v_app_preferences_json, 'preference_rec_id', v_preference_rec_id);
                                                             
 			UPDATE  app_preferences
 			SET 	app_preferences_json  	= v_app_preferences_json
@@ -171,15 +166,24 @@ BEGIN
                 row_metadata          	= v_row_metadata
             WHERE preference_rec_id  	= v_existing_pref_id;
 
+            SET v_app_preferences_json = buildJSONSmart( v_app_preferences_json, 'preference_rec_id', v_existing_pref_id);
+
+            UPDATE  app_preferences
+			SET 	app_preferences_json  	= v_app_preferences_json
+			WHERE   preference_rec_id 		= v_existing_pref_id;
+
         END IF;
 
         -- =========================
         -- Success Response
         -- =========================
-        SET pResObj = JSON_OBJECT(
-									'status', 'success',
-									'message', 'Preference saved successfully'
-								);
+        
+        SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 	0);
+        SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 		IF( v_existing_pref_id IS NULL,
+                                                                                'Success - Preference saved successfully',
+                                                                                'Success - Preference updated successfully'
+                                                                            )
+									);
 
     END main_block;
 

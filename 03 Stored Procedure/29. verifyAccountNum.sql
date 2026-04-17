@@ -9,7 +9,7 @@ DELIMITER $$
 
 CREATE PROCEDURE verifyAccountNum (
 										IN  pjReqObj JSON,
-										OUT pResObj JSON
+										INOUT pjRespObj JSON
 									)
 BEGIN
 
@@ -25,11 +25,10 @@ BEGIN
     -- If SELECT INTO returns no row, set error JSON instead of raising an exception
 	DECLARE EXIT HANDLER FOR NOT FOUND
 		BEGIN
-			SET pResObj = JSON_OBJECT(
-										'code', 1,
-										'status','error',
-										'message','Invalid account number or login ID'
-									);
+	
+			SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 	1);
+            SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 		'Invalid account number or login ID');
+
 		END;
 
  
@@ -41,29 +40,27 @@ BEGIN
 		
 		-- Validate input: both login ID and account number must be provided
 		IF isFalsy(v_contact_type) OR isFalsy(v_account_num) THEN
-			SET pResObj = JSON_OBJECT(
-										'code', 	1,
-										'status',	'error',
-										'message',	'Invalid input'
-									 );
+
+			SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 	1);
+            SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 		'Invalid input');
+
 			LEAVE main_block;
 		END IF;
 		
 		-- Fetch account info from customers table
 		SELECT  account_num,		CONCAT(first_name,' ',last_name)
 		INTO    v_account_num_db, 	v_full_name
-		FROM 	customers
+		FROM 	customer
 		WHERE 	(LOWER(email) = LOWER(v_contact_type) OR LOWER(phone) = LOWER(v_contact_type) OR LOWER(user_name) = LOWER(v_contact_type))
-		AND main_account_num = v_account_num
+		AND 	main_account_num = v_account_num
 		LIMIT 	1;
 		
 		-- If a row is found, return success JSON with full name and account number
-		SET pResObj = JSON_OBJECT(
-									'code', 0,
-									'message', 'success',
-									'customer_name', v_full_name,
-									'account_num', v_account_num_db
-								);
+		SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 			0);
+        SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 				'Account verified successfully');
+        SET pjRespObj = buildJSONSmart( pjRespObj, 'jData.contents.customer_name', 	v_full_name);
+        SET pjRespObj = buildJSONSmart( pjRespObj, 'jData.contents.account_num', 	v_account_num_db);	
+									
 			
 
     END main_block;

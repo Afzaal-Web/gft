@@ -1002,7 +1002,24 @@ BEGIN
 							}
 						}' AS JSON);
 
-	
+
+-- =======================================================================
+-- metal_news for all tables
+-- =======================================================================
+		WHEN 'metal_news' THEN
+			RETURN CAST(
+				'[
+				{
+					"metal_news_rec_id"  						  : null,
+					"asset_code"   								  : null,
+					"source_name"   						      : null,
+					"source_url"   								  : null,
+					"news_date"   								  : null,
+					"content_type"   							  : null,
+					"content_summary"   						  : null
+				}
+				]' AS JSON);
+
 -- =======================================================================
 -- row_metadta for all tables
 -- =======================================================================

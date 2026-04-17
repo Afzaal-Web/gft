@@ -1082,6 +1082,25 @@ BEGIN
 						"display_order": 1
 					}
 				]' AS JSON);
+
+-- =======================================================================
+-- metal_news for all tables
+-- =======================================================================
+		WHEN 'metal_news' THEN
+			RETURN CAST(
+			'[
+			{
+				"metal_news_rec_id": 			0,
+				"asset_code":  					"GLD",
+				"source_name": 					"Metal Bulletin",
+				"source_url": 					"https://www.metalbulletin.com/news",
+				"news_date": 					"2026-01-19 14:22:00",
+				"content_type": 				"article",
+				"content_summary": 				"Global steel prices show steady growth amid rising demand from construction and automotive sectors."
+			}
+			]' AS JSON);
+
+
 -- =======================================================================
 -- row_metadta for all tables
 -- =======================================================================

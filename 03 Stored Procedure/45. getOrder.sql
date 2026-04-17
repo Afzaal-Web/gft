@@ -8,17 +8,14 @@ DROP PROCEDURE IF EXISTS getOrders;
 DELIMITER $$
 
 CREATE PROCEDURE getOrders(
-                            IN  pjReqObj     JSON,
-                            OUT pResObj     JSON
+                            IN    pjReqObj    JSON,
+                            INOUT pjRespObj     JSON
                          )
 BEGIN
 
     DECLARE v_account_num   VARCHAR(50);
     DECLARE v_orders_json   JSON;
 
-    DECLARE vResObj         JSON DEFAULT getTemplate('reqResp');
-
-    SET pResObj = vResObj;
 
     -- Extract input
     SET v_account_num = getJval(pjReqObj, 'jData.P_ACCOUNT_NUMBER');
@@ -31,18 +28,16 @@ BEGIN
 
     -- If no orders found
     IF v_orders_json IS NULL THEN
-        SET pResObj = JSON_SET( pResObj,
-                                '$.jHeader.responseCode',           '1',
-                                '$.jHeader.message',                'No orders found for this customer',
-                                '$.jData.account_number',            v_account_num
-                            );
+
+        SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 	1);
+        SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 		CONCAT('No orders found for this customer ', v_account_num));
+
     ELSE
-        SET pResObj = JSON_SET( pResObj,
-                                '$.jHeader.responseCode',           '0',
-                                '$.jHeader.message',                'Orders retrieved successfully',
-                                '$.jData.account_number',            v_account_num,
-                                '$.jData.orders',                    v_orders_json
-                            );
+
+        SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 	0);
+        SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 		CONCAT('Orders retrieved successfully for ', v_account_num));
+        SET pjRespObj = buildJSONSmart( pjRespObj, 'jData.contents', 		v_orders_json);
+
     END IF;
 
 END $$
