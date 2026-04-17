@@ -12,10 +12,11 @@ SET @reqObj = '
     "P_ACTION_CODE": "FIN.S.RATES",
     "P_APP_NAME": "Gft-Customer-App",
 
-    "P_ACCOUNT_NUMBER": "P-593"
+    "P_ASSET_CODE": "GLD",
+    "P_CURRENCY": "USD"
   }
 }';
 
-CALL requestHandler("127.0.0.0", "Gft-Customer-App", "CUS.S.CUSTOMER", @reqObj, @pjObj);
+CALL requestHandler("127.0.0.0", "Gft-Customer-App", "FIN.S.RATES", @reqObj, @pjObj);
 
 SELECT @pjObj;

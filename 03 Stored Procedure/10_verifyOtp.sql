@@ -31,10 +31,10 @@ BEGIN
 		-- =========================
 			-- Extract values from JSON
 		-- =========================
-		SET vContactType 		= getJval(pjReqObj, 'P_CONTACT_TYPE');
-		SET vDestination 		= getJval(pjReqObj, 'P_DESTINATION');
-		SET vOtpCode     		= getJval(pjReqObj, 'P_OTP_CODE');
-		SET vPurpose    		= getJval(pjReqObj, 'P_PURPOSE');
+		SET vContactType 		= getJval(pjReqObj, 'jData.P_CONTACT_TYPE');
+		SET vDestination 		= getJval(pjReqObj, 'jData.P_DESTINATION');
+		SET vOtpCode     		= getJval(pjReqObj, 'jData.P_OTP_CODE');
+		SET vPurpose    		= getJval(pjReqObj, 'jData.P_PURPOSE');
 
 		-- =========================
 		-- Get latest OTP

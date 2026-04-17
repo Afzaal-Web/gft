@@ -7,7 +7,7 @@ DROP PROCEDURE IF EXISTS resetPassword;
 DELIMITER $$
 
 CREATE PROCEDURE resetPassword(
-                                IN  pReqJson       JSON,
+                                IN  pjReqObj       JSON,
                                 OUT pResJson      JSON
                               )
 BEGIN
@@ -28,9 +28,9 @@ BEGIN
         -- =========================
         -- Extract values from JSON
         -- =========================
-        SET v_login_id    		 = getJval(pReqJson, 'P_LOGIN_ID');
-        SET v_new_password 		 = getJval(pReqJson, 'P_NEW_PASSWORD');
-        SET v_reset_token 		 = getJval(pReqJson, 'P_RESET_TOKEN');
+        SET v_login_id    		 = getJval(pjReqObj, 'jData.P_LOGIN_ID');
+        SET v_new_password 		 = getJval(pjReqObj, 'jData.P_NEW_PASSWORD');
+        SET v_reset_token 		 = getJval(pjReqObj, 'jData.P_RESET_TOKEN');
 
         -- Validate input
         IF v_login_id IS NULL OR v_new_password IS NULL OR v_reset_token IS NULL THEN
@@ -147,3 +147,4 @@ BEGIN
 END $$
 
 DELIMITER ;
+

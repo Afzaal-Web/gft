@@ -8,7 +8,7 @@ DROP PROCEDURE IF EXISTS getTransactionHistory;
 DELIMITER $$
 
 CREATE PROCEDURE getTransactionHistory (
-										IN  pReqObj JSON,
+										IN  pjReqObj JSON,
 										OUT pResObj JSON
 									  )
 BEGIN
@@ -36,8 +36,8 @@ BEGIN
     main_block: BEGIN
     
 		-- Extract login ID and account number from input JSON
-		SET v_contact_type 		= getJval(pReqObj, 'P_LOGIN_ID');
-		SET v_account_num 		= getJval(pReqObj, 'P_ACCOUNT_NUM');
+		SET v_contact_type 		= getJval(pjReqObj, 'P_LOGIN_ID');
+		SET v_account_num 		= getJval(pjReqObj, 'P_ACCOUNT_NUM');
 		
 		-- Validate input: both login ID and account number must be provided
 		IF isFalsy(v_contact_type) OR isFalsy(v_account_num) THEN

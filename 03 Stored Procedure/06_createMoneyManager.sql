@@ -54,9 +54,9 @@ BEGIN
 	main_block: BEGIN
     
     /* =============== Extract Required Fields ============= */
-		SET v_request_type     		= getJval(pjReqObj,'P_REQUEST_TYPE');
-		SET v_transaction_type 		= getJval(pjReqObj,'P_TRANSACTION_TYPE');
-		SET v_customer_rec_id 		= CAST(getJval(pjReqObj,'P_CUSTOMER_REC_ID') AS UNSIGNED);
+		SET v_request_type     		= getJval(pjReqObj,'jData.P_REQUEST_TYPE');
+		SET v_transaction_type 		= getJval(pjReqObj,'jData.P_TRANSACTION_TYPE');
+		SET v_customer_rec_id 		= CAST(getJval(pjReqObj,'jData.P_CUSTOMER_REC_ID') AS UNSIGNED);
 
     /* =============== Basic Validations ============= */
 		IF isFalsy(v_request_type) THEN
@@ -84,11 +84,11 @@ BEGIN
 		END IF;
 
 	 /* =============== Amount Validation ============= */
-		IF isFalsy(getJval(pjReqObj,'P_SENDER_INFO.P_AMOUNT_SENT') OR getJval(pjReqObj,'P_RECEIVER_INFO.P_AMOUNT_RECEIVED')) THEN
+		IF isFalsy(getJval(pjReqObj,'jData.P_SENDER_INFO.P_AMOUNT_SENT') OR getJval(pjReqObj,'jData.P_RECEIVER_INFO.P_AMOUNT_RECEIVED')) THEN
 			SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','amount is required');
 			
-		ELSEIF CAST(getJval(pjReqObj,'P_SENDER_INFO.P_AMOUNT_SENT') AS DECIMAL(18,2)) 	   <= 0  OR 
-			   CAST(getJval(pjReqObj,'P_RECEIVER_INFO.P_AMOUNT_RECEIVED') AS DECIMAL(18,2))  <= 0  THEN
+		ELSEIF CAST(getJval(pjReqObj,'jData.P_SENDER_INFO.P_AMOUNT_SENT') AS DECIMAL(18,2)) 	   <= 0  OR 
+			   CAST(getJval(pjReqObj,'jData.P_RECEIVER_INFO.P_AMOUNT_RECEIVED') AS DECIMAL(18,2))  <= 0  THEN
 			SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','amount must be greater than zero');
 		
 		END IF;
@@ -102,15 +102,15 @@ BEGIN
 	/* =============== Credit Card Specific Validation ============= */
     
 		IF v_transaction_type = 'card_info.credit card' THEN
-		    IF isFalsy(getJval(pjReqObj,'P_CARD_NUMBER')) THEN
+		    IF isFalsy(getJval(pjReqObj,'jData.P_CARD_NUMBER')) THEN
 				SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','card_number is required');
 			END IF;
 
-			IF isFalsy(getJval(pjReqObj,'P_CARD_INFO.P_CVV2')) THEN
+			IF isFalsy(getJval(pjReqObj,'jData.P_CARD_INFO.P_CVV2')) THEN
 				SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','cvv2 is required');
 			END IF;
 
-			IF isFalsy(getJval(pjReqObj,'P_PROCESSOR_NAME')) THEN
+			IF isFalsy(getJval(pjReqObj,'jData.P_PROCESSOR_NAME')) THEN
 				SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','processor_name is required');
 			END IF;			
 		END IF;
@@ -203,9 +203,9 @@ BEGIN
 			SET	money_manager_rec_id 	 = v_mm_rec_id,
 				status					 = v_status,
 				account_num				 = getJval(v_customer_json,'account_number'),
-				processor_name			 = getJval(pjReqObj,'P_PROCESSOR_NAME'),
-				processor_token			 = getJval(pjReqObj,'P_PROCESSOR_TOKEN'),
-				card_last_4				 = RIGHT(getJval(pjReqObj,'P_CARD_INFO.P_CARD_NUMBER'),4),
+				processor_name			 = getJval(pjReqObj,'jData.P_PROCESSOR_NAME'),
+				processor_token			 = getJval(pjReqObj,'jData.P_PROCESSOR_TOKEN'),
+				card_last_4				 = RIGHT(getJval(pjReqObj,'jData.P_CARD_INFO.P_CARD_NUMBER'),4),
 				credit_card_json		 = v_cc_json,
 				row_metadata			 = v_row_metadata;
 		
@@ -216,7 +216,7 @@ BEGIN
 												'$.credit_card_rec_id', v_cc_rec_id,
                                                 '$.money_manager_rec_id', v_mm_rec_id,
 												'$.status', v_status,
-                                                '$.card_last_4', RIGHT(getJval(pjReqObj,'card_number'),4)
+                                                '$.card_last_4', RIGHT(getJval(pjReqObj,'jData.card_number'),4)
 												);
 		
 			UPDATE credit_card

@@ -7,7 +7,7 @@ DROP PROCEDURE IF EXISTS getPromotions;
 DELIMITER $$
 
 CREATE PROCEDURE getPromotions (
-								IN  pReqObj JSON,
+								IN  pjReqObj JSON,
 								OUT pResObj JSON
 							)
 BEGIN
@@ -17,7 +17,7 @@ BEGIN
     main_block: BEGIN
 
         -- Extract loginId from request
-        SET v_loginId 		= getJval(pReqObj, 'P_LOGIN_ID');
+        SET v_loginId 		= getJval(pjReqObj, 'jData.P_LOGIN_ID');
 
         -- Fetch promotions JSON array for this user
         SELECT 		promotion_json
@@ -41,3 +41,4 @@ BEGIN
 END $$
 
 DELIMITER ;
+

@@ -7,7 +7,7 @@ DROP PROCEDURE IF EXISTS changePassword;
 DELIMITER $$
 
 CREATE PROCEDURE changePassword(
-								IN  pReqObj       JSON,
+								IN  pjReqObj       JSON,
 								OUT pResObj       JSON
 							)
 BEGIN
@@ -26,9 +26,9 @@ BEGIN
         -- =========================
         -- Extract values from JSON
         -- =========================
-        SET v_login_id      = getJval(pReqObj, 'P_LOGIN_ID');
-        SET v_old_password  = getJval(pReqObj, 'P_OLD_PASSWORD');
-        SET v_new_password  = getJval(pReqObj, 'P_NEW_PASSWORD');
+        SET v_login_id      = getJval(pjReqObj, 'jData.P_LOGIN_ID');
+        SET v_old_password  = getJval(pjReqObj, 'jData.P_OLD_PASSWORD');
+        SET v_new_password  = getJval(pjReqObj, 'jData.P_NEW_PASSWORD');
 
         -- Validate input
         IF v_login_id IS NULL OR v_old_password IS NULL OR v_new_password IS NULL THEN
@@ -145,3 +145,4 @@ BEGIN
 END $$
 
 DELIMITER ;
+

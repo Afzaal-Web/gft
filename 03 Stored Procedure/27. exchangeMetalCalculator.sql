@@ -8,7 +8,7 @@ DROP PROCEDURE IF EXISTS exchangeMetalCalculator;
 DELIMITER $$
 
 CREATE PROCEDURE exchangeMetalCalculator (
-											IN  pReqObj JSON,
+											IN  pjReqObj JSON,
 											OUT pResObj JSON
 										)
 BEGIN
@@ -31,10 +31,10 @@ BEGIN
     main_block: BEGIN
     
 	-- Extract values from JSON
-	SET v_from_asset_code 		=  getJval(pReqObj,        'P_METAL_TO_EXCHANGE');
-	SET v_to_asset_code   		=  getJval(pReqObj, 	   'P_METAL_TO_EXCHANGE_ACQUIRE'); 
-    SET v_quantity   	  		=  CAST(getJval(pReqObj,   'P_QUANTITY') AS DECIMAL(18,6));
-    SET v_unit            		=  getJval(pReqObj,        'P_UNIT');
+	SET v_from_asset_code 		=  getJval(pjReqObj, 'jData.P_METAL_TO_EXCHANGE');
+	SET v_to_asset_code   		=  getJval(pjReqObj, 'jData.P_METAL_TO_EXCHANGE_ACQUIRE'); 
+    SET v_quantity   	  		=  CAST(getJval(pjReqObj, 'jData.P_QUANTITY') AS DECIMAL(18,6));
+    SET v_unit            		=  getJval(pjReqObj, 'jData.P_UNIT');
     
      -- Validate asset codes
         IF v_from_asset_code IS NULL OR v_to_asset_code IS NULL THEN
@@ -145,3 +145,4 @@ BEGIN
 END $$
 
 DELIMITER ;
+

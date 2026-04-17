@@ -8,7 +8,7 @@ DROP PROCEDURE IF EXISTS getCustomer;
 DELIMITER $$
 
 CREATE PROCEDURE getCustomer(
-							 IN  pReqObj JSON,
+							 IN  pjReqObj JSON,
 							 INOUT pjRespObj JSON
 							)
 BEGIN
@@ -16,7 +16,7 @@ BEGIN
 	DECLARE v_account_num 	    VARCHAR(50);
     DECLARE v_customer_json 	JSON;
     
-    SET v_account_num = getJval(pReqObj, 'P_ACCOUNT_NUMBER');
+    SET v_account_num = getJval(pjReqObj, 'jData.P_ACCOUNT_NUMBER');
     
     -- Get customer JSON
     SELECT 	customer_json
@@ -41,3 +41,4 @@ BEGIN
 END $$
 
 DELIMITER ;
+

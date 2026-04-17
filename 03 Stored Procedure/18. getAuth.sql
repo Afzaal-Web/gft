@@ -8,7 +8,7 @@ DROP PROCEDURE IF EXISTS getAuth;
 DELIMITER $$
 
 CREATE PROCEDURE getAuth(
-						  IN  	pReqObj JSON,
+						  IN  	pjReqObj JSON,
 						  INOUT pjRespObj JSON
 						)
 BEGIN
@@ -20,7 +20,7 @@ BEGIN
 	-- =========================
     -- Extract Customer ID
     -- =========================
-    SET v_account_num = getJval(pReqObj, 'P_ACCOUNT_NUM');
+    SET v_account_num = getJval(pjReqObj, 'jData.P_ACCOUNT_NUM');
 
 	SELECT 	customer_rec_id
     INTO 	v_customer_rec_id
@@ -65,3 +65,4 @@ BEGIN
 END $$
 
 DELIMITER ;
+

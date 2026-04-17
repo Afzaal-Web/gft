@@ -9,7 +9,7 @@ DROP PROCEDURE IF EXISTS savePreferences;
 DELIMITER $$
 
 CREATE PROCEDURE savePreferences(
-									IN  pReqObj JSON,
+									IN  pjReqObj JSON,
 									OUT pResObj JSON
 								)
 BEGIN
@@ -35,9 +35,9 @@ BEGIN
         -- =========================
         -- Extract values
         -- =========================
-        SET v_login_id         = getJval(pReqObj, 'P_LOGIN_ID');
-        SET v_preference_key   = getJval(pReqObj, 'P_PREFERENCE_KEY');
-        SET v_preference_value = getJval(pReqObj, 'P_PREFERENCE_VALUE');
+        SET v_login_id         = getJval(pjReqObj, 'jData.P_LOGIN_ID');
+        SET v_preference_key   = getJval(pjReqObj, 'jData.P_PREFERENCE_KEY');
+        SET v_preference_value = getJval(pjReqObj, 'jData.P_PREFERENCE_VALUE');
 
         -- =========================
         -- Validation
@@ -186,3 +186,4 @@ BEGIN
 END $$
 
 DELIMITER ;
+

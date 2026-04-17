@@ -21,9 +21,9 @@ BEGIN
 	main_block: BEGIN
 
     -- Extract info from input JSON
-    SET v_email    	= getJval(pjReqObj, 'P_EMAIL');
-    SET v_phone    	= getJval(pjReqObj, 'P_PHONE');
-    SET v_cnic 		= getJval(pjReqObj, 'P_CNIC');
+    SET v_email    	= getJval(pjReqObj, 'jData.P_EMAIL');
+    SET v_phone    	= getJval(pjReqObj, 'jData.P_PHONE');
+    SET v_cnic 		= getJval(pjReqObj, 'jData.P_CNIC');
 
     -- ============== Find user account =============
     SELECT user_name

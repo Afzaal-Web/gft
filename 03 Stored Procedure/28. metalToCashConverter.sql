@@ -8,7 +8,7 @@ DROP PROCEDURE IF EXISTS metalToCashConverter;
 DELIMITER $$
 
 CREATE PROCEDURE metalToCashConverter (
-										IN  pReqObj JSON,
+										IN  pjReqObj JSON,
 										OUT pResObj JSON
 									)
 BEGIN
@@ -24,12 +24,12 @@ BEGIN
     main_block: BEGIN
 
         -- Extract values from JSON
-        SET v_asset_code 	= getJval(pReqObj, 'P_METAL_CODE');
-        SET v_unit       	= getJval(pReqObj, 'P_UNIT');
+        SET v_asset_code 	= getJval(pjReqObj, 'jData.P_METAL_CODE');
+        SET v_unit       	= getJval(pjReqObj, 'jData.P_UNIT');
 
         -- Extract either weight or amount
-        SET v_weight     = CAST(getJval(pReqObj, 'P_WEIGHT') AS DECIMAL(24,10));
-        SET v_amount     = CAST(getJval(pReqObj, 'P_AMOUNT') AS DECIMAL(24,10));
+        SET v_weight     = CAST(getJval(pjReqObj, 'jData.P_WEIGHT') AS DECIMAL(24,10));
+        SET v_amount     = CAST(getJval(pjReqObj, 'jData.P_AMOUNT') AS DECIMAL(24,10));
 
         -- Validate metal code
         IF v_asset_code IS NULL THEN
@@ -122,3 +122,4 @@ BEGIN
 END $$
 
 DELIMITER ;
+

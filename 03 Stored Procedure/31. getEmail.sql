@@ -8,7 +8,7 @@ DROP PROCEDURE IF EXISTS queueOutboundMessage;
 DELIMITER $$
 
 CREATE PROCEDURE queueOutboundMessage (
-										IN  pReqObj JSON,
+										IN  pjReqObj JSON,
 										OUT pResObj JSON
 									)
 BEGIN
@@ -63,7 +63,7 @@ BEGIN
     -- fill remaining data from ReqObj
     -- =========================                                          
                                             
-    SET v_outbound_msgs_json	= fillTemplate(pReqObj, v_outbound_msgs_json);
+    SET v_outbound_msgs_json	= fillTemplate(pjReqObj, v_outbound_msgs_json);
                                             
 	
     SET v_row_metadata 			= getTemplate('row_metadata');
@@ -74,9 +74,9 @@ BEGIN
 
     INSERT INTO outbound_msgs
     SET message_guid					= v_message_guid, 
-        parent_message_table_name		= getJval(pReqObj, 'parent_message_table_name'),
-        parent_message_table_rec_id		= getJval(pReqObj, 'parent_message_table_rec_id'),
-        object_name						= getJval(pReqObj, 'object_name'),
+        parent_message_table_name		= getJval(pjReqObj, 'parent_message_table_name'),
+        parent_message_table_rec_id		= getJval(pjReqObj, 'parent_message_table_rec_id'),
+        object_name						= getJval(pjReqObj, 'object_name'),
         outbound_msgs_json				= v_outbound_msgs_json,
         row_metadata					= v_row_metadata;
         
@@ -100,6 +100,7 @@ BEGIN
 END $$
 
 DELIMITER ;
+
 
 
 

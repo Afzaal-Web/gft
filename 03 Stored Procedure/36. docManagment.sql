@@ -45,11 +45,11 @@ BEGIN
     main_block: BEGIN
     
 		/* ===================== Extract Scalars ===================== */
-		SET v_doc_type   		= getJval(pjReqObj, 'P_DOC_TYPE');
-		SET v_notes		 		= getJval(pjReqObj, 'P_NOTES');
-		SET v_attachment_url  	= getJval(pjReqObj, 'P_ATTACHMENT_URL');
-        SET v_login_id			= getJval(pjReqObj, 'P_LOGIN_ID');
-        SET v_user_type			= getJval(pjReqObj, 'P_USER_TYPE'); -- CUSTOMER OR EMPLOYEE
+		SET v_doc_type   		= getJval(pjReqObj, 'jData.P_DOC_TYPE');
+		SET v_notes		 		= getJval(pjReqObj, 'jData.P_NOTES');
+		SET v_attachment_url  	= getJval(pjReqObj, 'jData.P_ATTACHMENT_URL');
+        SET v_login_id			= getJval(pjReqObj, 'jData.P_LOGIN_ID');
+        SET v_user_type			= getJval(pjReqObj, 'jData.P_USER_TYPE'); -- CUSTOMER OR EMPLOYEE
         
         /* -------- Normalize -------- */
         SET v_user_type			= UPPER(TRIM(v_user_type));
@@ -189,4 +189,5 @@ BEGIN
 END $$
 
 DELIMITER ;
+
 

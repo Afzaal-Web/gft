@@ -45,8 +45,8 @@ BEGIN
     main_block: BEGIN
 
         /* =============== Extract Inputs =============== */
-        SET v_mm_rec_id  		= CAST(getJval(pjReqObj,'P_MONEY_MANAGER_REC_ID') AS UNSIGNED);
-        SET v_new_status 		= getJval(pjReqObj,'P_STATUS');
+        SET v_mm_rec_id  		= CAST(getJval(pjReqObj, 'jData.P_MONEY_MANAGER_REC_ID') AS UNSIGNED);
+        SET v_new_status 		= getJval(pjReqObj, 'jData.P_STATUS');
 
         /* =============== Validations =============== */
         IF isFalsy(v_mm_rec_id) THEN
@@ -96,10 +96,10 @@ BEGIN
         
         SET v_life_cycle 	= JSON_SET( v_life_cycle,
                                         '$.status',     v_new_status,
-                                        '$.user_name',  getJval(pjReqObj,           'P_USER_NAME'),
-                                        '$.action_by',  getJval(pjReqObj,           'P_ACTION_BY'),
-                                        '$.action_at',  COALESCE(getJval(pjReqObj,  'P_ACTION_AT'), NOW()),
-                                        '$.notes',      getJval(pjReqObj,           'P_NOTES')
+                                        '$.user_name',  getJval(pjReqObj, 'jData.P_USER_NAME'),
+                                        '$.action_by',  getJval(pjReqObj, 'jData.P_ACTION_BY'),
+                                        '$.action_at',  COALESCE(getJval(pjReqObj, 'jData.P_ACTION_AT'), NOW()),
+                                        '$.notes',      getJval(pjReqObj, 'jData.P_NOTES')
                                 );
 
 	   /* ================ APPEND OBJ in life cycle array in money manager ============ */
@@ -120,8 +120,8 @@ BEGIN
 
         UPDATE money_manager
         SET	  status             			= v_new_status,
-              backoffice_post_number		= getJval(pjReqObj,'P_BACKOFFICE_POST_NUMBER'),
-              trans_posted_at				= getJval(pjReqObj,'P_TRANS_POSTED_AT'),
+              backoffice_post_number		= getJval(pjReqObj, 'jData.P_BACKOFFICE_POST_NUMBER'),
+              trans_posted_at				= getJval(pjReqObj, 'jData.P_TRANS_POSTED_AT'),
               money_manager_json 			= v_mm_json,
 			  row_metadata       			= v_row_metadata
         WHERE money_manager_rec_id = v_mm_rec_id;
@@ -139,8 +139,8 @@ BEGIN
         
             UPDATE credit_card
             SET	  status     				= v_new_status,
-                  backoffice_post_number	= getJval(pjReqObj,         'P_BACKOFFICE_POST_NUMBER'),
-				  trans_posted_at			= COALESCE(getJval(pjReqObj,'P_TRANS_POSTED_AT'), NOW()),
+                  backoffice_post_number	= getJval(pjReqObj, 'jData.P_BACKOFFICE_POST_NUMBER'),
+				  trans_posted_at			= COALESCE(getJval(pjReqObj, 'jData.P_TRANS_POSTED_AT'), NOW()),
                   card_json  				= v_cc_json,
                   row_metadata 				= v_row_metadata
             WHERE money_manager_rec_id = v_mm_rec_id;
@@ -159,3 +159,4 @@ BEGIN
     END main_block;
 END$$
 DELIMITER ;
+

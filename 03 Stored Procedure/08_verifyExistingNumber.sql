@@ -34,7 +34,7 @@ BEGIN
     main_block: BEGIN
 
         /* ===================== Extract Phone ===================== */
-        SET v_phone 	= getJval(pjReqObj, 'P_PHONE_NUM');
+        SET v_phone 	= getJval(pjReqObj, 'jData.P_PHONE_NUM');
 
         IF isFalsy(v_phone) THEN
 

@@ -7,7 +7,7 @@ DROP PROCEDURE IF EXISTS loginCustomer;
 DELIMITER $$
 
 CREATE PROCEDURE loginCustomer(
-                                IN    pReqObj  JSON,
+                                IN    pjReqObj  JSON,
                                 INOUT pjRespObj  JSON
                               )
 BEGIN
@@ -25,8 +25,8 @@ BEGIN
         -- =========================
         -- Extract values from JSON
         -- =========================
-        SET v_login_id 		= getJval(pReqObj, 'P_LOGIN_ID');
-        SET v_password 		= getJval(pReqObj, 'P_PASSWORD');
+        SET v_login_id 		= getJval(pjReqObj, 'jData.P_LOGIN_ID');
+        SET v_password 		= getJval(pjReqObj, 'jData.P_PASSWORD');
 
         -- Validate input
         IF v_login_id IS NULL OR v_password IS NULL THEN
@@ -82,3 +82,4 @@ BEGIN
 END $$
 
 DELIMITER ;
+

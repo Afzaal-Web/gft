@@ -1,0 +1,70 @@
+-- ==================================================================================================
+-- Procedure:   getDropDownValue
+-- Purpose:     get dropdown values with optional category filter
+-- ==================================================================================================
+
+DROP PROCEDURE IF EXISTS getDropDownValue;
+
+DELIMITER $$
+
+CREATE PROCEDURE getDropDownValue(
+								IN    pjReqObj JSON,
+								INOUT pjRespObj JSON
+							)
+BEGIN
+
+	DECLARE v_category      	    VARCHAR(50);
+    DECLARE v_column_values_json   	JSON;
+
+	main_block: BEGIN
+
+    -- =========================
+        -- Extract Inputs
+    -- =========================
+        SET v_category 	= getJval(pjReqObj, 'jData.P_CATEGORY');
+
+    -- =========================
+        -- Validation
+	-- =========================
+        IF v_category IS NULL THEN
+            SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 1);
+            SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 'Category is required');
+            LEAVE main_block;
+        END IF;
+
+    -- =========================    
+        -- Fetch Data
+    -- =========================
+        SELECT column_values_json
+        INTO   v_column_values_json
+        FROM   column_values
+        WHERE  category = v_category;
+      
+		-- =========================
+        -- Handle empty result
+        -- =========================
+        IF v_column_values_json IS NULL THEN
+
+			SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 1);
+	    	SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 'No values found for this category');
+
+            LEAVE main_block;
+        END IF;
+    
+            -- =========================
+        -- Response
+        -- =========================
+
+			SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 0);
+	    	SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 'Records fetched successfully');
+        	SET pjRespObj = buildJSONSmart( pjRespObj, 'jData.contents', v_column_values_json);
+		
+
+	END main_block;
+    
+    -- logging
+    
+
+END $$
+
+DELIMITER ;

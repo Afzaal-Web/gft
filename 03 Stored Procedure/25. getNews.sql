@@ -7,8 +7,8 @@ DROP PROCEDURE IF EXISTS getNews;
 DELIMITER $$
 
 CREATE PROCEDURE getNews (
-							IN  pReqObj JSON,
-							OUT pResObj JSON
+							IN      pjReqObj JSON,
+							INOUT   pjRespObj JSON
 						)
 BEGIN
     DECLARE v_metal_code VARCHAR(10);
@@ -17,7 +17,7 @@ BEGIN
     main_block: BEGIN
 
         -- Extract metal_code from request
-        SET v_metal_code = getJval(pReqObj, 'P_METAL_CODE');
+        SET v_metal_code = getJval(pjReqObj, 'jData.P_METAL_CODE');
 
         -- Fetch news JSON array for this metal_code
         SELECT 	news_json
@@ -41,3 +41,4 @@ BEGIN
 END $$
 
 DELIMITER ;
+

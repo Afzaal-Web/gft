@@ -33,9 +33,9 @@ BEGIN
     -- =========================
     -- Extract Request Values
     -- =========================
-    SET v_contact_type = getJval(pjReqObj, 'P_CONTACT_TYPE');
-    SET v_destination  = getJval(pjReqObj, 'P_DESTINATION');
-    SET v_purpose      = getJval(pjReqObj, 'P_PURPOSE');
+    SET v_contact_type = getJval(pjReqObj, 'jData.P_CONTACT_TYPE');
+    SET v_destination  = getJval(pjReqObj, 'jData.P_DESTINATION');
+    SET v_purpose      = getJval(pjReqObj, 'jData.P_PURPOSE');
     
     main_block: BEGIN
 	-- =========================

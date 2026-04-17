@@ -9,13 +9,12 @@ SET @reqObj = '
     "limit": 10
   },
   "jData": {
-    "P_ACTION_CODE": "FIN.S.RATES",
+    "P_ACTION_CODE": "CUS.U.CUSTOMER",
     "P_APP_NAME": "Gft-Customer-App",
 
-    "P_ACCOUNT_NUMBER": "P-593"
-  }
+    P_CATEGORY: "country_codes"
 }';
-
-CALL requestHandler("127.0.0.0", "Gft-Customer-App", "CUS.S.CUSTOMER", @reqObj, @pjObj);
+  
+CALL requestHandler("127.0.0.0", "Gft-Customer-App", "DDVAL.S.DROPDOWN", @reqObj, @pjObj);
 
 SELECT @pjObj;

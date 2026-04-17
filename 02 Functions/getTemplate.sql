@@ -1001,6 +1001,8 @@ BEGIN
 								"estimated_delivery_date"       : null
 							}
 						}' AS JSON);
+
+	
 -- =======================================================================
 -- row_metadta for all tables
 -- =======================================================================
@@ -1034,8 +1036,7 @@ BEGIN
 				},
 				"jData": {
 					"someKey": "someVal",
-                    "contents": {
-                    }
+                    "contents": {}
                 }
 			}' AS JSON);
 				

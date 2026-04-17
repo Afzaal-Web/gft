@@ -1068,7 +1068,20 @@ BEGIN
 							}
 						}' AS JSON);
 
-
+-- =======================================================================
+-- column_values for drop down in UI for all tables
+-- =======================================================================
+		WHEN 'column_values' THEN
+			RETURN CAST(
+				'[
+					{
+						"key": "AL",
+						"value": "Albama",
+						"is_default": 0,
+						"description": "State in the southeastern United States",
+						"display_order": 1
+					}
+				]' AS JSON);
 -- =======================================================================
 -- row_metadta for all tables
 -- =======================================================================

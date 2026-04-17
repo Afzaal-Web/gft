@@ -8,7 +8,7 @@ DROP PROCEDURE IF EXISTS forgotPassword;
 DELIMITER $$
 
 CREATE PROCEDURE forgotPassword(
-								IN  pReqJson   JSON,   
+								IN  pjReqObj   JSON,   
 								OUT pResJson   JSON
 							 )
 BEGIN
@@ -24,7 +24,7 @@ BEGIN
       -- =========================
         -- Extract login ID input
         -- =========================
-        SET v_input = getJval(pReqJson, 'P_LOGIN_ID');
+        SET v_input = getJval(pjReqObj, 'jData.P_LOGIN_ID');
         
 		-- =========================
         -- Detect input type
@@ -92,3 +92,4 @@ BEGIN
 END $$
 
 DELIMITER ;
+

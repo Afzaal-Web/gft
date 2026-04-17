@@ -68,7 +68,7 @@ BEGIN
     main_block: BEGIN
 
         /* ===================== Extract Scalars ===================== */
-        SET v_email     		= getJval(pjReqObj, 'P_EMAIL');
+        SET v_email     		= getJval(pjReqObj, 'jData.P_EMAIL');
         SET v_user_name 		= v_email;
 	
             /* ===================== Set template values from Request Object ===================== */
@@ -77,7 +77,7 @@ BEGIN
         
     SET v_mode =
 				CASE
-					WHEN isFalsy(getJval(pjReqObj,'P_CUSTOMER_REC_ID')) THEN
+						WHEN isFalsy(getJval(pjReqObj,'jData.P_CUSTOMER_REC_ID')) THEN
 					'INSERT'
 					ELSE
 					'UPDATE'
@@ -92,27 +92,27 @@ BEGIN
 		WHEN 'INSERT' THEN
         
             /* ===================== Validations ===================== */
-			IF isFalsy(getJval(pjReqObj,'P_FIRST_NAME')) THEN
+			IF isFalsy(getJval(pjReqObj,'jData.P_FIRST_NAME')) THEN
 				SET v_errors		= JSON_ARRAY_APPEND(v_errors,'$','First name is required');
 			END IF;
 
-			IF isFalsy(getJval(pjReqObj,'P_LAST_NAME')) THEN
+			IF isFalsy(getJval(pjReqObj,'jData.P_LAST_NAME')) THEN
 				SET v_errors 		= JSON_ARRAY_APPEND(v_errors,'$','Last name is required');
 			END IF;
 
-			IF isFalsy(getJval(pjReqObj,'P_NATIONAL_ID')) THEN
+			IF isFalsy(getJval(pjReqObj,'jData.P_NATIONAL_ID')) THEN
 				SET v_errors 		= JSON_ARRAY_APPEND(v_errors,'$','National ID is required');
 			END IF;
 
-			IF isFalsy(getJval(pjReqObj,'P_PHONE')) THEN
+			IF isFalsy(getJval(pjReqObj,'jData.P_PHONE')) THEN
 				SET v_errors 		= JSON_ARRAY_APPEND(v_errors,'$','Phone number is required');
 			END IF;
 
-			IF isFalsy(getJval(pjReqObj,'P_PASSWORD')) THEN
+			IF isFalsy(getJval(pjReqObj,'jData.P_PASSWORD')) THEN
 				SET v_errors		= JSON_ARRAY_APPEND(v_errors,'$','Password is required');
 			END IF;
 
-			IF getJval(pjReqObj, 'P_RESIDENTIAL_ADDRESS') IS NULL THEN
+			IF getJval(pjReqObj, 'jData.P_RESIDENTIAL_ADDRESS') IS NULL THEN
     			SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'residential_address is required or invalid');
 			END IF;
         
@@ -120,7 +120,7 @@ BEGIN
 
 			IF EXISTS (
 						SELECT 1 FROM customer
-						WHERE national_id = getJval(pjReqObj,'P_NATIONAL_ID')
+						WHERE national_id = getJval(pjReqObj,'jData.P_NATIONAL_ID')
 					  ) THEN
 				SET v_errors = JSON_ARRAY_APPEND(v_errors,'$', 'Customer already exists with this National ID');
 			END IF;
@@ -161,13 +161,13 @@ BEGIN
 			INSERT INTO customer
 			SET customer_status 			= v_customer_status,		-- registration_request
 					customer_type   		= v_customer_type,			-- personal
-					first_name				= getJval(pjReqObj, 'P_FIRST_NAME'),
-					last_name				= getJval(pjReqObj, 'P_LAST_NAME'),
+					first_name				= getJval(pjReqObj, 'jData.P_FIRST_NAME'),
+					last_name				= getJval(pjReqObj, 'jData.P_LAST_NAME'),
 					user_name       		= v_user_name,
 					email           		= v_email,
-					phone           		= getJval(pjReqObj,'P_PHONE'),
-					whatsapp_num    		= getJval(pjReqObj,'P_WHATSAPP_NUMBER'),
-					national_id     		= getJval(pjReqObj,'P_NATIONAL_ID'),
+					phone           		= getJval(pjReqObj,'jData.P_PHONE'),
+					whatsapp_num    		= getJval(pjReqObj,'jData.P_WHATSAPP_NUMBER'),
+					national_id     		= getJval(pjReqObj,'jData.P_NATIONAL_ID'),
 					main_account_num       	= v_account_seq,
 					account_num            	= v_account_seq,
 					customer_json   		= v_customer_json,
@@ -187,7 +187,7 @@ BEGIN
 			SET v_auth_json 	= getTemplate('auth');
                 
 				/* ===================== Password ===================== */
-			SET v_password_plain  			= getJval(pjReqObj,'P_PASSWORD');
+			SET v_password_plain  			= getJval(pjReqObj, 'jData.P_');
 			SET v_password_hashed 			= SHA2(v_password_plain,256);
             
             
@@ -257,7 +257,7 @@ BEGIN
 		
 		WHEN 'UPDATE' THEN
         
-				SET v_customer_rec_id 		= getJval(pjReqObj,'P_CUSTOMER_REC_ID');
+SET v_customer_rec_id 		= getJval(pjReqObj,'jData.P_CUSTOMER_REC_ID');
                 
 		/* ===================== Update Validations ===================== */
             
@@ -272,7 +272,7 @@ BEGIN
 	 /* ===================== Check NIC Uniqueness ===================== */
 			IF EXISTS (
 						SELECT 1 FROM customer
-						WHERE national_id	 = getJval(pjReqObj,'P_NATIONAL_ID')
+						WHERE national_id	 = getJval(pjReqObj, 'jData.P_')
 						AND customer_rec_id  <> v_customer_rec_id
 					  ) THEN
 				SET v_errors = JSON_ARRAY_APPEND(v_errors,'$', 'National ID already used by another customer');
@@ -307,7 +307,7 @@ BEGIN
             WHERE 	customer_rec_id = v_customer_rec_id;
 				
 			SET v_row_metadata	  		= JSON_SET( v_row_metadata,
-													'$.status',			COALESCE(getJval(pjReqObj, 'P_CUSTOMER_STATUS'),	v_customer_status),	
+											'$.status',			COALESCE(getJval(pjReqObj, 'jData.P_CUSTOMER_STATUS'),	v_customer_status),
 													'$.updated_by', 	'SYSTEM',
 													'$.updated_at', 	DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i:%s')
 												 );
@@ -315,7 +315,7 @@ BEGIN
 			UPDATE customer
 			SET customer_status 			= COALESCE(getJval(v_customer_json, 'customer_status'),		 v_customer_status),		-- registration_request
 				customer_type   			= COALESCE(getJval(v_customer_json, 'customer_type'),		 v_customer_type),			-- personal
-                corporate_account_rec_id	= getJval(pjReqObj, 				'P_CORPORATE_ACCOUNT_REC_ID'),			
+                corporate_account_rec_id	= getJval(pjReqObj, 				'jData.P_CORPORATE_ACCOUNT_REC_ID'),
 				first_name					= getJval(v_customer_json,			'first_name'),
 				last_name					= getJval(v_customer_json,			'last_name'), 						
 				user_name       			= getJval(v_customer_json,			'email'), 						
@@ -339,9 +339,9 @@ BEGIN
 													);
 												   
 			/* ---------- Update password if provided  ---------- */
-            IF NOT isFalsy(getJval(pjReqObj,'P_PASSWORD')) THEN
+IF NOT isFalsy(getJval(pjReqObj,'jData.P_PASSWORD')) THEN
             
-					SET v_password_plain  		= getJval(pjReqObj,'P_PASSWORD');
+					SET v_password_plain  		= getJval(pjReqObj, 'jData.P_');
 					SET v_password_hashed 		= SHA2(v_password_plain,256);
 					
 					UPDATE  password_history
@@ -367,7 +367,7 @@ BEGIN
 
 				/* ---------- Update Auth table with  ---------- */
 			UPDATE auth
-			SET   user_name        		= COALESCE(getJval(pjReqObj, 'P_EMAIL'),getJval(v_auth_json, 'user_name')),
+			SET   user_name        		= COALESCE(getJval(pjReqObj, 'jData.P_EMAIL'),getJval(v_auth_json, 'user_name')),
 				  auth_json        		= v_auth_json,
 				  row_metadata     		= v_row_metadata
 			WHERE parent_table_rec_id 	= v_customer_rec_id;
@@ -385,7 +385,7 @@ BEGIN
 	SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 0);
 
 	SET pjRespObj = buildJSONSmart( pjRespObj,
-								   'jHeader.message', IF( isFalsy(getJval(pjReqObj, 'P_CUSTOMER_REC_ID')),
+							   'jHeader.message', IF( isFalsy(getJval(pjReqObj, 'jData.P_CUSTOMER_REC_ID')),
 														  'Success - Customer created successfully',
 														  'Success - Customer updated successfully'
 														)
@@ -410,6 +410,7 @@ ALTER TABLE auth
 ADD UNIQUE INDEX uk_auth_parent (parent_table_name, parent_table_rec_id);
 
 SELECT @@SQL_SAFE_UPDATES;
+
 
 
 

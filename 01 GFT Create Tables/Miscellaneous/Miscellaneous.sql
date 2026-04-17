@@ -860,3 +860,71 @@ SET
     network_mask                 = '255.255.255.0',
     description                  = 'Local Machine Access',
     row_meta_data                = castJson('row_metadata');
+
+
+-- ===============================================
+-- Column Values for dropdowns and other UI elements
+-- ===============================================
+
+CREATE TABLE column_values (
+        column_values_rec_id          INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+        category                      VARCHAR(50)          DEFAULT NULL,
+        description                   TEXT,
+        parent_table_name             VARCHAR(50) DEFAULT NULL,
+        parent_table_rec_id           INT DEFAULT NULL,
+        
+        column_values_json            JSON,
+        row_meta_data                 JSON DEFAULT NULL
+)
+
+INSERT INTO column_values
+SET
+    column_values_rec_id 		= 0,
+    category             	    = 'Template',
+    description     	        = 'json_template for',
+    parent_table_name       	= NULL,
+    parent_table_rec_id       	= NULL,
+
+    column_values_json    		= castJson('column_values'),
+    row_meta_data				= castJson('row_metadata');
+
+
+INSERT INTO column_values
+SET
+    category        = 'Pakistan Cities',
+    description     = 'Name of cities in Pakistan',
+
+    column_values_json = JSON_ARRAY(
+        JSON_OBJECT("key","KHI","value","Karachi","is_default",1,"description","Largest city and financial hub","display_order",1),
+        JSON_OBJECT("key","LHE","value","Lahore","is_default",0,"description","Cultural capital of Pakistan","display_order",2),
+        JSON_OBJECT("key","ISB","value","Islamabad","is_default",0,"description","Capital city of Pakistan","display_order",3),
+        JSON_OBJECT("key","RWP","value","Rawalpindi","is_default",0,"description","Twin city of Islamabad","display_order",4),
+        JSON_OBJECT("key","FSD","value","Faisalabad","is_default",0,"description","Industrial city","display_order",5),
+        JSON_OBJECT("key","MLT","value","Multan","is_default",0,"description","City of saints","display_order",6),
+        JSON_OBJECT("key","PEW","value","Peshawar","is_default",0,"description","Historic city of KPK","display_order",7),
+        JSON_OBJECT("key","QTA","value","Quetta","is_default",0,"description","Capital of Balochistan","display_order",8),
+        JSON_OBJECT("key","SKT","value","Sialkot","is_default",0,"description","Sports goods hub","display_order",9),
+        JSON_OBJECT("key","GJW","value","Gujranwala","is_default",0,"description","Industrial and food city","display_order",10)
+    ),
+
+    row_meta_data = castJson('row_metadata');
+
+INSERT INTO column_values
+SET
+    category        = 'Country Codes',
+    description     = 'International dialing country codes',
+
+    column_values_json = JSON_ARRAY(
+        JSON_OBJECT("key","PK","value","+92","is_default",1,"description","Pakistan","display_order",1),
+        JSON_OBJECT("key","US","value","+1","is_default",0,"description","United States","display_order",2),
+        JSON_OBJECT("key","UK","value","+44","is_default",0,"description","United Kingdom","display_order",3),
+        JSON_OBJECT("key","IN","value","+91","is_default",0,"description","India","display_order",4),
+        JSON_OBJECT("key","AE","value","+971","is_default",0,"description","United Arab Emirates","display_order",5),
+        JSON_OBJECT("key","SA","value","+966","is_default",0,"description","Saudi Arabia","display_order",6),
+        JSON_OBJECT("key","CA","value","+1","is_default",0,"description","Canada","display_order",7),
+        JSON_OBJECT("key","AU","value","+61","is_default",0,"description","Australia","display_order",8),
+        JSON_OBJECT("key","DE","value","+49","is_default",0,"description","Germany","display_order",9),
+        JSON_OBJECT("key","FR","value","+33","is_default",0,"description","France","display_order",10)
+    ),
+
+    row_meta_data = castJson('row_metadata');

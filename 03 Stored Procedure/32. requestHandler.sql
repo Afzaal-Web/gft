@@ -156,7 +156,7 @@ BEGIN
         
 
         -- Extract jData from request and set it as main request object for ease of use in procedures.
-        SET vjReqObj = getJval(vjReqObj, 'jData');
+        -- SET vjReqObj = getJval(vjReqObj, 'jData');
 
         -- Process action_code for meta data
         CASE pActionCode
@@ -243,11 +243,6 @@ BEGIN
         WHEN 'MSG.I.OUTBOUND_QUEUE'          THEN CALL queueOutboundMessage(vjReqObj, vjResponse);
 
         -- =====================================================
-        -- DOCUMENT MODULE (DOC)
-        -- =====================================================
-        WHEN 'DOC.U.MANAGEMENT'              THEN CALL documentManagment(vjReqObj, vjResponse);
-
-        -- =====================================================
         -- ORDER MODULE (ORD)
         -- =====================================================
         WHEN 'ORD.I.BUY_ORDER'               THEN CALL createOrder(vjReqObj, vjResponse);
@@ -269,6 +264,14 @@ BEGIN
         WHEN 'ORD.S.REDEEM_ORDER'            THEN CALL getOrder(vjReqObj, vjResponse); 
         WHEN 'ORD.U.REDEEM_ORDER'            THEN CALL updateOrder(vjReqObj, vjResponse); -- not done yet
         WHEN 'ORD.D.REDEEM_ORDER'            THEN CALL deleteOrder(vjReqObj, vjResponse); -- not done yet
+
+        -- =====================================================
+        -- MISC MODULE
+        -- =====================================================
+        WHEN 'DOC.U.MANAGEMENT'              THEN CALL documentManagment(vjReqObj, vjResponse);
+        WHEN 'DDVAL.S.DROPDOWN'              THEN CALL getDropDownValue(vjReqObj, vjResponse);
+
+      
 
         -- =====================================================
         -- UNKNOWN ACTION

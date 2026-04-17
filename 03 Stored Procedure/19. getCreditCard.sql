@@ -8,7 +8,7 @@ DROP PROCEDURE IF EXISTS getCreditCard;
 DELIMITER $$
 
 CREATE PROCEDURE getCreditCard(
-								IN  	pReqObj JSON,
+								IN  	pjReqObj JSON,
 								INOUT 	pjRespObj JSON
 							)
 BEGIN
@@ -22,7 +22,7 @@ BEGIN
     -- Extract Account Number
     -- =========================
 
-    SET v_account_num 		= getJval(pReqObj, 'P_ACCOUNT_NUM');
+    SET v_account_num 		= getJval(pjReqObj, 'jData.P_ACCOUNT_NUM');
     
     main_block: BEGIN
     
@@ -63,3 +63,4 @@ BEGIN
 END $$
 
 DELIMITER ;
+

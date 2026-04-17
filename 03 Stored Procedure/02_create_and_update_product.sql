@@ -46,7 +46,7 @@ BEGIN
      
      	SET v_mode =
 					CASE
-						WHEN isFalsy(getJval(pjReqObj,'P_PRODUCT_REC_ID')) THEN
+						WHEN isFalsy(getJval(pjReqObj, 'jData.P_')) THEN
 						'INSERT'
 						ELSE
 						'UPDATE'
@@ -58,19 +58,19 @@ BEGIN
 
 			/* =============== Product Insert VALIDATIONS : If required fields are missing in reqObj ================ */
 
-			IF isFalsy(getJval(pjReqObj,'P_TRADABLE_ASSETS_REC_ID')) THEN
+			IF isFalsy(getJval(pjReqObj, 'jData.P_')) THEN
 				SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','tradable_assets_rec_id is required');
 			END IF;
 			
-			IF isFalsy(getJval(pjReqObj,'P_ASSET_CODE')) THEN
+			IF isFalsy(getJval(pjReqObj, 'jData.P_')) THEN
 				SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','asset_code is required');
 			END IF;
 			
-			IF isFalsy(getJval(pjReqObj,'P_PRODUCT_CODE')) THEN
+			IF isFalsy(getJval(pjReqObj, 'jData.P_')) THEN
 				SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','product_code is required');
 			END IF;
 			
-			IF isFalsy(getJval(pjReqObj,'P_PRODUCT_NAME')) THEN
+			IF isFalsy(getJval(pjReqObj, 'jData.P_')) THEN
 				SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','product_name is required');
 			END IF;
     
@@ -78,7 +78,7 @@ BEGIN
 		   IF EXISTS (
 						SELECT 1
 						FROM products
-						WHERE product_code = getJval(pjReqObj,'P_PRODUCT_CODE')
+						WHERE product_code = getJval(pjReqObj, 'jData.P_')
 					) 	THEN
 				SET v_errors = JSON_ARRAY_APPEND(v_errors,'$',CONCAT('Product already exists with product_code: ', getJval(pjReqObj,'product_code')));
 		   END IF;
@@ -105,11 +105,11 @@ BEGIN
 										  );
 
 		 INSERT INTO products
-				SET	tradable_assets_rec_id		= getJval(pjReqObj,	 'P_TRADABLE_ASSETS_REC_ID'),
-					asset_code					= getJval(pjReqObj,	 'P_ASSET_CODE'),
-					product_code				= getJval(pjReqObj,	 'P_PRODUCT_CODE'),
-					product_type				= getJval(pjReqObj,	 'P_PRODUCT_TYPE'),
-					product_name				= getJval(pjReqObj,	 'P_PRODUCT_NAME'),
+				SET	tradable_assets_rec_id		= getJval(pjReqObj, 'jData.P_'),
+					asset_code					= getJval(pjReqObj, 'jData.P_'),
+					product_code				= getJval(pjReqObj, 'jData.P_'),
+					product_type				= getJval(pjReqObj, 'jData.P_'),
+					product_name				= getJval(pjReqObj, 'jData.P_'),
 					products_json				= v_products_json,
 					row_metadata				= v_row_metadata;
 					
@@ -132,7 +132,7 @@ BEGIN
 
       	/* =============== Product Insert VALIDATIONS: UPDATE must target existing record ================ */
 
-		SET v_product_rec_id = getJval(pjReqObj,'P_PRODUCT_REC_ID');
+		SET v_product_rec_id = getJval(pjReqObj, 'jData.P_');
       
 		IF v_product_rec_id IS NOT NULL
 		AND NOT EXISTS (
@@ -149,10 +149,10 @@ BEGIN
         IF EXISTS (
 					SELECT 1
 					FROM products
-					WHERE product_code = getJval(pjReqObj,'P_PRODUCT_CODE')
+					WHERE product_code = getJval(pjReqObj, 'jData.P_')
 					AND product_rec_id <> v_product_rec_id
 					) THEN
-			SET v_errors = JSON_ARRAY_APPEND(v_errors,'$',CONCAT('Product already exists with product_code: ', getJval(pjReqObj,'P_PRODUCT_CODE')));
+			SET v_errors = JSON_ARRAY_APPEND(v_errors,'$',CONCAT('Product already exists with product_code: ', getJval(pjReqObj, 'jData.P_')));
 		END IF;	
     
 	/* =============== Show errors in array in response Obj ================ */  
@@ -201,7 +201,7 @@ BEGIN
 	SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 0);
 
 	SET pjRespObj = buildJSONSmart( pjRespObj,
-								   'jHeader.message', IF( isFalsy(getJval(pjReqObj, 'P_PRODUCT_REC_ID')),
+							   'jHeader.message', IF( isFalsy(getJval(pjReqObj, 'jData.P_PRODUCT_REC_ID')),
 														  'Success - Product saved successfully',
 														  'Success - Product updated successfully'
 														)
@@ -215,4 +215,5 @@ BEGIN
 END $$
 
 DELIMITER ;
+
 

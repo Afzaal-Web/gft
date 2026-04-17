@@ -47,7 +47,7 @@ BEGIN
     
     SET v_mode =
                 CASE
-                    WHEN isFalsy(getJval(pjReqObj,'P_INVENTORY_REC_ID')) THEN
+                    WHEN isFalsy(getJval(pjReqObj, 'jData.P_')) THEN
                     'INSERT'
                     ELSE
                     'UPDATE'
@@ -59,19 +59,19 @@ BEGIN
 
     /* =============== INVENTORTY Insert VALIDATIONS : If required fields are missing in reqObj ================ */
 
-		IF isFalsy(getJval(pjReqObj,'P_PRODUCT_REC_ID')) THEN
+		IF isFalsy(getJval(pjReqObj, 'jData.P_')) THEN
 			SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','product_rec_id is required');
 		END IF;
 
-		IF isFalsy(getJval(pjReqObj,'P_ITEM_NAME')) THEN
+		IF isFalsy(getJval(pjReqObj, 'jData.P_')) THEN
 			SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','item_name is required');
 		END IF;
 
-		IF isFalsy(getJval(pjReqObj,'P_ITEM_TYPE')) THEN
+		IF isFalsy(getJval(pjReqObj, 'jData.P_')) THEN
 			SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','item_type is required');
 		END IF;
 
-		IF isFalsy(getJval(pjReqObj,'P_AVAILABILITY_STATUS')) THEN
+		IF isFalsy(getJval(pjReqObj, 'jData.P_')) THEN
 			SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','availability_status is required');
 		END IF;
 
@@ -99,11 +99,11 @@ BEGIN
                                          );
 
         INSERT INTO inventory
-        SET product_rec_id       = getJval(pjReqObj,'P_PRODUCT_REC_ID'),
-            item_name            = getJval(pjReqObj,'P_ITEM_NAME'),
-            item_type            = getJval(pjReqObj,'P_ITEM_TYPE'),
-            asset_type           = getJval(pjReqObj,'P_ASSET_TYPE'),
-            availability_status  = getJval(pjReqObj,'P_AVAILABILITY_STATUS'),
+        SET product_rec_id       = getJval(pjReqObj, 'jData.P_'),
+            item_name            = getJval(pjReqObj, 'jData.P_'),
+            item_type            = getJval(pjReqObj, 'jData.P_'),
+            asset_type           = getJval(pjReqObj, 'jData.P_'),
+            availability_status  = getJval(pjReqObj, 'jData.P_'),
             inventory_json       = v_inventory_json,
             row_metadata         = v_row_metadata;
 
@@ -114,7 +114,7 @@ BEGIN
 
         -- get json of existed product from product table
         
-         SET v_product_json     = getProduct(getJval(pjReqObj,'P_PRODUCT_REC_ID'));
+         SET v_product_json     = getProduct(getJval(pjReqObj, 'jData.P_'));
 
 		-- fill the inventory json from product json
 		SET v_inventory_json 	= mergeIfMissing( v_inventory_json,
@@ -149,13 +149,13 @@ BEGIN
     WHEN 'UPDATE' THEN
         
         /* =============== Inventory Insert VALIDATIONS: UPDATE must target existing record ================ */
-        SET v_inventory_rec_id = getJval(pjReqObj,'P_INVENTORY_REC_ID');
+        SET v_inventory_rec_id = getJval(pjReqObj, 'jData.P_');
      
 		IF v_inventory_rec_id IS NOT NULL
 		AND NOT EXISTS (
                           SELECT 1
                           FROM   inventory
-                          WHERE  inventory_rec_id = getJval(pjReqObj,'P_INVENTORY_REC_ID')
+                          WHERE  inventory_rec_id = getJval(pjReqObj, 'jData.P_')
                         ) THEN
                                                               
 			   SET v_errors = JSON_ARRAY_APPEND( v_errors,'$','Invalid inventory_rec_id: record does not exist');
@@ -207,7 +207,7 @@ BEGIN
     SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 0);
 
 	SET pjRespObj = buildJSONSmart( pjRespObj,
-								   'jHeader.message', IF( isFalsy(getJval(pjReqObj, 'P_INVENTORY_REC_ID')),
+							   'jHeader.message', IF( isFalsy(getJval(pjReqObj, 'jData.P_INVENTORY_REC_ID')),
 														  'Success - Inventory saved successfully',
 														  'Success - Inventory updated successfully'
 														)
@@ -220,3 +220,4 @@ BEGIN
 END $$
 
 DELIMITER ;
+

@@ -13,7 +13,6 @@ CREATE PROCEDURE getInventory(
 							)
 BEGIN
 
-	DECLARE v_inventory_rec_id 	INT;
     DECLARE v_inventory_json   	JSON;
 	DECLARE v_item_type         VARCHAR(50);
 	DECLARE v_page              INT;
@@ -26,11 +25,9 @@ BEGIN
 	-- =========================
         -- Extract Inputs
     -- =========================
-        SET v_item_type 	= getJval(			pjReqObj, 'P_ITEM_TYPE');
-        SET v_page      	= getJval(   pjReqObj, 'jMetaData.page');
-		 CALL debugLog('getInventory', v_page);
+        SET v_item_type 	= getJval(pjReqObj, 'jData.P_ITEM_TYPE');
+        SET v_page      	= getJval(pjReqObj, 'jMetaData.page');
         SET v_limit     	= getJval(   pjReqObj, 'jMetaData.limit');
-		CALL debugLog('getInventory', v_limit);
         SET v_offset 		= (v_page - 1) * v_limit;
 
 		-- =========================
@@ -96,7 +93,7 @@ BEGIN
         IF v_inventory_json IS NULL THEN
 
 			SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 1);
-	    	SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 'Record does not exist for given account number');
+	    	SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 'Record does not exist for given item type');
 
 			LEAVE main_block;
         END IF;

@@ -8,7 +8,7 @@ DROP PROCEDURE IF EXISTS getMoneyManager;
 DELIMITER $$
 
 CREATE PROCEDURE getMoneyManager(
-								IN  	pReqObj JSON,
+								IN  	pjReqObj JSON,
 								INOUT 	pjRespObj JSON
 							)
 BEGIN
@@ -20,8 +20,8 @@ BEGIN
 	-- =========================
     -- Extract Account Number and Request Type
     -- =========================
-    SET v_account_num 	= getJval(pReqObj, 'P_ACCOUNT_NUM');
-	SET v_request_type 	= getJval(pReqObj, 'P_REQUEST_TYPE');
+    SET v_account_num 	= getJval(pjReqObj, 'jData.P_ACCOUNT_NUM');
+	SET v_request_type 	= getJval(pjReqObj, 'jData.P_REQUEST_TYPE');
     
     main_block: BEGIN
     
@@ -68,3 +68,4 @@ BEGIN
 END $$
 
 DELIMITER ;
+

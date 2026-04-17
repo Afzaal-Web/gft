@@ -8,7 +8,7 @@ DROP PROCEDURE IF EXISTS getOrders;
 DELIMITER $$
 
 CREATE PROCEDURE getOrders(
-                            IN  pReqObj     JSON,
+                            IN  pjReqObj     JSON,
                             OUT pResObj     JSON
                          )
 BEGIN
@@ -21,7 +21,7 @@ BEGIN
     SET pResObj = vResObj;
 
     -- Extract input
-    SET v_account_num = getJval(pReqObj, 'P_ACCOUNT_NUMBER');
+    SET v_account_num = getJval(pjReqObj, 'jData.P_ACCOUNT_NUMBER');
 
     -- Get all orders as JSON array
     SELECT  JSON_ARRAYAGG(order_json)
@@ -48,3 +48,4 @@ BEGIN
 END $$
 
 DELIMITER ;
+
