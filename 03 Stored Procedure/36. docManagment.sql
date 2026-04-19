@@ -118,7 +118,7 @@ BEGIN
 
             IF v_org_employee_rec_id IS NULL THEN
        
-                 SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 	1);
+                SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 	1);
                 SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 		'Employee not found');
 
                 LEAVE main_block;
@@ -129,14 +129,9 @@ BEGIN
         
 		/* ===================== Build Template ===================== */
         SET v_document_mng_json 	=  fillTemplate(pjReqObj, getTemplate('document_management'));
-        
-        SET v_row_metadata			= JSON_SET(v_row_metadata,
-												'$.created_at',	 NOW(),
-                                                '$.created_by', v_login_id
-                                                );
-        SET v_row_metadata = buildJSONSmart( v_row_metadata, 'status',     NOW());
-        SET v_row_metadata = buildJSONSmart( v_row_metadata, 'updated_at', 'SYSTEM');
-        SET v_row_metadata = buildJSONSmart( v_row_metadata, 'updated_by', 'SYSTEM');
+
+        SET v_row_metadata = buildJSONSmart( v_row_metadata, 'created_at', NOW());
+        SET v_row_metadata = buildJSONSmart( v_row_metadata, 'created_by', v_login_id);
         
       /* ===================== Insert Document  ===================== */
 		IF v_user_type = 'CUSTOMER' THEN
@@ -147,26 +142,25 @@ BEGIN
                 row_metadata           			= v_row_metadata;
 			
             SET v_document_management_rec_id 	= LAST_INSERT_ID();
-            SET v_document_mng_json				= JSON_SET(v_document_mng_json,
-															'$.document_management_rec_id', v_document_management_rec_id,
-															'$.customer_rec_id', v_customer_rec_id);
+
+            SET v_document_mng_json             = buildJSONSmart(v_document_mng_json, 'document_management_rec_id', v_document_management_rec_id);
+            SET v_document_mng_json             = buildJSONSmart(v_document_mng_json, 'customer_rec_id',            v_customer_rec_id);										
                                                             
 			UPDATE  document_management
 			SET 	document_management_json  	= v_document_mng_json
-			WHERE   document_management_rec_id = v_document_management_rec_id;
+			WHERE   document_management_rec_id  = v_document_management_rec_id;
 
         ELSE
 
             INSERT INTO document_management
-            SET org_employee_rec_id      	= v_org_employee_rec_id,
-                document_management_json 	= v_document_mng_json,
-                row_metadata             	= v_row_metadata;
+            SET org_employee_rec_id      	    = v_org_employee_rec_id,
+                document_management_json 	    = v_document_mng_json,
+                row_metadata             	    = v_row_metadata;
                 
 			SET v_document_management_rec_id 	= LAST_INSERT_ID();
-            
-            SET v_document_mng_json				= JSON_SET(v_document_mng_json,
-															'$.document_management_rec_id', v_document_management_rec_id,
-															'$.employee_rec_id', v_org_employee_rec_id);
+
+            SET v_document_mng_json             = buildJSONSmart(v_document_mng_json, 'document_management_rec_id', v_document_management_rec_id);
+            SET v_document_mng_json             = buildJSONSmart(v_document_mng_json, 'employee_rec_id',            v_org_employee_rec_id);										
                                                             
 			UPDATE  document_management
 			SET 	document_management_json  	= v_document_mng_json
@@ -175,11 +169,9 @@ BEGIN
         END IF;
         
 		 /* ===================== Success Response ===================== */
-        SET pjResObj = JSON_OBJECT(
-									'status',      	'success',
-									'status_code', 	1,
-									'message',     	'Document uploaded successfully'
-								);
+        SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 	0);
+        SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 		'Document uploaded successfully');
+
     END main_block;
     
     -- logging
