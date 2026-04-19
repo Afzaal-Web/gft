@@ -586,6 +586,9 @@ main_block: BEGIN
                     'balance_after',        v_from_balance_after
                 ),
 
+    -- ADD CASH CREDIT TRNSACTION HERE BECAUSE TWO TRANSACTION OF CASH WILL TAKE PLACE ONE FOR BUY AND ONE FOR SELL
+    -- WHEN SELL CREDIT THE CASH WALLET
+    -- WHEN BUY DEBIT THE CASH WALLET 
         /* TXN-B : TO metal CREDIT (Buy leg) */
         JSON_OBJECT(
                     'transaction_num',      v_txn_num_credit,
@@ -650,6 +653,8 @@ main_block: BEGIN
                             v_order_number,
                             v_txn_num_debit
                         );
+
+    -- ADD CASH CREDIT HERE BECAUSE TWO TRANSACTION OF CASH WILL TAKE PLACE ONE FOR BUY AND ONE FOR SELL
 
     /* 11.9: wallet_activity - TO metal CREDIT */
     CALL wallet_activity(
