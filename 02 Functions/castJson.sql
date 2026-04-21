@@ -1084,7 +1084,7 @@ BEGIN
 				]' AS JSON);
 
 -- =======================================================================
--- metal_news for all tables
+-- metal_news.metal_news_json
 -- =======================================================================
 		WHEN 'metal_news' THEN
 			RETURN CAST(
@@ -1100,7 +1100,26 @@ BEGIN
 			}
 			]' AS JSON);
 
-
+-- =======================================================================
+-- customer_products.customer_products_json
+-- =======================================================================
+		WHEN 'customer_products' THEN
+			RETURN CAST(
+				'[
+					{
+						"customer_rec_id"  				: 0,
+						"order_rec_id"   				: 0,
+						"asset_code"   					: "GLD",
+						"product_name"   				: "Elite Bar",
+						"product_type"   				: "Bar",
+						"product_price"   				: "PKR 240",
+						"product_weight"   				: "2g",
+						"status"   						: "Order Initiated",
+						"product_quantity"   			: 1,
+						"purchase_date"   				: "NOW()",
+						"item_code"   					: "Elite-241212"
+					}
+				]' AS JSON);
 -- =======================================================================
 -- row_metadta for all tables
 -- =======================================================================

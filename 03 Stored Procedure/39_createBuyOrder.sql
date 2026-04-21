@@ -1,9 +1,28 @@
+-- ==================================================================================================
+-- Procedure: 					createBuyOrder
+-- Purpose:   					Creates a new buy order for a customer. Handles SLICE and PRODUCT orders
+--								with Market and Limit order subtypes. Validates customer, inventory,
+--								rates, and wallet availability. Manages wallet transactions (metal 
+--								credit and cash debit). Generates order, receipt, and transaction numbers.
+--								Supports multiple items for PRODUCT orders and single item for SLICE.
+--
+-- Functions used in this Procedure:
+								-- isFalsy(): 					Validate the values come from reqObj
+								-- getJval(): 					Get value of JSON object using dot notation
+								-- getTemplate(): 				Get template of JSON column used in tables
+								-- getCustomer():				Retrieve customer information from database
+								-- getSequence():				Generate sequence numbers for order/receipt/transaction
+								-- wallet_activity():			Create wallet activity records for transactions
+-- ===================================================================================================
+    
+
+
     DROP PROCEDURE IF EXISTS createBuyOrder;
 
     DELIMITER $$
     CREATE PROCEDURE createBuyOrder(
-                                        IN  pjReqObj    JSON,
-                                        OUT pjRespObj    JSON
+                                        IN      pjReqObj    JSON,
+                                        INOUT  pjRespObj    JSON
                                     )
     BEGIN
 
@@ -45,6 +64,7 @@
         DECLARE v_item_quantity             INT;
         DECLARE v_bought_price              DECIMAL(20,6);
         DECLARE v_buy_items_output          JSON;
+        DECLARE v_customer_products_json    JSON            DEFAULT JSON_ARRAY();
 
         /* Order Summary Variables */
 
@@ -96,8 +116,8 @@
             GET STACKED DIAGNOSTICS CONDITION 1 v_err_msg = MESSAGE_TEXT;
             ROLLBACK;
     
-            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
-            SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 		CONCAT('Insertion failed', ' ' v_err_msg));
+            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
+            SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 	 CONCAT('Insertion failed: ', v_err_msg));
 
         END;
 
@@ -105,7 +125,6 @@
         /* ===================== Step 1: Extract Request Values ===================== */
         SET v_order_type            = 'Buy';
         SET v_account_number        = getJval(pjReqObj, 'jData.P_ACCOUNT_NUMBER');
-        SET v_asset_code            = getJval(pjReqObj, 'jData.P_ASSET_CODE');
         SET v_order_sub_type        = getJval(pjReqObj, 'jData.P_ORDER_SUB_TYPE');
         SET v_order_cat             = getJval(pjReqObj, 'jData.P_ORDER_CAT');
         SET v_metal                 = getJval(pjReqObj, 'jData.P_METAL');
@@ -122,10 +141,6 @@
             SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'account_number is required');
         END IF;
 
-        IF isFalsy(v_asset_code) THEN
-            SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'asset_code is required');
-        END IF;
-
         IF isFalsy(v_order_type) THEN
             SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'order_type is required');
         END IF;
@@ -140,8 +155,9 @@
 
         IF JSON_LENGTH(v_errors) > 0 THEN
         
-            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
-            SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', CONCAT('Validation failed: ', JSON_UNQUOTE(v_errors)));
+            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
+            SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 'Validation failed: ');
+            SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.errors', v_errors);
 
             LEAVE main_block;
         END IF;
@@ -154,44 +170,24 @@
         LIMIT 1;
 
         -- check if customer record exists for the provided account_number
-        IF v_customer_rec_id IS NULL THEN
+        IF isFalsy(v_customer_rec_id) THEN
             
-            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
+            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
             SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', 'Customer not found');
 
             LEAVE main_block;
         END IF;
 
-        CALL getCustomer(JSON_OBJECT('P_CUSTOMER_REC_ID', v_customer_rec_id), v_customer_json);
+        SET v_customer_json = getCustomer(v_customer_rec_id);
 
-        IF getJval(v_customer_json, 'status') != 'success' THEN
+        IF isFalsy(v_customer_json) THEN
            
-            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
+            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
             SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', CONCAT('Customer not found for account number: ', v_account_number));
             
             LEAVE main_block;
-        END IF;
-
-        SET v_customer_json = getJval(v_customer_json, 'customer_data');
-
-        /* ===================== Step 4: Fetch Latest Rate for Asset rate history ===================== */
-        SELECT   tradable_assets_rec_id,      tradable_assets_json
-        INTO     v_tradable_assets_rec_id,    v_rate_json
-        FROM     tradable_assets
-        WHERE    asset_code = v_asset_code
-        ORDER BY tradable_assets_rec_id DESC
-        LIMIT 1;
-
-        IF isFalsy(v_rate_json) THEN
             
-            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
-            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', CONCAT('Rate not found for asset_code: ', v_asset_code));
-            
-            LEAVE main_block;
-        END IF;
-
-        /* Extract spot_rate once - reused in buy_items price calculation */    
-        SET v_spot_rate = getJval(v_rate_json, 'spot_rate.current_rate');         
+        END IF;      
 
         /* ===================== Step 5: Generate Order & Receipt Numbers ===================== */
         CALL getSequence('ORDERS.ORDER_NUM',    NULL,   3000, 'createBuyOrder', v_order_number);
@@ -231,13 +227,6 @@
                                     '$.customer_info.longitude',                getJval(pjReqObj, 'jData.P_LONGITUDE'),
                                     '$.customer_info.notes',                    getJval(pjReqObj, 'jData.P_NOTES'),
 
-                                    '$.rate_info.rate_rec_id',                  v_tradable_assets_rec_id,
-                                    '$.rate_info.spot_rate',                    getJval(v_rate_json, 'spot_rate.current_rate'),
-                                    '$.rate_info.currency_unit',                getJval(v_rate_json, 'spot_rate.currency'),
-                                    '$.rate_info.rate_source',                  getJval(v_rate_json, 'spot_rate.url'),
-                                    '$.rate_info.foreign_exchange_rate',        getJval(v_rate_json, 'spot_rate.foreign_exchange_rate'),
-                                    '$.rate_info.foreign_exchange_source',      getJval(v_rate_json, 'spot_rate.foreign_exchange_source'),
-
                                     '$.customer_rec_id',                        v_customer_rec_id,
                                     '$.account_number',                         v_account_number,
                                     '$.order_number',                           v_order_number,
@@ -253,6 +242,8 @@
         /* ===================== Step 9: Branch by product_type ===================== */
         IF v_product_type = 'SLICE' THEN
 
+            SET v_item_code         = getJval(pjReqObj, 'jData.P_ITEM_CODE');
+
             /* Validate order_sub_type for SLICE */
             IF isFalsy(v_order_sub_type) THEN
                 SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'order_sub_type is required for SLICE order');
@@ -261,21 +252,23 @@
             /* ---------------------------------------------------------------
             SLICE: validate item_code + customer_request.weight (common to Market & Limit)
             --------------------------------------------------------------- */  
-            IF isFalsy(getJval(pjReqObj, 'jData.P_ITEM_CODE')) THEN
+            IF isFalsy(v_item_code) THEN
                 SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'item_code is required for SLICE order');
             END IF;
 
+
             IF JSON_LENGTH(v_errors) > 0 THEN
                 
-                SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
-                SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', CONCAT('Validation failed: ', JSON_UNQUOTE(v_errors)));
+                SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
+                SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', 'Validation failed: ');
+                SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.errors', v_errors);
+
                 LEAVE main_block;
             END IF;
 
             /* ---------------------------------------------------------------
             SLICE: lookup item_name + item_type from inventory table
             --------------------------------------------------------------- */
-            SET v_item_code         = getJval(pjReqObj, 'jData.P_ITEM_CODE');
 
             SELECT  inventory_json
             INTO    v_inventory_json
@@ -285,7 +278,7 @@
 
             IF isFalsy(v_inventory_json) THEN
                 
-                SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
+                SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
                 SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', CONCAT('Inventory item not found for item code: ', v_item_code));
                 
                 LEAVE main_block;
@@ -294,13 +287,43 @@
             SET v_item_weight      = getJval(pjReqObj,          'jData.P_ITEM_WEIGHT');
             SET v_item_name        = getJval(v_inventory_json,  'item_name');
             SET v_item_type        = getJval(v_inventory_json,  'item_type');
-            SET v_bought_price     = v_spot_rate * v_item_weight;
+            SET v_asset_code       = getJval(v_inventory_json,  'asset_code');  
+
+                    /* ===================== Fetch Latest Rate for Asset rate history ===================== */
+            SELECT   tradable_assets_rec_id,      tradable_assets_json
+            INTO     v_tradable_assets_rec_id,    v_rate_json
+            FROM     tradable_assets
+            WHERE    asset_code = v_asset_code
+            ORDER BY tradable_assets_rec_id DESC
+            LIMIT 1;
+            
+            IF isFalsy(v_rate_json) THEN
+                
+                SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
+                SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', CONCAT('Rate not found for asset_code: ', v_asset_code));
+               
+                LEAVE main_block;
+            END IF;
+
+              /* Extract spot_rate once - reused in buy_items price calculation */    
+            SET v_spot_rate = getJval(v_rate_json, 'spot_rate.current_rate');  
+
+            /*  Populate rate_info in order_json Now we have the rate  */
+            SET v_order_json = JSON_SET(v_order_json,
+                                        '$.rate_info.rate_rec_id',              v_tradable_assets_rec_id,
+                                        '$.rate_info.spot_rate',                v_spot_rate,
+                                        '$.rate_info.currency_unit',            getJval(v_rate_json, 'spot_rate.currency'),
+                                        '$.rate_info.rate_source',              getJval(v_rate_json, 'spot_rate.url'),
+                                        '$.rate_info.foreign_exchange_rate',    getJval(v_rate_json, 'spot_rate.foreign_exchange_rate'),
+                                        '$.rate_info.foreign_exchange_source',  getJval(v_rate_json, 'spot_rate.foreign_exchange_source')
+                                    );
 
             /* ---------------------------------------------------------------
             SLICE: build the single-element buy_items array
             --------------------------------------------------------------- */
             SET v_buy_items_output = JSON_ARRAY(
                                                 JSON_OBJECT(
+                                                            'asset_code',       v_asset_code,
                                                             'item_code',        v_item_code,
                                                             'item_name',        v_item_name,
                                                             'item_type',        v_item_type,
@@ -308,14 +331,19 @@
                                                             'item_weight',      v_item_weight,
                                                             'bought_price',     v_bought_price
                                                         )
-                                                );                                             
+                                                );  
+
+                                                     
 
             /* ------- sub-branch: Market ------- */
             IF v_order_sub_type = 'Market' THEN
 
+
                 IF isFalsy(getJval(pjReqObj, 'jData.P_CUSTOMER_REQUEST.P_AMOUNT')) THEN
                     SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'customer_request.amount is required for Market order');
                 END IF;
+
+                
 
                 IF isFalsy(getJval(pjReqObj, 'jData.P_ITEM_WEIGHT')) THEN
                     SET v_errors = JSON_ARRAY_APPEND(v_errors, '$', 'item_weight is required for Market order');
@@ -323,11 +351,18 @@
 
                 IF JSON_LENGTH(v_errors) > 0 THEN
                     
-                    SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
-                    SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', CONCAT('Validation failed: ', JSON_UNQUOTE(v_errors)));
-                    
+                    SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
+                    SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', 'Validation failed');
+                    SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.errors', v_errors);
+
                     LEAVE main_block;
-                END IF;
+                END IF; 
+
+                SET v_bought_price     = v_spot_rate * v_item_weight;
+                
+                SET v_buy_items_output = JSON_SET(v_buy_items_output, 
+                                                '$[0].bought_price', v_bought_price
+                                                );
 
                 SET v_order_cat = 'DO';
                 SET v_order_json = JSON_SET(v_order_json,
@@ -367,8 +402,9 @@
 
                 IF JSON_LENGTH(v_errors) > 0 THEN
                     
-                    SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
-                    SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', CONCAT('Validation failed: ', JSON_UNQUOTE(v_errors)));
+                    SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
+                    SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', 'Validation failed');
+                    SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.errors', v_errors);
                     
                     LEAVE main_block;
                 END IF;
@@ -378,6 +414,11 @@
                 SET v_cr_weight     = getJval(pjReqObj, 'jData.P_CUSTOMER_REQUEST.P_WEIGHT');
 
                 SET v_bought_price  = v_cr_rate * v_cr_weight;
+
+                -- update rate_info after setting v_cr_rate in Limit branch
+                SET v_order_json = JSON_SET(v_order_json,
+                    '$.rate_info.customer_requested_rate', v_cr_rate
+                );
 
                 /* Update the bought_price in the already-built array */
                 SET v_buy_items_output = JSON_SET(v_buy_items_output, 
@@ -400,7 +441,7 @@
 
             ELSE
 
-                SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
+                SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
                 SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', 'Unknown order_sub_type for SLICE. Must be Market or Limit');
                 LEAVE main_block;
             END IF;
@@ -414,7 +455,7 @@
 
             IF isFalsy(v_buy_items_input) OR JSON_LENGTH(v_buy_items_input) = 0 THEN
 
-                SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
+                SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
                 SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', 'buy_items array is required and must not be empty for PRODUCT order');
             
                 LEAVE main_block;
@@ -430,8 +471,9 @@
 
             IF JSON_LENGTH(v_errors) > 0 THEN
                    
-                    SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
-                    SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', CONCAT('Validation failed on buy_items: ', JSON_UNQUOTE(v_errors)));
+                    SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
+                    SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', 'Validation failed on buy_items');
+                    SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.errors', v_errors);
                     LEAVE main_block;
             END IF;
 
@@ -439,9 +481,9 @@
 
             /* Extract current item from input array */
                 SET v_single_item   = JSON_EXTRACT(v_buy_items_input, CONCAT('$[', v_loop_idx, ']'));
-                SET v_item_code     = getJval(v_single_item, 'item_code');
-                SET v_item_weight   = getJval(v_single_item, 'item_weight');
-                SET v_item_quantity = getJval(v_single_item, 'item_quantity');
+                SET v_item_code     = getJval(v_single_item, 'P_ITEM_CODE');
+                SET v_item_weight   = getJval(v_single_item, 'P_ITEM_WEIGHT');
+                SET v_item_quantity = getJval(v_single_item, 'P_ITEM_QUANTITY');
 
                 /* Per-item field validation */
                 IF isFalsy(v_item_code) THEN
@@ -462,13 +504,14 @@
 
                 IF JSON_LENGTH(v_errors) > 0 THEN
                     
-                    SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
-                    SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', CONCAT('Validation failed on buy_items: ', JSON_UNQUOTE(v_errors)));
+                    SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
+                    SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', 'Validation failed on buy_items');
+                    SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.errors', v_errors);
+
                     LEAVE main_block;
                 END IF;
 
                 /* Lookup item_name + item_type from inventory */
-                SET v_inventory_json = NULL;
 
                 SELECT  inventory_json
                 INTO    v_inventory_json
@@ -478,7 +521,7 @@
 
                 IF isFalsy(v_inventory_json) THEN
                     
-                    SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
+                    SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
                     SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', CONCAT('Inventory item not found for item_code: ', v_item_code));
                     
                     LEAVE main_block;
@@ -486,6 +529,23 @@
 
                 SET v_item_name    = getJval(v_inventory_json, 'item_name');
                 SET v_item_type    = getJval(v_inventory_json, 'item_type');
+                SET v_asset_code   = getJval(v_inventory_json, 'asset_code');
+
+            /*  Fetch spot_rate per item based on its own asset_code */
+                SELECT   tradable_assets_rec_id,   tradable_assets_json
+                INTO     v_tradable_assets_rec_id, v_rate_json
+                FROM     tradable_assets
+                WHERE    asset_code = v_asset_code
+                ORDER BY tradable_assets_rec_id DESC
+                LIMIT 1;
+
+                 IF isFalsy(v_rate_json) THEN
+                    SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
+                    SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', CONCAT('Rate not found for asset_code: ', v_asset_code));
+                    LEAVE main_block;
+                END IF;
+
+                SET v_spot_rate             = getJval(v_rate_json, 'spot_rate.current_rate');
 
                 /* bought_price = spot_rate * item_weight * item_quantity */
                 SET v_bought_price          = v_spot_rate * v_item_weight * v_item_quantity;
@@ -494,11 +554,13 @@
                 SET v_buy_items_output = JSON_ARRAY_APPEND( v_buy_items_output,
                                                             '$',
                                                             JSON_OBJECT(
+                                                                        'asset_code',       v_asset_code,
                                                                         'item_code',        v_item_code,
                                                                         'item_name',        v_item_name,
                                                                         'item_type',        v_item_type,
                                                                         'item_quantity',    v_item_quantity,
                                                                         'item_weight',      v_item_weight,
+                                                                        'spot_rate',        v_spot_rate,
                                                                         'bought_price',     v_bought_price
                                                                         )
                                                         );
@@ -507,6 +569,10 @@
 
             END WHILE;
 
+            /*Store a note at order level instead */
+            SET v_order_json = JSON_SET(v_order_json,
+                                        '$.rate_info',  'See individual buy_items for per-item rate details'
+                                        );
             /* ---------------------------------------------------------------
             PRODUCT: merge into order_json
             --------------------------------------------------------------- */
@@ -521,7 +587,7 @@
 
         ELSE
            
-            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
+            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
             SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', 'Unknown product_type for Buy. Must be SLICE or PRODUCT');
             LEAVE main_block;
         END IF;
@@ -535,7 +601,7 @@
 
         WHILE v_loop_idx < v_items_count DO
 
-            SET v_single_item = JSON_EXTRACT(v_buy_items_output, CONCAT('$[', v_loop_idx, ']'));
+            SET v_single_item       = JSON_EXTRACT(v_buy_items_output, CONCAT('$[', v_loop_idx, ']'));
             
             SET v_total_buy_items   = v_total_buy_items +  CAST(getJval(v_single_item, 'item_quantity') AS UNSIGNED);
             SET v_total_buy_weight  = v_total_buy_weight + CAST(getJval(v_single_item, 'item_weight')   AS DECIMAL(20,6)) * CAST(getJval(v_single_item, 'item_quantity') AS DECIMAL(20,6));
@@ -575,7 +641,7 @@
         /* Now validate */
         IF v_total_order_amount < 0 THEN
             
-            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
+            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
             SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', 'Net Buy amount cannot be negative');
             LEAVE main_block;
         END IF;  
@@ -603,7 +669,7 @@
 
         IF v_wallets_arr IS NULL OR JSON_LENGTH(v_wallets_arr) = 0 THEN
            
-            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
+            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
             SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', 'Customer wallets not found');
             LEAVE main_block;
         END IF;
@@ -639,15 +705,17 @@
         /* ---- 11.2 : Guard - wallets must exist ---- */
         IF v_product_type != 'PRODUCT' AND isFalsy(v_metal_wallet_id) THEN
             
-            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
+            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
             SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', CONCAT('Metal wallet not found for asset_code', ' ', v_asset_code));
+
             LEAVE main_block;
         END IF;
 
         IF isFalsy(v_cash_wallet_id) THEN
             
-            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
+            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
             SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', CONCAT('Cash wallet not found for customer', ' ', v_account_number));
+            
             LEAVE main_block;
         END IF;
 
@@ -672,7 +740,7 @@
         /* ---- 11.4b : Guard - insufficient cash balance ---- */
         IF v_cash_balance_after < 0 THEN
            
-            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
+            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
             SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', CONCAT('Insufficient cash balance', ' ','balance: ', v_cash_balance_before, ', transaction amount: ', v_cash_txn_amount));
             LEAVE main_block;
         END IF;
@@ -780,43 +848,47 @@
         /* ---- 11.10 : Update customer_products for PRODUCT orders ---- */
         IF v_product_type = 'PRODUCT' THEN
 
-            -- Initialize customer_products if not exists
-            IF getJVal(v_customer_json, 'customer_products') IS NULL THEN
-                SET v_customer_json = JSON_SET(v_customer_json, '$.customer_products', JSON_ARRAY());
-            END IF;
-
             -- Loop through buy_items and append to customer_products
+            SET v_items_count = JSON_LENGTH(v_buy_items_output);
             SET v_loop_idx = 0;
+            
             WHILE v_loop_idx < v_items_count DO
-            SET v_single_item     = JSON_EXTRACT(v_buy_items_output, CONCAT('$[', v_loop_idx, ']'));
-            SET v_customer_json   = JSON_ARRAY_APPEND(v_customer_json,
-                                                      '$.customer_products', JSON_OBJECT(
-                                                                                        'asset_code',           v_asset_code,
-                                                                                        'product_name',         getJVal(v_single_item, 'item_name'),
-                                                                                        'product_type',         getJVal(v_single_item, 'item_type'),
-                                                                                        'product_price',        getJVal(v_single_item, 'bought_price'),
-                                                                                        'product_weight',       getJVal(v_single_item, 'item_weight'),
-                                                                                        'status',               'Not Picked up',
-                                                                                        'product_quantity',     getJVal(v_single_item, 'item_quantity'),
-                                                                                        'order_rec_id',         v_order_rec_id,
-                                                                                        'purchase_date',        DATE_FORMAT(NOW(), '%Y-%m-%dT%H:%i:%sZ'),
-                                                                                        'item_code',            getJval(v_single_item, 'item_code')
-                                                                                        )
-                                                  );
-                                                    
 
-                SET v_loop_idx = v_loop_idx + 1;
+                SET v_single_item             = JSON_EXTRACT(v_buy_items_output, CONCAT('$[', v_loop_idx, ']'));
+
+                SET v_customer_products_json  = JSON_ARRAY_APPEND(v_customer_products_json, '$', 
+                                                                JSON_OBJECT(
+                                                                                'asset_code',           getJVal(v_single_item, 'asset_code'),
+                                                                                'product_name',         getJVal(v_single_item, 'item_name'),
+                                                                                'product_type',         getJVal(v_single_item, 'item_type'),
+                                                                                'product_price',        getJVal(v_single_item, 'bought_price'),
+                                                                                'product_weight',       getJVal(v_single_item, 'item_weight'),
+                                                                                'status',               'Not Picked up',
+                                                                                'product_quantity',     getJVal(v_single_item, 'item_quantity'),
+                                                                                'order_rec_id',         v_order_rec_id,
+                                                                                'customer_rec_id',      v_customer_rec_id,
+                                                                                'purchase_date',        DATE_FORMAT(NOW(), '%Y-%m-%dT%H:%i:%sZ'),
+                                                                                'item_code',            getJval(v_single_item, 'item_code')
+                                                                            )
+                                                                );
+
+                    SET v_loop_idx = v_loop_idx + 1;
+
             END WHILE;
 
-            UPDATE customer 
-            SET   customer_json   = v_customer_json
-            WHERE customer_rec_id = v_customer_rec_id;
+        INSERT INTO customer_products
+        SET customer_rec_id         = v_customer_rec_id,
+            order_rec_id            = v_order_rec_id,
+            order_type              = v_order_type,
+            status                  = 'Not Picked up',
+            customer_products_json  = v_customer_products_json,
+            row_metadata            = v_row_metadata;
         END IF;
 
         /* ===================== Step 12: Success Response ===================== */
  
-        SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 	0);
-        SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 		'Buy order created successfully for order number: ', v_order_number);
+        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 	0);
+        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message',    CONCAT('Buy order created successfully for order number: ', v_order_number));
 
         END main_block;
 

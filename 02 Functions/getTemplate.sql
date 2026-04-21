@@ -1004,7 +1004,7 @@ BEGIN
 
 
 -- =======================================================================
--- metal_news for all tables
+-- metal_news.metal_news_json
 -- =======================================================================
 		WHEN 'metal_news' THEN
 			RETURN CAST(
@@ -1018,6 +1018,29 @@ BEGIN
 					"content_type"   							  : null,
 					"content_summary"   						  : null
 				}
+				]' AS JSON);
+
+
+-- =======================================================================
+-- customer_products.customer_products_json
+-- =======================================================================
+		WHEN 'customer_products' THEN
+			RETURN CAST(
+				'[
+					{
+						"customer_rec_id"  				: null,
+						"order_rec_id"   				: null,
+						"asset_code"   					: null,
+						"product_name"   				: null,
+						"product_type"   				: null,
+						"product_price"   				: null,
+						"product_weight"   				: null,
+						"status"   						: null
+						"product_quantity"   			: null
+						"purchase_date"   				: null
+						"item_code"   					: null
+
+					}
 				]' AS JSON);
 
 -- =======================================================================

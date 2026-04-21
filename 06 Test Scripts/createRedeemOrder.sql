@@ -1,16 +1,16 @@
 /* =====================================================================
-   TEST SCRIPT : createRedeemOrder
+   TEST SCRIPT : createRedeemOrder via requestHandler
    =====================================================================
    Each test:
-     1. Sets @req  (the JSON input)
-     2. CALLs the SP
-     3. SELECTs @res  (the JSON output) with a label
+     1. Sets @reqObj  (the JSON input with jHeader and jData)
+     2. CALLs requestHandler
+     3. SELECTs @pjObj  (the JSON output) with a label
      4. Optionally verifies side-effects (orders table, wallet_ledger)
 
    Tests are grouped by:
-     A.  Validation failures          (status_code 2)
-     B.  Lookup failures              (status_code 3 / 4 / 6 / 7 / 8 / 9 / 10 / 11 / 12)
-     C.  Happy path                   (status_code 0)
+     A.  Validation failures          (respCode 1)
+     B.  Lookup failures              (respCode 1 with specific messages)
+     C.  Happy path                   (respCode 0)
      D.  Side-effect verification     (orders, wallet_ledger rows)
 
    Prerequisites — the following must exist in your DB before running:
@@ -27,226 +27,289 @@
 
 
 /* =====================================================================
-   SECTION A : Validation Failures  (status_code 2)
+   SECTION A : Validation Failures  (respCode 1)
    ===================================================================== */
 
 -- --------------------------------------------------------------------
 -- TEST A-1 : Missing account_number
--- Expected  : status=error, status_code=2, errors contains 'account_number is required'
+-- Expected  : respCode=1, validation failed: account_number required
 -- --------------------------------------------------------------------
 SELECT '=== TEST A-1 : Missing account_number ===' AS test_case;
 
-SET @req = JSON_OBJECT(
-    'asset_code',       'GLD',
-    'metal',            'Gold',
-    'customer_request', JSON_OBJECT(
-        'payment_method', 'Bank Transfer',
-        'weight',         10.0
-    ),
-    'redeem_items',     JSON_ARRAY(
-        JSON_OBJECT(
-            'item_code',     'GLD-BAR-1G',
-            'item_weight',   1.0,
-            'item_quantity', 10
-        )
-    )
-);
-
-CALL createRedeemOrder(@req, @res);
-SELECT JSON_PRETTY(@res) AS result;
+SET @reqObj = '{
+  "jHeader": {
+    "accessToken": "fad9017e31bd0927a6bc42996df9e22708b736112f3ef801fd30d7213c146a03",
+    "accessKey":   "0f5aac120ac2746e8548dcdb565b06d9772248b51ab669f45c08dc51a4291f16"
+  },
+  "jData": {
+    "P_ACTION_CODE":        "ORD.I.REDEEM_ORDER",
+    "P_APP_NAME":           "customer-app",
+    "P_ASSET_CODE":         "GLD",
+    "P_METAL":              "Gold",
+    "P_CUSTOMER_REQUEST": {
+      "P_PAYMENT_METHOD":   "Bank Transfer",
+      "P_WEIGHT":           10.0
+    },
+    "P_REDEEM_ITEMS": [
+      {
+        "P_ITEM_CODE":      "GLD-BAR-1G",
+        "P_ITEM_WEIGHT":    1.0,
+        "P_ITEM_QUANTITY":  10
+      }
+    ]
+  }
+}';
+CALL requestHandler("127.0.0.0", "GFT - Customer App", "ORD.I.REDEEM_ORDER", @reqObj, @pjObj);
+SELECT @pjObj;
 
 -- --------------------------------------------------------------------
 -- TEST A-2 : Missing asset_code
--- Expected  : status=error, status_code=2, errors contains 'asset_code is required'
+-- Expected  : respCode=1, validation failed: asset_code required
 -- --------------------------------------------------------------------
 SELECT '=== TEST A-2 : Missing asset_code ===' AS test_case;
 
-SET @req = JSON_OBJECT(
-    'account_number',   'P-501',
-    'metal',            'Gold',
-    'customer_request', JSON_OBJECT(
-        'payment_method', 'Bank Transfer',
-        'weight',         10.0
-    ),
-    'redeem_items',     JSON_ARRAY(
-        JSON_OBJECT(
-            'item_code',     'GLD-BAR-1G',
-            'item_weight',   1.0,
-            'item_quantity', 10
-        )
-    )
-);
-
-CALL createRedeemOrder(@req, @res);
-SELECT JSON_PRETTY(@res) AS result;
+SET @reqObj = '{
+  "jHeader": {
+    "accessToken": "fad9017e31bd0927a6bc42996df9e22708b736112f3ef801fd30d7213c146a03",
+    "accessKey":   "0f5aac120ac2746e8548dcdb565b06d9772248b51ab669f45c08dc51a4291f16"
+  },
+  "jData": {
+    "P_ACTION_CODE":        "ORD.I.REDEEM_ORDER",
+    "P_APP_NAME":           "customer-app",
+    "P_ACCOUNT_NUMBER":     "P-501",
+    "P_METAL":              "Gold",
+    "P_CUSTOMER_REQUEST": {
+      "P_PAYMENT_METHOD":   "Bank Transfer",
+      "P_WEIGHT":           10.0
+    },
+    "P_REDEEM_ITEMS": [
+      {
+        "P_ITEM_CODE":      "GLD-BAR-1G",
+        "P_ITEM_WEIGHT":    1.0,
+        "P_ITEM_QUANTITY":  10
+      }
+    ]
+  }
+}';
+CALL requestHandler("127.0.0.0", "GFT - Customer App", "ORD.I.REDEEM_ORDER", @reqObj, @pjObj);
+SELECT @pjObj;
 
 -- --------------------------------------------------------------------
 -- TEST A-3 : Missing metal
--- Expected  : status=error, status_code=2, errors contains 'metal is required'
+-- Expected  : respCode=1, validation failed: metal required
 -- --------------------------------------------------------------------
 SELECT '=== TEST A-3 : Missing metal ===' AS test_case;
 
-SET @req = JSON_OBJECT(
-    'account_number',   'P-501',
-    'asset_code',       'GLD',
-    'customer_request', JSON_OBJECT(
-        'weight',         10.0
-    ),
-    'redeem_items',     JSON_ARRAY(
-        JSON_OBJECT(
-            'item_code',     'GLD-BAR-1G',
-            'item_weight',   1.0,
-            'item_quantity', 10
-        )
-    )
-);
-
-CALL createRedeemOrder(@req, @res);
-SELECT JSON_PRETTY(@res) AS result;
+SET @reqObj = '{
+  "jHeader": {
+    "accessToken": "fad9017e31bd0927a6bc42996df9e22708b736112f3ef801fd30d7213c146a03",
+    "accessKey":   "0f5aac120ac2746e8548dcdb565b06d9772248b51ab669f45c08dc51a4291f16"
+  },
+  "jData": {
+    "P_ACTION_CODE":        "ORD.I.REDEEM_ORDER",
+    "P_APP_NAME":           "customer-app",
+    "P_ACCOUNT_NUMBER":     "P-501",
+    "P_ASSET_CODE":         "GLD",
+    "P_CUSTOMER_REQUEST": {
+      "P_WEIGHT":           10.0
+    },
+    "P_REDEEM_ITEMS": [
+      {
+        "P_ITEM_CODE":      "GLD-BAR-1G",
+        "P_ITEM_WEIGHT":    1.0,
+        "P_ITEM_QUANTITY":  10
+      }
+    ]
+  }
+}';
+CALL requestHandler("127.0.0.0", "GFT - Customer App", "ORD.I.REDEEM_ORDER", @reqObj, @pjObj);
+SELECT @pjObj;
 
 -- --------------------------------------------------------------------
--- TEST A-4 : Missing customer_request.payment_method
--- Expected  : status=error, status_code=2, errors contains 'customer_request.payment_method is required'
+-- TEST A-4 : Missing payment_method
+-- Expected  : respCode=1, validation failed: payment_method required
 -- --------------------------------------------------------------------
 SELECT '=== TEST A-4 : Missing payment_method ===' AS test_case;
 
-SET @req = JSON_OBJECT(
-    'account_number',   'P-501',
-    'asset_code',       'GLD',
-    'metal',            'Gold',
-    'customer_request', JSON_OBJECT(
-        'weight',         10.0
-    ),
-    'redeem_items',     JSON_ARRAY(
-        JSON_OBJECT(
-            'item_code',     'GLD-BAR-1G',
-            'item_weight',   1.0,
-            'item_quantity', 10
-        )
-    )
-);
-
-CALL createRedeemOrder(@req, @res);
-SELECT JSON_PRETTY(@res) AS result;
+SET @reqObj = '{
+  "jHeader": {
+    "accessToken": "fad9017e31bd0927a6bc42996df9e22708b736112f3ef801fd30d7213c146a03",
+    "accessKey":   "0f5aac120ac2746e8548dcdb565b06d9772248b51ab669f45c08dc51a4291f16"
+  },
+  "jData": {
+    "P_ACTION_CODE":        "ORD.I.REDEEM_ORDER",
+    "P_APP_NAME":           "customer-app",
+    "P_ACCOUNT_NUMBER":     "P-501",
+    "P_ASSET_CODE":         "GLD",
+    "P_METAL":              "Gold",
+    "P_CUSTOMER_REQUEST": {
+      "P_WEIGHT":           10.0
+    },
+    "P_REDEEM_ITEMS": [
+      {
+        "P_ITEM_CODE":      "GLD-BAR-1G",
+        "P_ITEM_WEIGHT":    1.0,
+        "P_ITEM_QUANTITY":  10
+      }
+    ]
+  }
+}';
+CALL requestHandler("127.0.0.0", "GFT - Customer App", "ORD.I.REDEEM_ORDER", @reqObj, @pjObj);
+SELECT @pjObj;
 
 -- --------------------------------------------------------------------
--- TEST A-5 : Missing customer_request.weight
--- Expected  : status=error, status_code=2, errors contains 'customer_request.weight is required and must be greater than 0'
+-- TEST A-5 : Missing weight
+-- Expected  : respCode=1, validation failed: weight required
 -- --------------------------------------------------------------------
 SELECT '=== TEST A-5 : Missing weight ===' AS test_case;
 
-SET @req = JSON_OBJECT(
-    'account_number',   'P-501',
-    'asset_code',       'GLD',
-    'metal',            'Gold',
-    'redeem_items',     JSON_ARRAY(
-        JSON_OBJECT(
-            'item_code',     'GLD-BAR-1G',
-            'item_weight',   1.0,
-            'item_quantity', 10
-        )
-    )
-);
-
-CALL createRedeemOrder(@req, @res);
-SELECT JSON_PRETTY(@res) AS result;
+SET @reqObj = '{
+  "jHeader": {
+    "accessToken": "fad9017e31bd0927a6bc42996df9e22708b736112f3ef801fd30d7213c146a03",
+    "accessKey":   "0f5aac120ac2746e8548dcdb565b06d9772248b51ab669f45c08dc51a4291f16"
+  },
+  "jData": {
+    "P_ACTION_CODE":        "ORD.I.REDEEM_ORDER",
+    "P_APP_NAME":           "customer-app",
+    "P_ACCOUNT_NUMBER":     "P-501",
+    "P_ASSET_CODE":         "GLD",
+    "P_METAL":              "Gold",
+    "P_REDEEM_ITEMS": [
+      {
+        "P_ITEM_CODE":      "GLD-BAR-1G",
+        "P_ITEM_WEIGHT":    1.0,
+        "P_ITEM_QUANTITY":  10
+      }
+    ]
+  }
+}';
+CALL requestHandler("127.0.0.0", "GFT - Customer App", "ORD.I.REDEEM_ORDER", @reqObj, @pjObj);
+SELECT @pjObj;
 
 -- --------------------------------------------------------------------
 -- TEST A-6 : Zero weight
--- Expected  : status=error, status_code=2, errors contains 'customer_request.weight is required and must be greater than 0'
+-- Expected  : respCode=1, validation failed: weight must be greater than 0
 -- --------------------------------------------------------------------
 SELECT '=== TEST A-6 : Zero weight ===' AS test_case;
 
-SET @req = JSON_OBJECT(
-    'account_number',   'P-501',
-    'asset_code',       'GLD',
-    'metal',            'Gold',
-    'customer_request', JSON_OBJECT(
-        'payment_method', 'Bank Transfer',
-        'weight',         0.0
-    ),
-    'redeem_items',     JSON_ARRAY(
-        JSON_OBJECT(
-            'item_code',     'GLD-BAR-1G',
-            'item_weight',   1.0,
-            'item_quantity', 10
-        )
-    )
-);
-
-CALL createRedeemOrder(@req, @res);
-SELECT JSON_PRETTY(@res) AS result;
+SET @reqObj = '{
+  "jHeader": {
+    "accessToken": "fad9017e31bd0927a6bc42996df9e22708b736112f3ef801fd30d7213c146a03",
+    "accessKey":   "0f5aac120ac2746e8548dcdb565b06d9772248b51ab669f45c08dc51a4291f16"
+  },
+  "jData": {
+    "P_ACTION_CODE":        "ORD.I.REDEEM_ORDER",
+    "P_APP_NAME":           "customer-app",
+    "P_ACCOUNT_NUMBER":     "P-501",
+    "P_ASSET_CODE":         "GLD",
+    "P_METAL":              "Gold",
+    "P_CUSTOMER_REQUEST": {
+      "P_PAYMENT_METHOD":   "Bank Transfer",
+      "P_WEIGHT":           0.0
+    },
+    "P_REDEEM_ITEMS": [
+      {
+        "P_ITEM_CODE":      "GLD-BAR-1G",
+        "P_ITEM_WEIGHT":    1.0,
+        "P_ITEM_QUANTITY":  10
+      }
+    ]
+  }
+}';
+CALL requestHandler("127.0.0.0", "GFT - Customer App", "ORD.I.REDEEM_ORDER", @reqObj, @pjObj);
+SELECT @pjObj;
 
 -- --------------------------------------------------------------------
 -- TEST A-7 : Empty redeem_items
--- Expected  : status=error, status_code=2, errors contains 'redeem_items array is required and must not be empty'
+-- Expected  : respCode=1, validation failed: redeem_items required and not empty
 -- --------------------------------------------------------------------
 SELECT '=== TEST A-7 : Empty redeem_items ===' AS test_case;
 
-SET @req = JSON_OBJECT(
-    'account_number',   'P-501',
-    'asset_code',       'GLD',
-    'metal',            'Gold',
-    'customer_request', JSON_OBJECT(
-        'payment_method', 'Bank Transfer',
-        'weight',         10.0
-    ),
-    'redeem_items',     JSON_ARRAY()
-);
-
-CALL createRedeemOrder(@req, @res);
-SELECT JSON_PRETTY(@res) AS result;
+SET @reqObj = '{
+  "jHeader": {
+    "accessToken": "fad9017e31bd0927a6bc42996df9e22708b736112f3ef801fd30d7213c146a03",
+    "accessKey":   "0f5aac120ac2746e8548dcdb565b06d9772248b51ab669f45c08dc51a4291f16"
+  },
+  "jData": {
+    "P_ACTION_CODE":        "ORD.I.REDEEM_ORDER",
+    "P_APP_NAME":           "customer-app",
+    "P_ACCOUNT_NUMBER":     "P-501",
+    "P_ASSET_CODE":         "GLD",
+    "P_METAL":              "Gold",
+    "P_CUSTOMER_REQUEST": {
+      "P_PAYMENT_METHOD":   "Bank Transfer",
+      "P_WEIGHT":           10.0
+    },
+    "P_REDEEM_ITEMS": []
+  }
+}';
+CALL requestHandler("127.0.0.0", "GFT - Customer App", "ORD.I.REDEEM_ORDER", @reqObj, @pjObj);
+SELECT @pjObj;
 
 -- --------------------------------------------------------------------
--- TEST A-8 : Missing item_code in redeem_items
--- Expected  : status=error, status_code=2, errors contains 'redeem_items[0].item_code is required'
+-- TEST A-8 : Missing item_code
+-- Expected  : respCode=1, validation failed: item_code required
 -- --------------------------------------------------------------------
 SELECT '=== TEST A-8 : Missing item_code ===' AS test_case;
 
-SET @req = JSON_OBJECT(
-    'account_number',   'P-501',
-    'asset_code',       'GLD',
-    'metal',            'Gold',
-    'customer_request', JSON_OBJECT(
-        'payment_method', 'Bank Transfer',
-        'weight',         10.0
-    ),
-    'redeem_items',     JSON_ARRAY(
-        JSON_OBJECT(
-            'item_weight',   1.0,
-            'item_quantity', 10
-        )
-    )
-);
-
-CALL createRedeemOrder(@req, @res);
-SELECT JSON_PRETTY(@res) AS result;
+SET @reqObj = '{
+  "jHeader": {
+    "accessToken": "fad9017e31bd0927a6bc42996df9e22708b736112f3ef801fd30d7213c146a03",
+    "accessKey":   "0f5aac120ac2746e8548dcdb565b06d9772248b51ab669f45c08dc51a4291f16"
+  },
+  "jData": {
+    "P_ACTION_CODE":        "ORD.I.REDEEM_ORDER",
+    "P_APP_NAME":           "customer-app",
+    "P_ACCOUNT_NUMBER":     "P-501",
+    "P_ASSET_CODE":         "GLD",
+    "P_METAL":              "Gold",
+    "P_CUSTOMER_REQUEST": {
+      "P_PAYMENT_METHOD":   "Bank Transfer",
+      "P_WEIGHT":           10.0
+    },
+    "P_REDEEM_ITEMS": [
+      {
+        "P_ITEM_WEIGHT":    1.0,
+        "P_ITEM_QUANTITY":  10
+      }
+    ]
+  }
+}';
+CALL requestHandler("127.0.0.0", "GFT - Customer App", "ORD.I.REDEEM_ORDER", @reqObj, @pjObj);
+SELECT @pjObj;
 
 -- --------------------------------------------------------------------
 -- TEST A-9 : Weight mismatch
--- Expected  : status=error, status_code=2, message 'customer_request.weight does not match total weight of selected redeem items'
+-- Expected  : respCode=1, weight does not match total weight of items
 -- --------------------------------------------------------------------
 SELECT '=== TEST A-9 : Weight mismatch ===' AS test_case;
 
-    SET @req = JSON_OBJECT(
-        'account_number',   'P-501',
-        'asset_code',       'GLD',
-        'metal',            'Gold',
-        'customer_request', JSON_OBJECT(
-            'payment_method', 'Bank Transfer',
-            'weight',         5.0  -- mismatch: items total 10.0
-        ),
-        'redeem_items',     JSON_ARRAY(
-            JSON_OBJECT(
-                'item_code',     'GLD-241212',
-                'item_weight',   1.0,
-                'item_quantity', 10
-            )
-        )
-    );
-
-    CALL createRedeemOrder(@req, @res);
-    SELECT JSON_PRETTY(@res) AS result;
+SET @reqObj = '{
+  "jHeader": {
+    "accessToken": "fad9017e31bd0927a6bc42996df9e22708b736112f3ef801fd30d7213c146a03",
+    "accessKey":   "0f5aac120ac2746e8548dcdb565b06d9772248b51ab669f45c08dc51a4291f16"
+  },
+  "jData": {
+    "P_ACTION_CODE":        "ORD.I.REDEEM_ORDER",
+    "P_APP_NAME":           "customer-app",
+    "P_ACCOUNT_NUMBER":     "P-501",
+    "P_ASSET_CODE":         "GLD",
+    "P_METAL":              "Gold",
+    "P_CUSTOMER_REQUEST": {
+      "P_PAYMENT_METHOD":   "Bank Transfer",
+      "P_WEIGHT":           5.0
+    },
+    "P_REDEEM_ITEMS": [
+      {
+        "P_ITEM_CODE":      "GLD-241212",
+        "P_ITEM_WEIGHT":    1.0,
+        "P_ITEM_QUANTITY":  10
+      }
+    ]
+  }
+}';
+CALL requestHandler("127.0.0.0", "GFT - Customer App", "ORD.I.REDEEM_ORDER", @reqObj, @pjObj);
+SELECT @pjObj;
 
 /* =====================================================================
    SECTION B : Lookup Failures
@@ -254,283 +317,351 @@ SELECT '=== TEST A-9 : Weight mismatch ===' AS test_case;
 
 -- --------------------------------------------------------------------
 -- TEST B-1 : Customer not found
--- Expected  : status=error, status_code=3, message 'Customer not found'
+-- Expected  : respCode=1, Customer not found
 -- --------------------------------------------------------------------
 SELECT '=== TEST B-1 : Customer not found ===' AS test_case;
 
-SET @req = JSON_OBJECT(
-    'account_number',   'NONEXISTENT',
-    'asset_code',       'GLD',
-    'metal',            'Gold',
-    'customer_request', JSON_OBJECT(
-        'payment_method', 'Bank Transfer',
-        'weight',         10.0
-    ),
-    'redeem_items',     JSON_ARRAY(
-        JSON_OBJECT(
-            'item_code',     'GLD-241212',
-            'item_weight',   1.0,
-            'item_quantity', 10
-        )
-    )
-);
-
-CALL createRedeemOrder(@req, @res);
-SELECT JSON_PRETTY(@res) AS result;
+SET @reqObj = '{
+  "jHeader": {
+    "accessToken": "fad9017e31bd0927a6bc42996df9e22708b736112f3ef801fd30d7213c146a03",
+    "accessKey":   "0f5aac120ac2746e8548dcdb565b06d9772248b51ab669f45c08dc51a4291f16"
+  },
+  "jData": {
+    "P_ACTION_CODE":        "ORD.I.REDEEM_ORDER",
+    "P_APP_NAME":           "customer-app",
+    "P_ACCOUNT_NUMBER":     "NONEXISTENT",
+    "P_ASSET_CODE":         "GLD",
+    "P_METAL":              "Gold",
+    "P_CUSTOMER_REQUEST": {
+      "P_PAYMENT_METHOD":   "Bank Transfer",
+      "P_WEIGHT":           10.0
+    },
+    "P_REDEEM_ITEMS": [
+      {
+        "P_ITEM_CODE":      "GLD-241212",
+        "P_ITEM_WEIGHT":    1.0,
+        "P_ITEM_QUANTITY":  10
+      }
+    ]
+  }
+}';
+CALL requestHandler("127.0.0.0", "GFT - Customer App", "ORD.I.REDEEM_ORDER", @reqObj, @pjObj);
+SELECT @pjObj;
 
 -- --------------------------------------------------------------------
 -- TEST B-2 : Rate not found
--- Expected  : status=error, status_code=4, message 'Rate not found for asset_code'
+-- Expected  : respCode=1, Rate not found for asset_code
 -- --------------------------------------------------------------------
 SELECT '=== TEST B-2 : Rate not found ===' AS test_case;
 
-SET @req = JSON_OBJECT(
-    'account_number',   'P-501',
-    'asset_code',       'gdfgd',
-    'metal',            'Gold',
-    'customer_request', JSON_OBJECT(
-        'payment_method', 'Bank Transfer',
-        'weight',         10.0
-    ),
-    'redeem_items',     JSON_ARRAY(
-        JSON_OBJECT(
-            'item_code',     'GLD-241212',
-            'item_weight',   1.0,
-            'item_quantity', 10
-        )
-    )
-);
-
-CALL createRedeemOrder(@req, @res);
-SELECT JSON_PRETTY(@res) AS result;
+SET @reqObj = '{
+  "jHeader": {
+    "accessToken": "fad9017e31bd0927a6bc42996df9e22708b736112f3ef801fd30d7213c146a03",
+    "accessKey":   "0f5aac120ac2746e8548dcdb565b06d9772248b51ab669f45c08dc51a4291f16"
+  },
+  "jData": {
+    "P_ACTION_CODE":        "ORD.I.REDEEM_ORDER",
+    "P_APP_NAME":           "customer-app",
+    "P_ACCOUNT_NUMBER":     "P-501",
+    "P_ASSET_CODE":         "gdfgd",
+    "P_METAL":              "Gold",
+    "P_CUSTOMER_REQUEST": {
+      "P_PAYMENT_METHOD":   "Bank Transfer",
+      "P_WEIGHT":           10.0
+    },
+    "P_REDEEM_ITEMS": [
+      {
+        "P_ITEM_CODE":      "GLD-241212",
+        "P_ITEM_WEIGHT":    1.0,
+        "P_ITEM_QUANTITY":  10
+      }
+    ]
+  }
+}';
+CALL requestHandler("127.0.0.0", "GFT - Customer App", "ORD.I.REDEEM_ORDER", @reqObj, @pjObj);
+SELECT @pjObj;
 
 -- --------------------------------------------------------------------
 -- TEST B-3 : Inventory item not found
--- Expected  : status=error, status_code=6, message 'Inventory item not found for item_code'
+-- Expected  : respCode=1, Inventory item not found for item_code
 -- --------------------------------------------------------------------
 SELECT '=== TEST B-3 : Inventory item not found ===' AS test_case;
 
-SET @req = JSON_OBJECT(
-    'account_number',   'P-501',
-    'asset_code',       'GLD',
-    'metal',            'Gold',
-    'customer_request', JSON_OBJECT(
-        'payment_method', 'Bank Transfer',
-        'weight',         10.0
-    ),
-    'redeem_items',     JSON_ARRAY(
-        JSON_OBJECT(
-            'item_code',     'NONEXISTENT',
-            'item_weight',   1.0,
-            'item_quantity', 10
-        )
-    )
-);
-
-CALL createRedeemOrder(@req, @res);
-SELECT JSON_PRETTY(@res) AS result;
+SET @reqObj = '{
+  "jHeader": {
+    "accessToken": "fad9017e31bd0927a6bc42996df9e22708b736112f3ef801fd30d7213c146a03",
+    "accessKey":   "0f5aac120ac2746e8548dcdb565b06d9772248b51ab669f45c08dc51a4291f16"
+  },
+  "jData": {
+    "P_ACTION_CODE":        "ORD.I.REDEEM_ORDER",
+    "P_APP_NAME":           "customer-app",
+    "P_ACCOUNT_NUMBER":     "P-501",
+    "P_ASSET_CODE":         "GLD",
+    "P_METAL":              "Gold",
+    "P_CUSTOMER_REQUEST": {
+      "P_PAYMENT_METHOD":   "Bank Transfer",
+      "P_WEIGHT":           10.0
+    },
+    "P_REDEEM_ITEMS": [
+      {
+        "P_ITEM_CODE":      "NONEXISTENT",
+        "P_ITEM_WEIGHT":    1.0,
+        "P_ITEM_QUANTITY":  10
+      }
+    ]
+  }
+}';
+CALL requestHandler("127.0.0.0", "GFT - Customer App", "ORD.I.REDEEM_ORDER", @reqObj, @pjObj);
+SELECT @pjObj;
 
 -- --------------------------------------------------------------------
 -- TEST B-4 : Metal wallet not found
--- Expected  : status=error, status_code=7, message 'Metal wallet not found for asset_code'
+-- Expected  : respCode=1, Metal wallet not found for asset_code
 -- --------------------------------------------------------------------
 SELECT '=== TEST B-4 : Metal wallet not found ===' AS test_case;
 
--- Assuming customer has no GLD METAL wallet
-SET @req = JSON_OBJECT(
-    'account_number',   'P-501',
-    'asset_code',       'SLV',  -- assuming no SLV wallet
-    'metal',            'Silver',
-    'customer_request', JSON_OBJECT(
-        'payment_method', 'Bank Transfer',
-        'weight',         10.0
-    ),
-    'redeem_items',     JSON_ARRAY(
-        JSON_OBJECT(
-            'item_code',     'GLD-241212',
-            'item_weight',   1.0,
-            'item_quantity', 10
-        )
-    )
-);
-
-CALL createRedeemOrder(@req, @res);
-SELECT JSON_PRETTY(@res) AS result;
+SET @reqObj = '{
+  "jHeader": {
+    "accessToken": "fad9017e31bd0927a6bc42996df9e22708b736112f3ef801fd30d7213c146a03",
+    "accessKey":   "0f5aac120ac2746e8548dcdb565b06d9772248b51ab669f45c08dc51a4291f16"
+  },
+  "jData": {
+    "P_ACTION_CODE":        "ORD.I.REDEEM_ORDER",
+    "P_APP_NAME":           "customer-app",
+    "P_ACCOUNT_NUMBER":     "P-501",
+    "P_ASSET_CODE":         "SLV",
+    "P_METAL":              "Silver",
+    "P_CUSTOMER_REQUEST": {
+      "P_PAYMENT_METHOD":   "Bank Transfer",
+      "P_WEIGHT":           10.0
+    },
+    "P_REDEEM_ITEMS": [
+      {
+        "P_ITEM_CODE":      "GLD-241212",
+        "P_ITEM_WEIGHT":    1.0,
+        "P_ITEM_QUANTITY":  10
+      }
+    ]
+  }
+}';
+CALL requestHandler("127.0.0.0", "GFT - Customer App", "ORD.I.REDEEM_ORDER", @reqObj, @pjObj);
+SELECT @pjObj;
 
 -- --------------------------------------------------------------------
 -- TEST B-5 : Cash wallet not found
--- Expected  : status=error, status_code=8, message 'Cash wallet not found for customer'
+-- Expected  : respCode=1, Cash wallet not found for customer
 -- --------------------------------------------------------------------
 SELECT '=== TEST B-5 : Cash wallet not found ===' AS test_case;
 
--- Assuming customer has no CASH wallet
-SET @req = JSON_OBJECT(
-    'account_number',   'P-501',
-    'asset_code',       'GLD',
-    'metal',            'Gold',
-    'customer_request', JSON_OBJECT(
-        'payment_method', 'Bank Transfer',
-        'weight',         10.0
-    ),
-    'redeem_items',     JSON_ARRAY(
-        JSON_OBJECT(
-            'item_code',     'GLD-241212',
-            'item_weight',   1.0,
-            'item_quantity', 10
-        )
-    )
-);
-
-CALL createRedeemOrder(@req, @res);
-SELECT JSON_PRETTY(@res) AS result;
+SET @reqObj = '{
+  "jHeader": {
+    "accessToken": "fad9017e31bd0927a6bc42996df9e22708b736112f3ef801fd30d7213c146a03",
+    "accessKey":   "0f5aac120ac2746e8548dcdb565b06d9772248b51ab669f45c08dc51a4291f16"
+  },
+  "jData": {
+    "P_ACTION_CODE":        "ORD.I.REDEEM_ORDER",
+    "P_APP_NAME":           "customer-app",
+    "P_ACCOUNT_NUMBER":     "P-501",
+    "P_ASSET_CODE":         "GLD",
+    "P_METAL":              "Gold",
+    "P_CUSTOMER_REQUEST": {
+      "P_PAYMENT_METHOD":   "Bank Transfer",
+      "P_WEIGHT":           10.0
+    },
+    "P_REDEEM_ITEMS": [
+      {
+        "P_ITEM_CODE":      "GLD-241212",
+        "P_ITEM_WEIGHT":    1.0,
+        "P_ITEM_QUANTITY":  10
+      }
+    ]
+  }
+}';
+CALL requestHandler("127.0.0.0", "GFT - Customer App", "ORD.I.REDEEM_ORDER", @reqObj, @pjObj);
+SELECT @pjObj;
 
 -- --------------------------------------------------------------------
 -- TEST B-6 : Insufficient metal balance
--- Expected  : status=error, status_code=9, message 'Insufficient metal balance'
+-- Expected  : respCode=1, Insufficient metal balance
 -- --------------------------------------------------------------------
 SELECT '=== TEST B-6 : Insufficient metal balance ===' AS test_case;
 
-SET @req = JSON_OBJECT(
-    'account_number',   'P-501',
-    'asset_code',       'GLD',
-    'metal',            'Gold',
-    'customer_request', JSON_OBJECT(
-        'payment_method', 'Bank Transfer',
-        'weight',         1000.0  -- assuming balance < 1000
-    ),
-    'redeem_items',     JSON_ARRAY(
-        JSON_OBJECT(
-            'item_code',     'GLD-241212',
-            'item_weight',   1.0,
-            'item_quantity', 1000
-        )
-    )
-);
-
-CALL createRedeemOrder(@req, @res);
-SELECT JSON_PRETTY(@res) AS result;
+SET @reqObj = '{
+  "jHeader": {
+    "accessToken": "fad9017e31bd0927a6bc42996df9e22708b736112f3ef801fd30d7213c146a03",
+    "accessKey":   "0f5aac120ac2746e8548dcdb565b06d9772248b51ab669f45c08dc51a4291f16"
+  },
+  "jData": {
+    "P_ACTION_CODE":        "ORD.I.REDEEM_ORDER",
+    "P_APP_NAME":           "customer-app",
+    "P_ACCOUNT_NUMBER":     "P-501",
+    "P_ASSET_CODE":         "GLD",
+    "P_METAL":              "Gold",
+    "P_CUSTOMER_REQUEST": {
+      "P_PAYMENT_METHOD":   "Bank Transfer",
+      "P_WEIGHT":           1000.0
+    },
+    "P_REDEEM_ITEMS": [
+      {
+        "P_ITEM_CODE":      "GLD-241212",
+        "P_ITEM_WEIGHT":    1.0,
+        "P_ITEM_QUANTITY":  1000
+      }
+    ]
+  }
+}';
+CALL requestHandler("127.0.0.0", "GFT - Customer App", "ORD.I.REDEEM_ORDER", @reqObj, @pjObj);
+SELECT @pjObj;
 
 -- --------------------------------------------------------------------
--- TEST B-7 : Negative charges (discount too high)
--- Expected  : status=error, status_code=10, message 'Net charges amount cannot be negative'
+-- TEST B-7 : Negative charges
+-- Expected  : respCode=1, Net charges amount cannot be negative
 -- --------------------------------------------------------------------
 SELECT '=== TEST B-7 : Negative charges ===' AS test_case;
 
-SET @req = JSON_OBJECT(
-    'account_number',   'P-501',
-    'asset_code',       'GLD',
-    'metal',            'Gold',
-    'customer_request', JSON_OBJECT(
-        'payment_method', 'Bank Transfer',
-        'weight',         10.0
-    ),
-    'redeem_items',     JSON_ARRAY(
-        JSON_OBJECT(
-            'item_code',     'GLD-241212',
-            'item_weight',   1.0,
-            'item_quantity', 10
-        )
-    ),
-    'discount_amount',  10000.00  -- excessive discount
-);
-
-CALL createRedeemOrder(@req, @res);
-SELECT JSON_PRETTY(@res) AS result;
+SET @reqObj = '{
+  "jHeader": {
+    "accessToken": "fad9017e31bd0927a6bc42996df9e22708b736112f3ef801fd30d7213c146a03",
+    "accessKey":   "0f5aac120ac2746e8548dcdb565b06d9772248b51ab669f45c08dc51a4291f16"
+  },
+  "jData": {
+    "P_ACTION_CODE":        "ORD.I.REDEEM_ORDER",
+    "P_APP_NAME":           "customer-app",
+    "P_ACCOUNT_NUMBER":     "P-501",
+    "P_ASSET_CODE":         "GLD",
+    "P_METAL":              "Gold",
+    "P_CUSTOMER_REQUEST": {
+      "P_PAYMENT_METHOD":   "Bank Transfer",
+      "P_WEIGHT":           10.0
+    },
+    "P_REDEEM_ITEMS": [
+      {
+        "P_ITEM_CODE":      "GLD-241212",
+        "P_ITEM_WEIGHT":    1.0,
+        "P_ITEM_QUANTITY":  10
+      }
+    ],
+    "P_DISCOUNT_AMOUNT":    10000.00
+  }
+}';
+CALL requestHandler("127.0.0.0", "GFT - Customer App", "ORD.I.REDEEM_ORDER", @reqObj, @pjObj);
+SELECT @pjObj;
 
 -- --------------------------------------------------------------------
 -- TEST B-8 : Insufficient cash balance
--- Expected  : status=error, status_code=12, message 'Insufficient cash balance to cover redemption charges'
+-- Expected  : respCode=1, Insufficient cash balance to cover redemption charges
 -- --------------------------------------------------------------------
 SELECT '=== TEST B-8 : Insufficient cash balance ===' AS test_case;
 
-SET @req = JSON_OBJECT(
-    'account_number',   'P-501',
-    'asset_code',       'GLD',
-    'metal',            'Gold',
-    'customer_request', JSON_OBJECT(
-        'payment_method', 'Bank Transfer',
-        'weight',         10.0
-    ),
-    'redeem_items',     JSON_ARRAY(
-        JSON_OBJECT(
-            'item_code',     'GLD-241212',
-            'item_weight',   1.0,
-            'item_quantity', 10
-        )
-    )
-);
-
-CALL createRedeemOrder(@req, @res);
-SELECT JSON_PRETTY(@res) AS result;
+SET @reqObj = '{
+  "jHeader": {
+    "accessToken": "fad9017e31bd0927a6bc42996df9e22708b736112f3ef801fd30d7213c146a03",
+    "accessKey":   "0f5aac120ac2746e8548dcdb565b06d9772248b51ab669f45c08dc51a4291f16"
+  },
+  "jData": {
+    "P_ACTION_CODE":        "ORD.I.REDEEM_ORDER",
+    "P_APP_NAME":           "customer-app",
+    "P_ACCOUNT_NUMBER":     "P-501",
+    "P_ASSET_CODE":         "GLD",
+    "P_METAL":              "Gold",
+    "P_CUSTOMER_REQUEST": {
+      "P_PAYMENT_METHOD":   "Bank Transfer",
+      "P_WEIGHT":           10.0
+    },
+    "P_REDEEM_ITEMS": [
+      {
+        "P_ITEM_CODE":      "GLD-241212",
+        "P_ITEM_WEIGHT":    1.0,
+        "P_ITEM_QUANTITY":  10
+      }
+    ]
+  }
+}';
+CALL requestHandler("127.0.0.0", "GFT - Customer App", "ORD.I.REDEEM_ORDER", @reqObj, @pjObj);
+SELECT @pjObj;
 
 /* =====================================================================
-   SECTION C : Happy Path  (status_code 0)
+   SECTION C : Happy Path  (respCode 0)
    ===================================================================== */
 
 -- --------------------------------------------------------------------
 -- TEST C-1 : Successful redeem order
--- Expected  : status=success, status_code=0, message 'Redeem order inserted successfully'
+-- Expected  : respCode=0, Redeem order inserted successfully
 -- --------------------------------------------------------------------
 SELECT '=== TEST C-1 : Successful redeem ===' AS test_case;
 
-SET @req = JSON_OBJECT(
-    'account_number',   'P-501',
-    'asset_code',       'GLD',
-    'metal',            'Gold',
-    'customer_request', JSON_OBJECT(
-        'payment_method', 'Bank Transfer',
-        'weight',         10.0
-    ),
-    'redeem_items',     JSON_ARRAY(
-        JSON_OBJECT(
-            'item_code',     'GLD-241212',
-            'item_weight',   1.0,
-            'item_quantity', 10
-        )
-    ),
-    'customer_ip_address', '192.168.1.1',
-    'latitude',          40.7128,
-    'longitude',         -74.0060,
-    'notes',             'Test redeem order'
-);
-
-CALL createRedeemOrder(@req, @res);
-SELECT JSON_PRETTY(@res) AS result;
+SET @reqObj = '{
+  "jHeader": {
+    "accessToken": "fad9017e31bd0927a6bc42996df9e22708b736112f3ef801fd30d7213c146a03",
+    "accessKey":   "0f5aac120ac2746e8548dcdb565b06d9772248b51ab669f45c08dc51a4291f16"
+  },
+  "jData": {
+    "P_ACTION_CODE":        "ORD.I.REDEEM_ORDER",
+    "P_APP_NAME":           "customer-app",
+    "P_ACCOUNT_NUMBER":     "P-501",
+    "P_ASSET_CODE":         "GLD",
+    "P_METAL":              "Gold",
+    "P_CUSTOMER_REQUEST": {
+      "P_PAYMENT_METHOD":   "Bank Transfer",
+      "P_WEIGHT":           10.0
+    },
+    "P_REDEEM_ITEMS": [
+      {
+        "P_ITEM_CODE":      "GLD-241212",
+        "P_ITEM_WEIGHT":    1.0,
+        "P_ITEM_QUANTITY":  10
+      }
+    ],
+    "P_CUSTOMER_IP_ADDRESS":"192.168.1.1",
+    "P_LATITUDE":          40.7128,
+    "P_LONGITUDE":         -74.0060,
+    "P_NOTES":             "Test redeem order"
+  }
+}';
+CALL requestHandler("127.0.0.0", "GFT - Customer App", "ORD.I.REDEEM_ORDER", @reqObj, @pjObj);
+SELECT @pjObj;
 
 -- --------------------------------------------------------------------
 -- TEST C-2 : Successful redeem order with multiple redeem_items
--- Expected  : status=success, status_code=0, customer_request.total_qty_to_buy = 6
+-- Expected  : respCode=0, total_qty_to_buy = 2
 -- --------------------------------------------------------------------
 SELECT '=== TEST C-2 : Successful redeem with multiple items ===' AS test_case;
 
-SET @req = JSON_OBJECT(
-    'account_number',   'P-501',
-    'asset_code',       'GLD',
-    'metal',            'Gold',
-    'customer_request', JSON_OBJECT(
-        'payment_method', 'Bank Transfer',
-        'weight',         25.0
-    ),
-    'redeem_items',     JSON_ARRAY(
-        JSON_OBJECT(
-            'item_code',     'GLD-241212',
-            'item_weight',   15.00,
-            'item_quantity', 1
-        ),
-        JSON_OBJECT(
-            'item_code',     'GLD-RNG-1001',
-            'item_weight',   10.00,
-            'item_quantity', 1
-        )
-    ),
-    'customer_ip_address', '192.168.1.1',
-    'latitude',          40.7128,
-    'longitude',         -74.0060,
-    'notes',             'Test redeem order with 2 items'
-);
-
-CALL createRedeemOrder(@req, @res);
-SELECT JSON_PRETTY(@res) AS result;
+SET @reqObj = '{
+  "jHeader": {
+    "accessToken": "fad9017e31bd0927a6bc42996df9e22708b736112f3ef801fd30d7213c146a03",
+    "accessKey":   "0f5aac120ac2746e8548dcdb565b06d9772248b51ab669f45c08dc51a4291f16"
+  },
+  "jData": {
+    "P_ACTION_CODE":        "ORD.I.REDEEM_ORDER",
+    "P_APP_NAME":           "customer-app",
+    "P_ACCOUNT_NUMBER":     "P-501",
+    "P_ASSET_CODE":         "GLD",
+    "P_METAL":              "Gold",
+    "P_CUSTOMER_REQUEST": {
+      "P_PAYMENT_METHOD":   "Bank Transfer",
+      "P_WEIGHT":           25.0
+    },
+    "P_REDEEM_ITEMS": [
+      {
+        "P_ITEM_CODE":      "GLD-241212",
+        "P_ITEM_WEIGHT":    15.0,
+        "P_ITEM_QUANTITY":  1
+      },
+      {
+        "P_ITEM_CODE":      "GLD-RNG-1001",
+        "P_ITEM_WEIGHT":    10.0,
+        "P_ITEM_QUANTITY":  1
+      }
+    ],
+    "P_CUSTOMER_IP_ADDRESS":"192.168.1.1",
+    "P_LATITUDE":          40.7128,
+    "P_LONGITUDE":         -74.0060,
+    "P_NOTES":             "Test redeem order with 2 items"
+  }
+}';
+CALL requestHandler("127.0.0.0", "GFT - Customer App", "ORD.I.REDEEM_ORDER", @reqObj, @pjObj);
+SELECT @pjObj;
 
 /* =====================================================================
    SECTION D : Side-effect Verification

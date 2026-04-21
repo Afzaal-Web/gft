@@ -245,22 +245,22 @@ BEGIN
         -- =====================================================
         -- ORDER MODULE (ORD)
         -- =====================================================
-        WHEN 'ORD.I.BUY_ORDER'               THEN CALL createOrder(vjReqObj, vjResponse);
+        WHEN 'ORD.I.BUY_ORDER'               THEN CALL createBuyOrder(vjReqObj, vjResponse);
         WHEN 'ORD.S.BUY_ORDER'               THEN CALL getOrder(vjReqObj, vjResponse); 
         WHEN 'ORD.U.BUY_ORDER'               THEN CALL updateOrder(vjReqObj, vjResponse); -- not done yet
         WHEN 'ORD.D.BUY_ORDER'               THEN CALL deleteOrder(vjReqObj, vjResponse); -- not done yet
 
-        WHEN 'ORD.I.SELL_ORDER'              THEN CALL createOrder(vjReqObj, vjResponse);
+        WHEN 'ORD.I.SELL_ORDER'              THEN CALL createSellOrder(vjReqObj, vjResponse);
         WHEN 'ORD.S.SELL_ORDER'              THEN CALL getOrder(vjReqObj, vjResponse); 
         WHEN 'ORD.U.SELL_ORDER'              THEN CALL updateOrder(vjReqObj, vjResponse); -- not done yet
         WHEN 'ORD.D.SELL_ORDER'              THEN CALL deleteOrder(vjReqObj, vjResponse); -- not done yet
 
-        WHEN 'ORD.I.EXCHANGE_ORDER'          THEN CALL createOrder(vjReqObj, vjResponse);
+        WHEN 'ORD.I.EXCHANGE_ORDER'          THEN CALL createExchangeOrder(vjReqObj, vjResponse);
         WHEN 'ORD.S.EXCHANGE_ORDER'          THEN CALL getOrder(vjReqObj, vjResponse); 
         WHEN 'ORD.U.EXCHANGE_ORDER'          THEN CALL updateOrder(vjReqObj, vjResponse); -- not done yet
         WHEN 'ORD.D.EXCHANGE_ORDER'          THEN CALL deleteOrder(vjReqObj, vjResponse); -- not done yet
 
-        WHEN 'ORD.I.REDEEM_ORDER'            THEN CALL createOrder(vjReqObj, vjResponse);
+        WHEN 'ORD.I.REDEEM_ORDER'            THEN CALL createRedeemOrder(vjReqObj, vjResponse);
         WHEN 'ORD.S.REDEEM_ORDER'            THEN CALL getOrder(vjReqObj, vjResponse); 
         WHEN 'ORD.U.REDEEM_ORDER'            THEN CALL updateOrder(vjReqObj, vjResponse); -- not done yet
         WHEN 'ORD.D.REDEEM_ORDER'            THEN CALL deleteOrder(vjReqObj, vjResponse); -- not done yet

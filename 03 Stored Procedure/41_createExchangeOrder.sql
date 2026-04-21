@@ -2,8 +2,8 @@ DROP PROCEDURE IF EXISTS createExchangeOrder;
 
 DELIMITER $$
 CREATE PROCEDURE createExchangeOrder(
-                                        IN  pjReqObj    JSON,
-                                        OUT pjRespObj    JSON
+                                        IN      pjReqObj     JSON,
+                                        INOUT   pjRespObj    JSON
                                     )
 BEGIN
 
@@ -71,7 +71,8 @@ BEGIN
     /* Wallet variables */
     DECLARE v_txn_num_debit                 VARCHAR(50);
     DECLARE v_txn_num_credit                VARCHAR(50);
-    DECLARE v_txn_num_cash_debit            VARCHAR(50);  
+    DECLARE v_txn_num_cash_debit            VARCHAR(50);
+    DECLARE v_txn_num_cash_credit           VARCHAR(50);   /* Sell leg cash credit txn number  */
     DECLARE v_transactions_output           JSON;
 
     DECLARE v_from_wallet_id                VARCHAR(100);
@@ -84,10 +85,12 @@ BEGIN
     DECLARE v_to_balance_after              DECIMAL(20,6);
     DECLARE v_to_txn_amount                 DECIMAL(20,6);
 
-    DECLARE v_cash_wallet_id                VARCHAR(100);   
-    DECLARE v_cash_balance_before           DECIMAL(20,6);  
-    DECLARE v_cash_balance_after            DECIMAL(20,6);  
+    DECLARE v_cash_wallet_id                VARCHAR(100);
+    DECLARE v_cash_balance_before           DECIMAL(20,6);
+    DECLARE v_cash_balance_after            DECIMAL(20,6);
     DECLARE v_cash_txn_amount               DECIMAL(20,6);
+    DECLARE v_cash_credit_txn_amount        DECIMAL(20,6);  /* NEW: Sell leg cash credit amount = v_sold_price     */
+    DECLARE v_cash_after_sell_credit        DECIMAL(20,6);  /* NEW: Intermediate balance after sell credit leg     */
 
     DECLARE v_wallets_arr                   JSON;
     DECLARE v_wallet_loop_idx               INT DEFAULT 0;
@@ -105,7 +108,7 @@ BEGIN
         GET STACKED DIAGNOSTICS CONDITION 1 v_err_msg = MESSAGE_TEXT;
         ROLLBACK;
 
-        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
+        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', '1');
         SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message',   CONCAT('Insertion failed: ', v_err_msg));
 
     END;
@@ -168,8 +171,9 @@ main_block: BEGIN
 
     IF JSON_LENGTH(v_errors) > 0 THEN
         
-        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
-        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message',   CONCAT('Validation failed: ', JSON_UNQUOTE(v_errors)));
+        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', '1');
+        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message',   'Validations failed');
+        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.errors',     v_errors);
 
         LEAVE main_block;
     END IF;
@@ -181,25 +185,23 @@ main_block: BEGIN
     WHERE   account_num = v_account_number
     LIMIT 1;
 
-    IF v_customer_rec_id IS NULL THEN
+    IF isFalsy(v_customer_rec_id) THEN
 
-        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
+        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', '1');
         SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message',   'Customer not found');
 
         LEAVE main_block;
     END IF;
 
-    CALL getCustomer(JSON_OBJECT('P_CUSTOMER_REC_ID', v_customer_rec_id), v_customer_json);
+    SET v_customer_json = getCustomer(v_customer_rec_id);
 
-    IF getJval(v_customer_json, 'status') != 'success' THEN
+    IF isFalsy(v_customer_json) THEN
         
-        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
+        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', '1');
         SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message',   CONCAT('Customer not found for account number: ', v_account_number));
 
         LEAVE main_block;
     END IF;
-
-    SET v_customer_json = getJval(v_customer_json, 'customer_data');
 
     /* ===================== Step 4: Fetch Rates for Both Assets ===================== */
 
@@ -213,7 +215,7 @@ main_block: BEGIN
 
     IF isFalsy(v_from_rate_json) THEN
         
-        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
+        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', '1');
         SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message',   CONCAT('Rate not found for from_asset_code: ', v_from_asset_code));
 
         LEAVE main_block;
@@ -231,7 +233,7 @@ main_block: BEGIN
 
     IF isFalsy(v_to_rate_json) THEN
         
-        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
+        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', '1');
         SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message',   CONCAT('Rate not found for to_asset_code: ', v_to_asset_code));
 
         LEAVE main_block;
@@ -317,7 +319,7 @@ main_block: BEGIN
 
     IF isFalsy(v_from_inventory_json) THEN
        
-       SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
+       SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', '1');
        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message',   CONCAT('Inventory item not found for from_item_code: ', v_from_item_code));
     
         LEAVE main_block;
@@ -347,7 +349,7 @@ main_block: BEGIN
 
     IF isFalsy(v_to_inventory_json) THEN
         
-        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
+        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', '1');
         SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message',   CONCAT('Inventory item not found for to_item_code: ', v_to_item_code));
 
         LEAVE main_block;
@@ -400,7 +402,7 @@ main_block: BEGIN
     SET v_taxes              = v_items_total_amount * 0.05;
     SET v_total_discounts    = COALESCE(getJval(pjReqObj, 'jData.P_DISCOUNT_AMOUNT'), 0);
 
-    /* Net amount customer owes (charges only - no cash leg for the metal swap itself) */
+    /* Total charges only (fees + taxes - discounts) */
     SET v_total_order_amount =   v_making_charges
                                + v_premium_charged
                                + v_transaction_fee
@@ -441,10 +443,11 @@ main_block: BEGIN
 
     /* 11.1: Read customer_wallets array */
     SET v_wallets_arr = getJval(v_customer_json, 'customer_wallets');
+     CALL debugLog('customer_wallets', v_wallets_arr);
 
     IF v_wallets_arr IS NULL OR JSON_LENGTH(v_wallets_arr) = 0 THEN
        
-       SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
+       SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', '1');
        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message',   'Customer wallets not found');
 
         LEAVE main_block;
@@ -473,20 +476,20 @@ main_block: BEGIN
             SET v_to_balance_before     = COALESCE(CAST(getJval(v_wallet_item, 'wallet_balance') AS DECIMAL(20,6)), 0);
         END IF;
 
-           /* Match CASH wallet */                                                         
-        IF v_wallet_type = 'CASH' THEN                                                
-            SET v_cash_wallet_id        = getJval(v_wallet_item, 'wallet_id');        
-            SET v_cash_balance_before   = COALESCE(CAST(getJval(v_wallet_item, 'wallet_balance') AS DECIMAL(20,6)), 0); 
-        END IF;  
+        /* Match CASH wallet */
+        IF v_wallet_type = 'CASH' THEN
+            SET v_cash_wallet_id        = getJval(v_wallet_item, 'wallet_id');
+            SET v_cash_balance_before   = COALESCE(CAST(getJval(v_wallet_item, 'wallet_balance') AS DECIMAL(20,6)), 0);
+        END IF;
 
         SET v_wallet_loop_idx = v_wallet_loop_idx + 1;
 
     END WHILE;
 
-    /* 11.2: Guard - both metal wallets must exist */
+    /* 11.2: Guard - both metal wallets and cash wallet must exist */
     IF isFalsy(v_from_wallet_id) THEN
         
-        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
+        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', '1');
         SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message',   CONCAT('Metal wallet not found for from_asset_code: ', v_from_asset_code));
 
         LEAVE main_block;
@@ -494,58 +497,68 @@ main_block: BEGIN
 
     IF isFalsy(v_to_wallet_id) THEN
         
-        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
+        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', '1');
         SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message',   CONCAT('Metal wallet not found for to_asset_code: ', v_to_asset_code));
 
         LEAVE main_block;
     END IF;
 
-    IF isFalsy(v_cash_wallet_id) THEN                                                   
+    IF isFalsy(v_cash_wallet_id) THEN
         
-        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
+        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', '1');
         SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message',   CONCAT('Cash wallet not found for customer: ', v_account_number));
 
-        LEAVE main_block;                                                               
-    END IF; 
+        LEAVE main_block;
+    END IF;
 
-    /* 11.3: Transaction amounts */
-    SET v_from_txn_amount   = v_from_weight;          /* weight leaving from_metal wallet  */
-    SET v_to_txn_amount     = v_to_weight;            /* weight entering to_metal wallet   */
-    SET v_cash_txn_amount   = v_total_order_amount;   /* cash amount leaving cash wallet for charges */
-    
+    /* 11.3: Transaction amounts
+       ─────────────────────────────────────────────────────────────────
+       TXN-A  FROM metal DEBIT   : weight leaving from_metal wallet
+       TXN-B  Cash     CREDIT    : sell proceeds (sold_price) entering cash wallet
+       TXN-C  TO metal CREDIT    : weight entering to_metal wallet
+       TXN-D  Cash     DEBIT     : buy cost (bought_price) + charges leaving cash wallet
+       ───────────────────────────────────────────────────────────────── */
+    SET v_from_txn_amount        = v_from_weight;                          /* metal weight out            */
+    SET v_to_txn_amount          = v_to_weight;                            /* metal weight in             */
+    SET v_cash_credit_txn_amount = v_sold_price;                           /* cash in  (sell proceeds)    */
+    SET v_cash_txn_amount        = v_bought_price + v_total_order_amount;  /* cash out (buy cost+charges) */
 
-    /* 11.4: Balances after */
-    SET v_from_balance_after = v_from_balance_before - v_from_txn_amount;
-    SET v_to_balance_after   = v_to_balance_before   + v_to_txn_amount;
-    SET v_cash_balance_after = v_cash_balance_before - v_cash_txn_amount;  
+    /* 11.4: Compute all balances after
+       Intermediate state after sell-credit is stored in v_cash_after_sell_credit
+       so TXN-D can use it as its balance_before, giving a clean audit trail. */
+    SET v_from_balance_after     = v_from_balance_before  - v_from_txn_amount;
+    SET v_to_balance_after       = v_to_balance_before    + v_to_txn_amount;
+    SET v_cash_after_sell_credit = v_cash_balance_before  + v_cash_credit_txn_amount;  /* after TXN-B */
+    SET v_cash_balance_after     = v_cash_after_sell_credit - v_cash_txn_amount;        /* after TXN-D */
 
     /* 11.4b: Guard - insufficient from_metal balance */
     IF v_from_balance_after < 0 THEN
         
-        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
+        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', '1');
         SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message',   CONCAT('Insufficient metal balance for exchange. balance: ', v_from_balance_before, ', required: ', v_from_txn_amount));
 
         LEAVE main_block;
     END IF;
 
-    /* 11.4c: Guard - insufficient cash balance for charges */                          
-    IF v_cash_balance_after < 0 THEN                                                    
+    /* 11.4c: Guard - insufficient cash balance after netting sell credit against buy debit */
+    IF v_cash_balance_after < 0 THEN
       
-      SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.respCode', '1');
-      SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message',   CONCAT('Insufficient cash balance to cover exchange charges. balance: ', v_cash_balance_before, ', required: ', v_cash_txn_amount));                                                   
+      SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', '1');
+      SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message',   CONCAT('Insufficient cash balance to cover exchange. balance: ', v_cash_balance_before, ', sell credit: ', v_cash_credit_txn_amount, ', buy debit: ', v_cash_txn_amount));
 
-      LEAVE main_block;                                                               
-    END IF;     
+      LEAVE main_block;
+    END IF;
 
-    /* 11.5: Generate transaction numbers */
-    CALL getSequence('ORDERS.TXN_NUM', 'TXN-', 5000, 'createExchangeOrder', v_txn_num_debit);
-    CALL getSequence('ORDERS.TXN_NUM', 'TXN-', 5000, 'createExchangeOrder', v_txn_num_credit);
-    CALL getSequence('ORDERS.TXN_NUM', 'TXN-', 5000, 'createExchangeOrder', v_txn_num_cash_debit); 
+    /* 11.5: Generate transaction numbers - one per leg */
+    CALL getSequence('ORDERS.TXN_NUM', 'TXN-', 5000, 'createExchangeOrder', v_txn_num_debit);        /* TXN-A */
+    CALL getSequence('ORDERS.TXN_NUM', 'TXN-', 5000, 'createExchangeOrder', v_txn_num_cash_credit);  /* TXN-B */
+    CALL getSequence('ORDERS.TXN_NUM', 'TXN-', 5000, 'createExchangeOrder', v_txn_num_credit);       /* TXN-C */
+    CALL getSequence('ORDERS.TXN_NUM', 'TXN-', 5000, 'createExchangeOrder', v_txn_num_cash_debit);   /* TXN-D */
 
-    /* 11.6: Build transactions array */
+    /* 11.6: Build transactions array - four legs in execution order */
     SET v_transactions_output = JSON_ARRAY(
 
-        /* TXN-A : FROM metal DEBIT (Sell leg) */
+        /* TXN-A : FROM metal DEBIT (Sell leg - metal out) */
         JSON_OBJECT(
                     'transaction_num',      v_txn_num_debit,
                     'transaction_type',     'Debit',
@@ -557,10 +570,19 @@ main_block: BEGIN
                     'balance_after',        v_from_balance_after
                 ),
 
-    -- ADD CASH CREDIT TRNSACTION HERE BECAUSE TWO TRANSACTION OF CASH WILL TAKE PLACE ONE FOR BUY AND ONE FOR SELL
-    -- WHEN SELL CREDIT THE CASH WALLET
-    -- WHEN BUY DEBIT THE CASH WALLET 
-        /* TXN-B : TO metal CREDIT (Buy leg) */
+        /* TXN-B : Cash CREDIT (Sell leg - proceeds in) */
+        JSON_OBJECT(
+                    'transaction_num',      v_txn_num_cash_credit,
+                    'transaction_type',     'Credit',
+                    'wallet_type',          'Cash',
+                    'asset_code',           'CSH',
+                    'wallet_id',            v_cash_wallet_id,
+                    'balance_before',       v_cash_balance_before,
+                    'transaction_amount',   v_cash_credit_txn_amount,
+                    'balance_after',        v_cash_after_sell_credit
+                ),
+
+        /* TXN-C : TO metal CREDIT (Buy leg - metal in) */
         JSON_OBJECT(
                     'transaction_num',      v_txn_num_credit,
                     'transaction_type',     'Credit',
@@ -572,19 +594,18 @@ main_block: BEGIN
                     'balance_after',        v_to_balance_after
                 ),
 
-        /* TXN-C : Cash DEBIT (charges leg) */                                         
-        JSON_OBJECT(                                                                   
-                    'transaction_num',      v_txn_num_cash_debit,                      
-                    'transaction_type',     'Debit',                                   
-                    'wallet_type',          'Cash',                                    
-                    'asset_code',           'CSH',                                     
-                    'wallet_id',            v_cash_wallet_id,                          
-                    'balance_before',       v_cash_balance_before,                     
-                    'transaction_amount',   v_cash_txn_amount,                         
-                    'balance_after',        v_cash_balance_after                       
-                )     
+        /* TXN-D : Cash DEBIT (Buy leg - bought_price + charges out) */
+        JSON_OBJECT(
+                    'transaction_num',      v_txn_num_cash_debit,
+                    'transaction_type',     'Debit',
+                    'wallet_type',          'Cash',
+                    'asset_code',           'CSH',
+                    'wallet_id',            v_cash_wallet_id,
+                    'balance_before',       v_cash_after_sell_credit,
+                    'transaction_amount',   v_cash_txn_amount,
+                    'balance_after',        v_cash_balance_after
+                )
     );
-
 
     /* ===================== Step 10: INSERT into orders table ===================== */
     INSERT INTO orders
@@ -613,43 +634,53 @@ main_block: BEGIN
     SET     order_json   = v_order_json
     WHERE   order_rec_id = v_order_rec_id;
 
-    /* 11.8: wallet_activity - FROM metal DEBIT */
+    /* 11.8: wallet_activity - TXN-A: FROM metal DEBIT (Sell leg) */
     CALL wallet_activity(
                             v_customer_rec_id,
                             v_from_wallet_id,
                             'DEBIT',
                             v_from_txn_amount,
-                            CONCAT('Exchange order debited (', v_from_asset_code, '): ', v_order_number),
+                            CONCAT('Exchange sell leg metal debited (', v_from_asset_code, '): ', v_order_number),
                             v_order_rec_id,
                             v_order_number,
                             v_txn_num_debit
                         );
 
-    -- ADD CASH CREDIT HERE BECAUSE TWO TRANSACTION OF CASH WILL TAKE PLACE ONE FOR BUY AND ONE FOR SELL
+    /* 11.9: wallet_activity - TXN-B: Cash CREDIT (Sell leg proceeds) */
+    CALL wallet_activity(
+                            v_customer_rec_id,
+                            v_cash_wallet_id,
+                            'CREDIT',
+                            v_cash_credit_txn_amount,
+                            CONCAT('Exchange sell leg cash credited (', v_from_asset_code, '): ', v_order_number),
+                            v_order_rec_id,
+                            v_order_number,
+                            v_txn_num_cash_credit
+                        );
 
-    /* 11.9: wallet_activity - TO metal CREDIT */
+    /* 11.10: wallet_activity - TXN-C: TO metal CREDIT (Buy leg) */
     CALL wallet_activity(
                             v_customer_rec_id,
                             v_to_wallet_id,
                             'CREDIT',
                             v_to_txn_amount,
-                            CONCAT('Exchange order credited (', v_to_asset_code, '): ', v_order_number),
+                            CONCAT('Exchange buy leg metal credited (', v_to_asset_code, '): ', v_order_number),
                             v_order_rec_id,
                             v_order_number,
                             v_txn_num_credit
                         );
 
-    /* 11.10: wallet_activity - Cash DEBIT for charges */                              
-    CALL wallet_activity(                                                              
-                            v_customer_rec_id,                                         
-                            v_cash_wallet_id,                                          
-                            'DEBIT',                                                   
-                            v_cash_txn_amount,                                         
-                            CONCAT('Exchange charges debited: ', v_order_number),      
-                            v_order_rec_id,                                            
-                            v_order_number,                                            
-                            v_txn_num_cash_debit                                       
-                        );                         
+    /* 11.11: wallet_activity - TXN-D: Cash DEBIT (Buy leg cost + charges) */
+    CALL wallet_activity(
+                            v_customer_rec_id,
+                            v_cash_wallet_id,
+                            'DEBIT',
+                            v_cash_txn_amount,
+                            CONCAT('Exchange buy leg cash debited (', v_to_asset_code, '): ', v_order_number),
+                            v_order_rec_id,
+                            v_order_number,
+                            v_txn_num_cash_debit
+                        );
 
     /* ===================== Step 12: Success Response ===================== */
     

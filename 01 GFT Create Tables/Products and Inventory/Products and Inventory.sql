@@ -60,6 +60,32 @@ CREATE TABLE IF NOT EXISTS inventory (
     row_metadata                JSON
 );
 
+ALTER TABLE inventory
+ADD COLUMN IF NOT EXISTS asset_code VARCHAR(255)
+AFTER item_code;
+
+ALTER TABLE inventory
+MODIFY COLUMN asset_code VARCHAR(10);
+
+UPDATE inventory
+SET asset_code = CASE
+    WHEN inventory_rec_id = 1 THEN 'GLD'
+    WHEN inventory_rec_id = 2 THEN 'GLD'
+    WHEN inventory_rec_id = 3 THEN 'SLV'
+    WHEN inventory_rec_id = 4 THEN 'PLT'
+END
+WHERE inventory_rec_id IN (1,2,3,4);
+
+UPDATE inventory
+SET inventory_json = CASE
+    WHEN inventory_rec_id = 0 THEN JSON_SET(inventory_json, '$.asset_code', 'gld')
+    WHEN inventory_rec_id = 1 THEN JSON_SET(inventory_json, '$.asset_code', 'GLD')
+    WHEN inventory_rec_id = 2 THEN JSON_SET(inventory_json, '$.asset_code', 'GLD')
+    WHEN inventory_rec_id = 3 THEN JSON_SET(inventory_json, '$.asset_code', 'SLV')
+    WHEN inventory_rec_id = 4 THEN JSON_SET(inventory_json, '$.asset_code', 'PT')
+END
+WHERE inventory_rec_id IN (0,1,2,3,4);
+
 -- ===============================================
 -- Demo row inventory_rec_id : = 0
 -- ===============================================

@@ -340,13 +340,36 @@ CREATE TABLE row_audit_logs (
 );
 
 
+-- ===============================================
+-- Customers Products Table started
+-- ===============================================
+DROP TABLE IF EXISTS customer_products;
+
+CREATE TABLE IF NOT EXISTS customer_products (
+        customer_products_rec_id 			INT 					PRIMARY KEY AUTO_INCREMENT,
+        customer_rec_id 					INT,
+        order_rec_id 					    INT,
+        order_type 				            VARCHAR(100),
+        `status`  	                        VARCHAR(255), 
+        customer_products_json 				JSON,
+        row_metadata				        JSON
+);
+
+INSERT INTO customer_products
+SET
+    customer_products_rec_id            	= 0,
+    customer_rec_id            				= 0,
+    order_rec_id              				= 0,
+    order_type   				            = 'Redeem',
+    status                 				    = 'Order Initiated',
+
+    customer_products_json          	    = castJson('customer_products'),
+    row_metadata              				= castJson('row_metadata');
 
 -- ===============================================
 -- Restore default strict mode
 -- ===============================================
 SET SESSION sql_mode='STRICT_TRANS_TABLES';
-
-
 
 
 
