@@ -8,8 +8,8 @@ DROP PROCEDURE IF EXISTS forgotLoginID;
 DELIMITER $$
 
 CREATE PROCEDURE forgotLoginID(
-								IN  pjReqObj   JSON,      
-								OUT pjResObj   JSON       
+								IN      pjReqObj   JSON,      
+								INOUT   pjRespObj   JSON       
 							)
 BEGIN
     DECLARE v_email         	VARCHAR(255);
@@ -17,6 +17,17 @@ BEGIN
     DECLARE v_cnic		      	VARCHAR(50);
     
     DECLARE v_login_id			VARCHAR(100);
+
+    DECLARE v_err_msg 		    TEXT;
+	
+	DECLARE EXIT HANDLER FOR SQLEXCEPTION
+	BEGIN
+			GET STACKED DIAGNOSTICS CONDITION 1 v_err_msg = MESSAGE_TEXT;
+
+			SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
+			SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', CONCAT('Unexpected Error - ', v_err_msg));
+
+	END;
     
 	main_block: BEGIN
 
@@ -37,26 +48,25 @@ BEGIN
 
     IF v_login_id IS NULL THEN
         -- No user found
-        SET pjResObj = JSON_OBJECT(
-									'status', 		'USER_NOT_FOUND',
-									'message', 		'Invalid provided information.'
-								);
+        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
+    	SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', 'customer not found');
+
         LEAVE main_block;
     END IF;
 
     -- ============ Generate OTP to verified contact ============
-     CALL genOtp(
-				CASE WHEN v_email IS NOT NULL THEN 'email' ELSE 'phone' END,
-				COALESCE(v_email, v_phone),
-                'FORGOT LOGIN ID'
-    );
-	
 
-    -- ============= Prepare response ============
-    SET pjResObj = JSON_OBJECT(
-								'status', 			'OTP_SENT',
-								'message', 			'OTP has been sent to your verified contact. Use it to retrieve your login ID.'
-							);
+    CALL genOtp(
+                JSON_OBJECT(
+                    'jData', JSON_OBJECT(
+                        'P_CONTACT_TYPE', CASE WHEN v_email IS NOT NULL THEN 'email' ELSE 'phone' END,
+                        'P_DESTINATION',  COALESCE(v_email, v_phone),
+                        'P_PURPOSE',      'FORGOT LOGIN ID'
+                    )
+                ),
+                pjRespObj
+            );
+
     END main_block;
     
 END $$

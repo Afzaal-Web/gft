@@ -9,8 +9,8 @@ DROP PROCEDURE IF EXISTS genOtp;
 DELIMITER $$
 
 CREATE PROCEDURE genOtp(
-						 IN  	pjReqObj JSON,
-						 INOUT  pjRespObj JSON
+						 IN  	pjReqObj 	JSON,
+						 INOUT  pjRespObj 	JSON
 					   )
 BEGIN
     -- =========================
@@ -33,9 +33,9 @@ BEGIN
     -- =========================
     -- Extract Request Values
     -- =========================
-    SET v_contact_type = getJval(pjReqObj, 'jData.P_CONTACT_TYPE');
-    SET v_destination  = getJval(pjReqObj, 'jData.P_DESTINATION');
-    SET v_purpose      = getJval(pjReqObj, 'jData.P_PURPOSE');
+    SET v_contact_type 	= getJval(pjReqObj, 	'jData.P_CONTACT_TYPE');
+    SET v_destination  	= getJval(pjReqObj, 	'jData.P_DESTINATION');
+    SET v_purpose      	= getJval(pjReqObj, 	'jData.P_PURPOSE');
     
     main_block: BEGIN
 	-- =========================
@@ -43,7 +43,7 @@ BEGIN
     -- =========================
     IF v_contact_type IS NULL OR v_destination IS NULL OR v_purpose IS NULL THEN
 		
-        SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.responseCode',   '1');
+        SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.responseCode',   1);
 		SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.message',        'Missing required parameters');
 
         LEAVE main_block;
@@ -55,14 +55,14 @@ BEGIN
     SELECT MAX(created_at)
     INTO   v_last_sent_time
     FROM   otp
-    WHERE  contact_type = v_contact_type
-	AND    destination  = v_destination
-    AND    purpose      = v_purpose;
+    WHERE  contact_type 	= v_contact_type
+	AND    destination  	= v_destination
+    AND    purpose      	= v_purpose;
 
     IF v_last_sent_time IS NOT NULL 
     AND TIMESTAMPDIFF(SECOND, v_last_sent_time, NOW()) < 60 THEN
 
-		SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.responseCode',   				'1');
+		SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.responseCode',   				1);
 		SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.message',        				'Please wait before requesting OTP again.');
 		SET pjRespObj  = buildJSONSmart(pjRespObj,  'jData.contents.next_otp_in_secs',       60 - TIMESTAMPDIFF(SECOND, v_last_sent_time, NOW()));
 
@@ -90,12 +90,7 @@ BEGIN
 	   -- =========================
 		-- Generate message guid number
 		-- ========================= 
-		SET v_message_guid = CONCAT(
-									'MSG-',
-									DATE_FORMAT(NOW(), '%Y%m%d%H%i%s'),
-									'-',
-									FLOOR(RAND() * 1000)
-								);
+		CALL getSequence('OUTBOUND_MSGS.MESSAGE_GUID','MSG-', 5000,'genOTP SP', v_message_guid);
 
 		-- =========================
 		-- Insert OTP record
@@ -186,6 +181,7 @@ BEGIN
 			parent_message_table_name   	= 'otp',
 			parent_message_table_rec_id 	= v_otp_rec_id,
 			object_name                 	= 'OTP',
+			current_status					= 'Pending',
 			outbound_msgs_json         		= v_outbound_msgs_json,
 			row_metadata                	= v_row_metadata;
 
@@ -205,10 +201,7 @@ BEGIN
     -- =========================
 
 		SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 0);
-
-	    SET pjRespObj = buildJSONSmart( pjRespObj,
-								   'jHeader.message', 'OTP generated successfully'
-								);  
+	    SET pjRespObj = buildJSONSmart( pjRespObj,'jHeader.message', 'OTP has been sent to your verified contact.');  
     
     END main_block;
     

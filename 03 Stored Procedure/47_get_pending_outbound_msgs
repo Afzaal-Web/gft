@@ -1,0 +1,69 @@
+
+DROP PROCEDURE IF EXISTS get_pending_outbound_messages;
+
+DELIMITER $$
+
+CREATE PROCEDURE get_pending_outbound_messages(
+                                                IN     pjReqObj     JSON,
+                                                INOUT  pjResObj     JSON
+                                               )
+BEGIN
+
+    /* ===================== Core Variables ===================== */
+    
+    DECLARE v_outbound_msgs_json            JSON;
+    DECLARE v_total_messages_count          INT;
+
+    /* ===================== Validation Variables ===================== */
+    
+    DECLARE v_error_message        TEXT;
+
+    /* ===================== Error Handler ===================== */
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        GET STACKED DIAGNOSTICS CONDITION 1 v_error_message = MESSAGE_TEXT;
+
+        SET pjResObj = buildJSON(pjResObj, 'jHeader.responseCode', 1);
+        SET pjResObj = buildJSON(pjResObj, 'jHeader.message', CONCAT('Fetching pending outbound messages failed: ', v_error_message));
+
+    END;
+
+    /* ===================== Main ===================== */
+    
+    main_block: BEGIN
+
+        /* ===================== Fetch All Pending Messages ===================== */
+        
+        SELECT      COUNT(*) AS total_count,    JSON_ARRAYAGG(outbound_msgs_json)
+        INTO        v_total_messages_count,     v_outbound_msgs_json
+        FROM        outbound_msgs
+        WHERE       current_status = 'PENDING'
+        ORDER BY CAST(JSON_UNQUOTE(JSON_EXTRACT(row_metadata, '$.created_at')) AS DATETIME) DESC;
+
+         /* ===================== Check if pending messages exist ===================== */
+
+        IF v_total_messages_count = 0 OR  isFalsy(v_outbound_msgs_json) THEN
+
+            SET pjResObj = buildJSON(pjResObj, 'jHeader.responseCode',  1);
+            SET pjResObj = buildJSON(pjResObj, 'jHeader.message',       'No pending outbound messages found!');
+
+        
+            LEAVE main_block;
+        END IF;
+
+        /* ===================== Success Response ===================== */
+
+        SET pjResObj = buildJSON(pjResObj, 'jHeader.responseCode',      0);
+        SET pjResObj = buildJSON(pjResObj, 'jHeader.message',           CONCAT('Total ', v_total_messages_count, ' Pending outbound messages fetched.'));
+        SET pjResObj = buildJSON(pjResObj, 'jData.contents',            v_outbound_msgs_json);
+        
+
+    END main_block;
+
+    -- insert general code here like LOG
+    -- call log proc
+
+END $$
+DELIMITER ;

@@ -1,18 +1,18 @@
 -- ==================================================================================================
--- Procedure: 					verifiyExistingNumber
--- Purpose:   					Check DB for existing users info. If existing user then error message. 
--- 								If found elsewhere, return person info. If not found then return blank. 
+-- Procedure: 	verifiyExistingNumber
+-- Purpose:   	Check DB for existing users info. If existing user then error message. 
+-- 				If found elsewhere, return person info. If not found then return blank. 
 -- Functions and Procs used in this Pro:
-								-- isFalsy(): SF					validate the values come from reqObj
-								-- generateOtp(): SP				SP to generate OTP
--- ===================================================================================================
+				-- isFalsy(): SF				validate the values come from reqObj
+				-- genOtp(): SP					SP to generate OTP
+-- ==================================================================================================
 
 DROP PROCEDURE IF EXISTS verifiyExistingNumber;
 DELIMITER $$
 
 CREATE PROCEDURE verifiyExistingNumber(
-										IN    pjReqObj JSON,
-										INOUT pjRespObj JSON
+										IN     pjReqObj   JSON,
+										INOUT  pjRespObj  JSON
 									  )
 BEGIN
     DECLARE v_phone          			VARCHAR(20);
@@ -24,47 +24,42 @@ BEGIN
     BEGIN
         GET STACKED DIAGNOSTICS CONDITION 1 v_err_msg = MESSAGE_TEXT;
 
-		SET pjRespObj       = buildJSONSmart( pjRespObj,  'jHeader.responseCode',   '1');
-        SET pjRespObj 	   = buildJSONSmart( pjRespObj,
-                                            'jHeader.message', CONCAT('Unexpected Error - Verification failed ', v_err_msg)
-                                            );            
+		SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
+        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', CONCAT('Unexpected Error - Verification failed ', v_err_msg));
+
     END;
 
     /* ===================== Main ===================== */
     main_block: BEGIN
 
         /* ===================== Extract Phone ===================== */
-        SET v_phone 	= getJval(pjReqObj, 'jData.P_PHONE_NUM');
+        SET v_phone = getJval(pjReqObj, 'jData.P_PHONE_NUM');
 
         IF isFalsy(v_phone) THEN
-
-			SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.responseCode',   '1');
-			SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.message',        'Phone number is required'); 
-
+			SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
+			SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message',      'Phone number is required'); 
             LEAVE main_block;
         END IF;
 
         /* ===================== 1. CUSTOMER CHECK ===================== */
         IF EXISTS (
 					SELECT 1
-					FROM customer
-					WHERE phone = v_phone
+					FROM   customer
+					WHERE  phone = v_phone
 		) THEN
-
-			SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.responseCode',   '1');
-			SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.message',        'User already exists with this phone number'); 									
-
-		  LEAVE main_block;
+			SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
+			SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message',      'User already exists with this phone number'); 									
+		    LEAVE main_block;
         END IF;
 
-        /* ===================== 2. Reverse Lookup in Marketing Table ===================== */
+        /* ===================== 2. Reverse Lookup ===================== */
         IF EXISTS (
 					SELECT 1
-					FROM reverse_lookup
-					WHERE phone = v_phone
-		  ) THEN
+					FROM   reverse_lookup
+					WHERE  phone = v_phone
+		) THEN
 
-            -- Fetch marketing data
+            -- Fetch reverse lookup data
             SELECT JSON_OBJECT(
 								'first_name', 	first_name,
 								'last_name',  	last_name,
@@ -74,51 +69,58 @@ BEGIN
 								'state',      	state,
 								'zip_code',   	zip_code
 							)
-            INTO	v_reverser_lookup_json
-            FROM 	reverse_lookup
-            WHERE 	phone = v_phone
-            LIMIT 	1;
+            INTO  v_reverser_lookup_json
+            FROM  reverse_lookup
+            WHERE phone = v_phone
+            LIMIT 1;
 
-			SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 0);
+            -- Generate OTP
+            CALL genOtp(
+                    JSON_OBJECT(
+                        'jData', JSON_OBJECT(
+												'P_CONTACT_TYPE', 'phone',
+												'P_DESTINATION',  v_phone,
+												'P_PURPOSE',      'For phone number verification at the time of signup'
+											)
+                    			),
+                    				pjRespObj
+                			);
 
-	    	SET pjRespObj = buildJSONSmart( pjRespObj,
-								   		  'jHeader.message', 'Success - Phone exists in reverse lookup. Get the user info from jData.contents and proceed with registration.'
-								        );
-			
-			SET pjRespObj = buildJSONSmart( pjRespObj,
-								   		  'jData.contents', v_reverser_lookup_json
-								        );
+            -- If genOtp failed (e.g. cooldown), leave immediately with genOtp's error message intact
+            IF getJval(pjRespObj, 'jHeader.responseCode') != 0 THEN
+                LEAVE main_block;
+            END IF;
 
-            -- Generate OTP 
-            CALL genOtp(JSON_OBJECT('P_CONTACT_TYPE', 'phone',
-									'P_DESTINATION',  v_phone,
-									'P_PURPOSE', 'For phone number verification at the time of signup'
-									),
-									pjRespObj
-									);
-
-
-	
+            -- genOtp succeeded, now write our own success response
+			SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', '0');
+			SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message',      'Success - Phone exists in reverse lookup. Get the user info from jData.contents and proceed with registration.');
+			SET pjRespObj = buildJSONSmart(pjRespObj, 'jData.contents',       v_reverser_lookup_json);
 
             LEAVE main_block;
         END IF;
 
         /* ===================== 3. NEW USER ===================== */
 
-        -- Generate OTP 
-        CALL genOtp(JSON_OBJECT('P_CONTACT_TYPE', 'phone',
-								'P_DESTINATION',  v_phone,
-								'P_PURPOSE', 'For phone number verification at the time of signup'
-						),
-						pjRespObj
-									);
+        -- Generate OTP
+        CALL genOtp(
+                JSON_OBJECT(
+                    'jData', JSON_OBJECT(
+                        'P_CONTACT_TYPE', 'phone',
+                        'P_DESTINATION',  v_phone,
+                        'P_PURPOSE',      'For phone number verification at the time of signup'
+                    )
+                ),
+                pjRespObj
+            );
 
-		        /* =============== Success Response =============== */
-        SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 0);
+        -- If genOtp failed (e.g. cooldown), leave immediately with genOtp's error message intact
+        IF getJval(pjRespObj, 'jHeader.responseCode') != 0 THEN
+            LEAVE main_block;
+        END IF;
 
-	    SET pjRespObj = buildJSONSmart( pjRespObj,
-								   'jHeader.message', 'New user - Phone number is not found, proceed with registration.'
-								);  								
+        -- genOtp succeeded, now write our own success response
+		SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 0);
+		SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message',      'New user - Phone number is not found, proceed with registration.');
 
     END main_block;
 END $$
