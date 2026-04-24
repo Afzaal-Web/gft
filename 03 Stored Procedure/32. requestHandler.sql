@@ -22,7 +22,7 @@ BEGIN
     DECLARE vLogReqStatus       VARCHAR(32);
     DECLARE vLogFailReason      VARCHAR(128);
 
-    DECLARE vTemp               VARCHAR(255);
+    DECLARE vTemp               TEXT;
     DECLARE viTemp              INTEGER;
     DECLARE vjReqObj            JSON;
     DECLARE vjLogObj            JSON;
