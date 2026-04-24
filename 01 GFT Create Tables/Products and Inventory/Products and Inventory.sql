@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS inventory (
 );
 
 ALTER TABLE inventory
-ADD COLUMN IF NOT EXISTS asset_code VARCHAR(255)
+ADD COLUMN asset_code VARCHAR(255)
 AFTER item_code;
 
 ALTER TABLE inventory

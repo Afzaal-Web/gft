@@ -13,8 +13,8 @@ DROP PROCEDURE IF EXISTS createMoneyTransaction;
 DELIMITER $$
 
 CREATE PROCEDURE createMoneyTransaction(
-										 IN    pjReqObj JSON,
-										 INOUT pjRespObj JSON
+										 IN    	pjReqObj 	JSON,
+										 INOUT 	pjRespObj 	JSON
 									   )
 BEGIN
 
@@ -22,7 +22,7 @@ BEGIN
     
     DECLARE v_mm_rec_id           		INT;
     DECLARE v_cc_rec_id           		INT;
-    DECLARE v_status					VARCHAR(50) 		DEFAULT 'INITIATED';
+    DECLARE v_status					        VARCHAR(50) 		DEFAULT 'INITIATED';
     DECLARE v_request_type        		VARCHAR(20);							-- deposit | withdraw
     DECLARE v_transaction_type    		VARCHAR(50);							-- Cash Deposit, Bank transfer, Check deposite, e-wallets, credit_card
     DECLARE v_customer_rec_id     		INT;
@@ -30,23 +30,23 @@ BEGIN
     
     DECLARE v_mm_json          			JSON;
     DECLARE v_cc_json          			JSON;
-	DECLARE v_row_metadata           	JSON;
+	  DECLARE v_row_metadata           	JSON;
     DECLARE v_customer_json				JSON;
     DECLARE v_trans_life_cycle			JSON;
+    DECLARE reqObj              JSON;
     
     DECLARE v_errors 					JSON 				DEFAULT JSON_ARRAY();	-- Validation errors
-	DECLARE v_err_msg       		    VARCHAR(1000);								-- SQL error message
+	  DECLARE v_err_msg       		    VARCHAR(1000);								-- SQL error message
     
     /* =============== Exception Handler ============= */
     /* Any SQL error will rollback transaction and return error response */
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
 		BEGIN
-				ROLLBACK;
+			
 				GET STACKED DIAGNOSTICS CONDITION 1 v_err_msg = MESSAGE_TEXT;
+
 				SET pjRespObj       = buildJSONSmart( pjRespObj,  'jHeader.responseCode',   '1');
-				SET pjRespObj 	   = buildJSONSmart( pjRespObj,
-													'jHeader.message', CONCAT('Unexpected Error - Money manager creation failed', v_err_msg)
-													);   
+				SET pjRespObj 	   	= buildJSONSmart( pjRespObj,'jHeader.message', 			CONCAT('Unexpected Error - Money manager creation failed', v_err_msg));   
 		END;
    
    
@@ -54,9 +54,11 @@ BEGIN
 	main_block: BEGIN
     
     /* =============== Extract Required Fields ============= */
-		SET v_request_type     		= getJval(pjReqObj,'jData.P_REQUEST_TYPE');
-		SET v_transaction_type 		= getJval(pjReqObj,'jData.P_TRANSACTION_TYPE');
-		SET v_customer_rec_id 		= CAST(getJval(pjReqObj,'jData.P_CUSTOMER_REC_ID') AS UNSIGNED);
+		SET  reqObj   				= getJval(pjReqObj, 		'jData');
+
+		SET v_request_type     		= getJval(pjReqObj,			'jData.P_REQUEST_TYPE');
+		SET v_transaction_type 		= getJval(pjReqObj,			'jData.P_TRANSACTION_TYPE');
+		SET v_customer_rec_id 		= CAST(getJval(pjReqObj,	'jData.P_CUSTOMER_REC_ID') AS UNSIGNED);
 
     /* =============== Basic Validations ============= */
 		IF isFalsy(v_request_type) THEN
@@ -130,8 +132,8 @@ BEGIN
     /* =============== Prepare JSON Templates ============= */
     
 		SET v_customer_json			= getCustomer(v_customer_rec_id);    
-		SET v_mm_json 				= fillTemplate(pjReqObj,getTemplate('money_manager'));
-		SET v_cc_json 				= fillTemplate(pjReqObj, getTemplate('credit_card'));
+		SET v_mm_json 				= fillTemplate(reqObj,	getTemplate('money_manager'));
+		SET v_cc_json 				= fillTemplate(reqObj, 	getTemplate('credit_card'));
         SET v_trans_life_cycle		= getTemplate('transaction_life_cycle');
         
 		SET v_trans_life_cycle		= JSON_SET(v_trans_life_cycle,
@@ -166,15 +168,13 @@ BEGIN
 												'$.created_by', 	'createMoneyManager'
 											);
 
-  /* =============== Start Transaction ============= */
-		START TRANSACTION;
 
  /* =============== Insert into money_manager ============= */
  
 		INSERT INTO money_manager
 		SET customer_rec_id			= v_customer_rec_id,
 			status					= v_status,
-			account_num				= getJval(v_customer_json,'account_number'),
+			account_num				= getJval(v_customer_json,'account_num'),
 			request_type			= v_request_type,
 			transaction_type		= v_transaction_type,
 			money_manager_json		= v_mm_json,
@@ -202,10 +202,10 @@ BEGIN
 			INSERT INTO credit_card
 			SET	money_manager_rec_id 	 = v_mm_rec_id,
 				status					 = v_status,
-				account_num				 = getJval(v_customer_json,'account_number'),
-				processor_name			 = getJval(pjReqObj,'jData.P_PROCESSOR_NAME'),
-				processor_token			 = getJval(pjReqObj,'jData.P_PROCESSOR_TOKEN'),
-				card_last_4				 = RIGHT(getJval(pjReqObj,'jData.P_CARD_INFO.P_CARD_NUMBER'),4),
+				account_num				 = getJval(v_customer_json,'account_num'),
+				processor_name			 = getJval(reqObj,'P_PROCESSOR_NAME'),
+				processor_token			 = getJval(reqObj,'P_PROCESSOR_TOKEN'),
+				card_last_4				 = RIGHT(getJval(reqObj,'P_CARD_INFO.P_CARD_NUMBER'),4),
 				credit_card_json		 = v_cc_json,
 				row_metadata			 = v_row_metadata;
 		
@@ -213,11 +213,11 @@ BEGIN
 		
 	  /* =============== Sync Credit Card ID into JSON ============= */
 			SET v_cc_json 				= JSON_SET( v_cc_json,
-												'$.credit_card_rec_id', v_cc_rec_id,
-                                                '$.money_manager_rec_id', v_mm_rec_id,
-												'$.status', v_status,
-                                                '$.card_last_4', RIGHT(getJval(pjReqObj,'jData.card_number'),4)
-												);
+													'$.credit_card_rec_id', v_cc_rec_id,
+                                                    '$.money_manager_rec_id', v_mm_rec_id,
+													'$.status', v_status,
+                                                    '$.card_last_4', RIGHT(getJval(pjReqObj,'jData.P_CARD_INFO.P_CARD_NUMBER'),4)
+													);
 		
 			UPDATE credit_card
 			SET    credit_card_json 	= v_cc_json
@@ -232,9 +232,7 @@ BEGIN
 
 	SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 0);
 
-	SET pjRespObj = buildJSONSmart( pjRespObj,
-								   'jHeader.message', 'Success - Your transaction has been submitted. It will be posted to your wallet within 3 business days.'
-								);  
+	SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 'Success - Your transaction has been submitted. It will be posted to your wallet within 3 business days.');  
 						
      END main_block;
      
@@ -243,7 +241,3 @@ BEGIN
 END$$
 
 DELIMITER ;
-
-
-
-

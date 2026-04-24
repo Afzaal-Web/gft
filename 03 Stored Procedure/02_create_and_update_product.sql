@@ -14,8 +14,8 @@ DROP PROCEDURE IF EXISTS upsertProduct;
 DELIMITER $$
 
 CREATE PROCEDURE upsertProduct(
-								IN    pjReqObj JSON,
-								INOUT pjRespObj JSON
+								IN     pjReqObj   JSON,
+								INOUT  pjRespObj  JSON
 							  )
 BEGIN
 		/* ================ VARIABLE DECLARATIONS ================ */
@@ -26,8 +26,10 @@ BEGIN
         
 		DECLARE v_products_json          	JSON;
 		DECLARE v_row_metadata           	JSON;
+		DECLARE reqObj						JSON;
     
 		DECLARE v_errors 					JSON 				DEFAULT JSON_ARRAY();
+
 		DECLARE v_err_msg       		    VARCHAR(1000);
 
     /* =============== GLOBAL ERROR HANDLER ============ */
@@ -36,17 +38,25 @@ BEGIN
 		DECLARE EXIT HANDLER FOR SQLEXCEPTION
 		BEGIN
 				GET STACKED DIAGNOSTICS CONDITION 1 v_err_msg = MESSAGE_TEXT;
-				SET pjRespObj       = buildJSONSmart( pjRespObj,  'jHeader.responseCode',   '1');
+				SET pjRespObj      = buildJSONSmart( pjRespObj,  'jHeader.responseCode',   '1');
 				SET pjRespObj 	   = buildJSONSmart( pjRespObj,
 													'jHeader.message', CONCAT('Unexpected Error - Product creation failed ', v_err_msg)
 													);
 		END;
 
 	main_block: BEGIN
+
+		SELECT 	tradable_assets_rec_id
+		INTO   	v_tradable_assets_rec_id
+		FROM 	tradable_assets
+		WHERE asset_code = getJval(pjReqObj, 'jData.P_ASSET_CODE')
+		LIMIT 1;
+
+		SET  reqObj 			= getJval(pjReqObj, 'jData');
      
      	SET v_mode =
 					CASE
-						WHEN isFalsy(getJval(pjReqObj, 'jData.P_')) THEN
+						WHEN isFalsy(getJval(pjReqObj, 'jData.P_PRODUCT_REC_ID')) THEN
 						'INSERT'
 						ELSE
 						'UPDATE'
@@ -57,20 +67,16 @@ BEGIN
 		WHEN 'INSERT' THEN
 
 			/* =============== Product Insert VALIDATIONS : If required fields are missing in reqObj ================ */
-
-			IF isFalsy(getJval(pjReqObj, 'jData.P_')) THEN
-				SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','tradable_assets_rec_id is required');
-			END IF;
 			
-			IF isFalsy(getJval(pjReqObj, 'jData.P_')) THEN
+			IF isFalsy(getJval(pjReqObj, 'jData.P_ASSET_CODE')) THEN
 				SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','asset_code is required');
 			END IF;
 			
-			IF isFalsy(getJval(pjReqObj, 'jData.P_')) THEN
+			IF isFalsy(getJval(pjReqObj, 'jData.P_PRODUCT_CODE')) THEN
 				SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','product_code is required');
 			END IF;
 			
-			IF isFalsy(getJval(pjReqObj, 'jData.P_')) THEN
+			IF isFalsy(getJval(pjReqObj, 'jData.P_PRODUCT_NAME')) THEN
 				SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','product_name is required');
 			END IF;
     
@@ -78,47 +84,49 @@ BEGIN
 		   IF EXISTS (
 						SELECT 1
 						FROM products
-						WHERE product_code = getJval(pjReqObj, 'jData.P_')
+						WHERE product_code = getJval(pjReqObj, 'jData.P_PRODUCT_CODE')
 					) 	THEN
-				SET v_errors = JSON_ARRAY_APPEND(v_errors,'$',CONCAT('Product already exists with product_code: ', getJval(pjReqObj,'product_code')));
+				SET v_errors = JSON_ARRAY_APPEND(v_errors,'$',CONCAT('Product already exists with product_code: ', getJval(pjReqObj,'jData.P_PRODUCT_CODE')));
 		   END IF;
        
 	   	/* =============== Show errors in array in response Obj ================ */  
 		   IF JSON_LENGTH(v_errors) > 0 THEN
-			SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.responseCode',   '1');
-			SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.message',        v_errors);
+
+			SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.responseCode',  '1');
+			SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.message',       v_errors);
+
 		   LEAVE main_block;
 		   END IF;
 
 
 			/* =============== CREATE PRODUCT: Product Insertation started ================ */
             
-                /* ============= JSON PREPARATION ================== */
+        /* ============= JSON PREPARATION ================== */
     
 		 SET v_products_json 	= getTemplate('products');
-		 SET v_products_json 	= fillTemplate(pjReqObj, v_products_json);
+		 SET v_products_json 	= fillTemplate(reqObj, v_products_json);
+
+		 SET v_products_json	= buildJSONSmart(v_products_json, 'tradable_assets_rec_id', v_tradable_assets_rec_id);
 			
 		 SET v_row_metadata		= getTemplate('row_metadata');
-		 SET v_row_metadata 	= JSON_SET( v_row_metadata,
-											'$.created_by', 	'SYSTEM',
-											'$.created_at', 	 DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i:%s')
-										  );
+
+		 SET v_row_metadata		= buildJSONSmart(v_row_metadata, 'created_by', 'SYSTEM');
+		 SET v_row_metadata		= buildJSONSmart(v_row_metadata, 'created_at', DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i:%s'));
 
 		 INSERT INTO products
-				SET	tradable_assets_rec_id		= getJval(pjReqObj, 'jData.P_'),
-					asset_code					= getJval(pjReqObj, 'jData.P_'),
-					product_code				= getJval(pjReqObj, 'jData.P_'),
-					product_type				= getJval(pjReqObj, 'jData.P_'),
-					product_name				= getJval(pjReqObj, 'jData.P_'),
+				SET	tradable_assets_rec_id		= v_tradable_assets_rec_id,
+					asset_code					= getJval(pjReqObj, 'jData.P_ASSET_CODE'),
+					product_code				= getJval(pjReqObj, 'jData.P_PRODUCT_CODE'),
+					product_type				= getJval(pjReqObj, 'jData.P_PRODUCT_TYPE'),
+					product_name				= getJval(pjReqObj, 'jData.P_PRODUCT_NAME'),
 					products_json				= v_products_json,
 					row_metadata				= v_row_metadata;
 					
 				SET v_product_rec_id 			= LAST_INSERT_ID();
 
 				-- Sync generated ID back into JSON
-				SET v_products_json 			= JSON_SET( v_products_json,
-															'$.product_rec_id', v_product_rec_id
-														  );
+				SET v_products_json			    = buildJSONSmart(v_products_json, 'product_rec_id', v_product_rec_id);
+				
 
 				UPDATE products
 				SET    products_json 	= v_products_json
@@ -130,9 +138,16 @@ BEGIN
 
     WHEN 'UPDATE' THEN
 
+	/* ===== ASSET CODE IS REQUIRED FOR UPDATE OF PRODUCT TOO === */
+		IF isFalsy(getJval(pjReqObj, 'jData.P_ASSET_CODE')) THEN
+
+			SET v_errors = JSON_ARRAY_APPEND(v_errors,'$','asset_code is required');
+
+		END IF;
+
       	/* =============== Product Insert VALIDATIONS: UPDATE must target existing record ================ */
 
-		SET v_product_rec_id = getJval(pjReqObj, 'jData.P_');
+		SET v_product_rec_id = getJval(pjReqObj, 'jData.P_PRODUCT_REC_ID');
       
 		IF v_product_rec_id IS NOT NULL
 		AND NOT EXISTS (
@@ -149,16 +164,18 @@ BEGIN
         IF EXISTS (
 					SELECT 1
 					FROM products
-					WHERE product_code = getJval(pjReqObj, 'jData.P_')
+					WHERE product_code = getJval(pjReqObj, 'jData.P_PRODUCT_CODE')
 					AND product_rec_id <> v_product_rec_id
 					) THEN
-			SET v_errors = JSON_ARRAY_APPEND(v_errors,'$',CONCAT('Product already exists with product_code: ', getJval(pjReqObj, 'jData.P_')));
+			SET v_errors = JSON_ARRAY_APPEND(v_errors,'$',CONCAT('Product already exists with product_code: ', getJval(pjReqObj, 'jData.P_PRODUCT_CODE')));
 		END IF;	
     
 	/* =============== Show errors in array in response Obj ================ */  
 		IF JSON_LENGTH(v_errors) > 0 THEN
+
 			SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.responseCode',   '1');
 			SET pjRespObj  = buildJSONSmart(pjRespObj,  'jHeader.message', 		v_errors);
+
 		LEAVE main_block;
 		END IF;
         
@@ -167,23 +184,18 @@ BEGIN
 
         SET v_products_json 	= getProduct(v_product_rec_id);
 
-		SET v_products_json 	= fillTemplate(pjReqObj, v_products_json);
+		SET v_products_json 	= fillTemplate(reqObj, v_products_json);
 
 		SELECT 	row_metadata
 		INTO 	v_row_metadata
 		FROM 	products
 		WHERE 	product_rec_id = v_product_rec_id;
 
-        SET v_row_metadata = JSON_SET(
-										v_row_metadata,
-										'$.updated_by', 	'SYSTEM',
-										'$.updated_at', 	DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i:%s')
-									);
-		
+		SET v_row_metadata		= buildJSONSmart(v_row_metadata, 'updated_by', 'SYSTEM');
+		SET v_row_metadata		= buildJSONSmart(v_row_metadata, 'updated_at',  DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i:%s'));
 
-        
         UPDATE products
-        SET tradable_assets_rec_id		= getJval(v_products_json, 'tradable_assets_rec_id'),
+        SET tradable_assets_rec_id		= v_tradable_assets_rec_id,
 			asset_code					= getJval(v_products_json, 'asset_code'), 			
             product_code				= getJval(v_products_json, 'product_code'),			
             product_type				= getJval(v_products_json, 'product_type'),			
@@ -201,7 +213,7 @@ BEGIN
 	SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 0);
 
 	SET pjRespObj = buildJSONSmart( pjRespObj,
-							   'jHeader.message', IF( isFalsy(getJval(pjReqObj, 'jData.P_PRODUCT_REC_ID')),
+							       'jHeader.message', IF( isFalsy(getJval(pjReqObj, 'jData.P_PRODUCT_REC_ID')),
 														  'Success - Product saved successfully',
 														  'Success - Product updated successfully'
 														)
