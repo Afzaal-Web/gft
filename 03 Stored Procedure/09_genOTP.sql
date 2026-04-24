@@ -84,7 +84,11 @@ BEGIN
 		-- =========================
 		-- Generate new OTP
 		-- =========================
-		SET v_otp    	= LPAD(FLOOR(100000 + RAND() * 900000), 6, '0');
+		SET v_otp    = COALESCE(
+                         getJval(pjReqObj, 'jData.P_PRESET_OTP'),
+                         LPAD(FLOOR(100000 + RAND() * 900000), 6, '0')
+                       );
+					   
 		SET v_expiry 	= DATE_ADD(NOW(), INTERVAL 5 MINUTE);
 		
 	   -- =========================
