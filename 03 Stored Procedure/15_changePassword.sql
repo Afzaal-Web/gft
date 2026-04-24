@@ -7,19 +7,30 @@ DROP PROCEDURE IF EXISTS changePassword;
 DELIMITER $$
 
 CREATE PROCEDURE changePassword(
-								IN  pjReqObj       JSON,
-								OUT pResObj       JSON
+								IN      pjReqObj      JSON,
+								INOUT   pResObj       JSON
 							)
 BEGIN
-    DECLARE v_login_id        VARCHAR(255);
-    DECLARE v_old_password    VARCHAR(255);
-    DECLARE v_new_password    VARCHAR(255);
+    DECLARE v_login_id          VARCHAR(255);
+    DECLARE v_old_password      VARCHAR(255);
+    DECLARE v_new_password      VARCHAR(255);
     
     DECLARE v_customer_rec_id 	INT;
     DECLARE v_user_name       	VARCHAR(255);
     DECLARE v_email           	VARCHAR(255);
     DECLARE v_phone             VARCHAR(20);
     DECLARE v_db_password     	VARCHAR(255);
+
+    DECLARE v_err_msg           TEXT;
+
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET STACKED DIAGNOSTICS CONDITION 1 v_err_msg = MESSAGE_TEXT;
+
+        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
+        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', CONCAT('Unexpected Error - ', v_err_msg));
+        
+    END;
 
     main_block: BEGIN
 
@@ -32,10 +43,10 @@ BEGIN
 
         -- Validate input
         IF v_login_id IS NULL OR v_old_password IS NULL OR v_new_password IS NULL THEN
-            SET pResObj = JSON_OBJECT(
-                'status',  'INVALID_REQUEST',
-                'message', 'Login ID, Old Password and New Password are required.'
-            );
+            
+            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
+            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', 'Login ID, Old Password and New Password are required.');
+
             LEAVE main_block;
         END IF;
 
@@ -53,10 +64,10 @@ BEGIN
 
         -- User not found
         IF v_customer_rec_id IS NULL THEN
-            SET pResObj = JSON_OBJECT(
-                'status',  'USER_NOT_FOUND',
-                'message', 'No account matches the provided login ID.'
-            );
+
+            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
+            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', 'No account matches the provided login ID.');
+
             LEAVE main_block;
         END IF;
 
@@ -64,10 +75,10 @@ BEGIN
         -- Validate old password
         -- =========================
         IF SHA2(v_old_password,256) <> v_db_password THEN
-            SET pResObj = JSON_OBJECT(
-										'status', 'INVALID_OLD_PASSWORD',
-										'message', 'The old password is incorrect.'
-									);
+
+            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
+            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', 'The old password is incorrect.');
+
             LEAVE main_block;
         END IF;
         
@@ -76,15 +87,15 @@ BEGIN
         -- =========================
         
         IF SHA2(v_new_password,256) = v_db_password THEN
-            SET pResObj = JSON_OBJECT(
-                'status', 'PASSWORD_REUSED',
-                'message', 'New password cannot be the same as your current password.'
-            );
+
+            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
+            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', 'New password cannot be the same as your current password.');
+
             LEAVE main_block;
         END IF;
         
         -- =========================
-        -- Prevent reuse of last passwords
+        -- Prevent reuse of all last passwords
         -- =========================
         IF EXISTS (
             SELECT 1 
@@ -93,18 +104,18 @@ BEGIN
               AND parent_table_rec_id 	 = v_customer_rec_id
               AND password_hash 		 = SHA2(v_new_password,256)
         ) THEN
-            SET pResObj = JSON_OBJECT(
-                'status', 'PASSWORD_REUSED',
-                'message', 'You cannot reuse a previous password.'
-            );
+            
+            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
+            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', 'You cannot reuse a previous password.');
+            
             LEAVE main_block;
         END IF;
 
         -- =========================
         -- Update password in auth table
         -- =========================
-        UPDATE auth
-        SET auth_json = JSON_SET(auth_json, '$.login_credentials.password', SHA2(v_new_password,256))
+        UPDATE  auth
+        SET     auth_json = JSON_SET(auth_json, '$.login_credentials.password', SHA2(v_new_password,256))
         WHERE 	parent_table_name = 'customer'
 		AND		parent_table_rec_id = v_customer_rec_id;
 
@@ -135,10 +146,10 @@ BEGIN
         -- =========================
         -- Success response
         -- =========================
-        SET pResObj  = JSON_OBJECT(
-            'status',  'PASSWORD_CHANGE_SUCCESS',
-            'message', 'Your password has been successfully changed.'
-        );
+        
+        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 0);
+        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', 'Your password has been successfully changed.');
+            
 
     END main_block;
 
