@@ -33,6 +33,7 @@ BEGIN
     DECLARE v_password_hashed     			VARCHAR(255);
     DECLARE v_account_seq 		  			VARCHAR(255);
     DECLARE v_mode 							VARCHAR(20);
+	DECLARE reqObj							JSON;
 
     /* ===================== JSON Objects ===================== */
     DECLARE v_customer_json       		JSON;
@@ -69,10 +70,11 @@ BEGIN
 
         /* ===================== Extract Scalars ===================== */
         SET v_email     		= getJval(pjReqObj, 'jData.P_EMAIL');
-        SET v_user_name 		= v_email;
+        CALL generateUsername(getJval(pjReqObj,'jData.P_FIRST_NAME'),getJval(pjReqObj,'jData.P_LAST_NAME'), v_user_name);
 	
             /* ===================== Set template values from Request Object ===================== */
-        SET v_customer_json 			= fillTemplate(pjReqObj, getTemplate('customer'));
+		SET reqObj 						= getJval(pjReqObj, 'jData');
+        SET v_customer_json 			= fillTemplate(reqObj, getTemplate('customer'));
 		SET v_row_metadata 				= getTemplate('row_metadata');
         
     SET v_mode =
@@ -187,7 +189,7 @@ BEGIN
 			SET v_auth_json 	= getTemplate('auth');
                 
 				/* ===================== Password ===================== */
-			SET v_password_plain  			= getJval(pjReqObj, 'jData.P_');
+			SET v_password_plain  			= getJval(pjReqObj, 'jData.P_PASSWORD');
 			SET v_password_hashed 			= SHA2(v_password_plain,256);
             
             
@@ -198,7 +200,7 @@ BEGIN
 														'$.parent_table_rec_id',					v_customer_rec_id,
 														'$.user_name',								v_user_name,
 														'$.login_credentials.password',				v_password_hashed,
-														'$.login_credentials.username',				v_email                                               
+														'$.login_credentials.username',				v_user_name                                              
 													);
                                       
 				/* ---------- Insert Auth ---------- */
@@ -257,7 +259,7 @@ BEGIN
 		
 		WHEN 'UPDATE' THEN
         
-SET v_customer_rec_id 		= getJval(pjReqObj,'jData.P_CUSTOMER_REC_ID');
+		SET v_customer_rec_id 		= getJval(pjReqObj,'jData.P_CUSTOMER_REC_ID');
                 
 		/* ===================== Update Validations ===================== */
             
@@ -299,7 +301,7 @@ SET v_customer_rec_id 		= getJval(pjReqObj,'jData.P_CUSTOMER_REC_ID');
 			 /* =============== Customer Profile and password update: UPDATE EXISTING ROW IF REC ID EXISTS in Request ============= */
             
              /* =============== fil existed CustomerJson from reqObj ============= */
-			SET v_customer_json = fillTemplate(pjReqObj, getCustomer(v_customer_rec_id));
+			SET v_customer_json = fillTemplate(reqObj, getCustomer(v_customer_rec_id));
             
             SELECT 	row_metadata
             INTO 	v_row_metadata
@@ -339,9 +341,9 @@ SET v_customer_rec_id 		= getJval(pjReqObj,'jData.P_CUSTOMER_REC_ID');
 													);
 												   
 			/* ---------- Update password if provided  ---------- */
-IF NOT isFalsy(getJval(pjReqObj,'jData.P_PASSWORD')) THEN
+		IF NOT isFalsy(getJval(pjReqObj,'jData.P_PASSWORD')) THEN
             
-					SET v_password_plain  		= getJval(pjReqObj, 'jData.P_');
+					SET v_password_plain  		= getJval(pjReqObj, 'P_PASSWORD');
 					SET v_password_hashed 		= SHA2(v_password_plain,256);
 					
 					UPDATE  password_history
