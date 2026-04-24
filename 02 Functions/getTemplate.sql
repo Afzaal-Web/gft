@@ -195,8 +195,7 @@ BEGIN
 						"is_face_id_enabled"         			  : null,
 						"is_fingerprint_enabled"     			  : null
 					},
-                    "customer_wallets": [],
-					"customer_products": []
+                    "customer_wallets": []
 				}' AS JSON);
 
 -- =======================================================================
