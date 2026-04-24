@@ -40,7 +40,11 @@ BEGIN
         -- Convert to lowercase
         SET v_clean_key = LOWER(v_clean_key);
 
-        SET v_result = buildJSONSmart(v_result, v_clean_key, v_value);
+        IF JSON_CONTAINS_PATH(v_result, 'one', CONCAT('$.', v_clean_key)) THEN
+
+            SET v_result = buildJSONSmart(v_result, v_clean_key, v_value);
+
+        END IF;
 
         SET i = i + 1;
     END WHILE;
