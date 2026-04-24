@@ -130,6 +130,17 @@ BEGIN
 		SET 	expires_at 		= NOW(),
 				otp_retries 	= 0
 		WHERE otp_rec_id = v_otp_rec_id;
+
+		-- =========================
+		-- (handles user_name case where same OTP sent to both email & phone)
+		-- =========================
+		UPDATE  otp
+		SET     expires_at  = NOW(),
+				otp_retries = 0
+		WHERE   otp_code    = vOtpCode       
+		AND     purpose     = vPurpose       
+		AND     expires_at  > NOW()          
+		AND     otp_rec_id  <> v_otp_rec_id; 
 		
 		-- =========================
 		-- Call Handle Otp Success SP
