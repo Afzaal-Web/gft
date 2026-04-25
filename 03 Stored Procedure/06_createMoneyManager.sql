@@ -33,7 +33,7 @@ BEGIN
 	  DECLARE v_row_metadata           	JSON;
     DECLARE v_customer_json				JSON;
     DECLARE v_trans_life_cycle			JSON;
-    DECLARE reqObj              JSON;
+    DECLARE reqObj              		JSON;
     
     DECLARE v_errors 					JSON 				DEFAULT JSON_ARRAY();	-- Validation errors
 	  DECLARE v_err_msg       		    VARCHAR(1000);								-- SQL error message

@@ -9,7 +9,7 @@ DROP PROCEDURE IF EXISTS documentManagment;
 DELIMITER $$
 
 CREATE PROCEDURE documentManagment(
-									IN     pjReqObj JSON,
+									IN     pjReqObj  JSON,
                                     INOUT  pjRespObj JSON
 								  )
 BEGIN
@@ -26,6 +26,7 @@ BEGIN
     
     DECLARE v_document_mng_json					JSON;
     DECLARE v_row_metadata          			JSON DEFAULT getTemplate('row_metadata');
+    DECLARE reqObj              		        JSON;
     
     DECLARE v_errors              				JSON DEFAULT JSON_ARRAY();
     DECLARE v_err_msg       					TEXT;
@@ -36,18 +37,22 @@ BEGIN
         GET STACKED DIAGNOSTICS CONDITION 1 v_err_msg = MESSAGE_TEXT;
   
         SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 	1);
-        SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 		CONCAT('Failed to upload document', ' ' v_err_msg));
+        SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.message', 		CONCAT('Failed to upload document', ' ', v_err_msg));
 
     END;
     
     main_block: BEGIN
     
 		/* ===================== Extract Scalars ===================== */
+        SET  reqObj   			= getJval(pjReqObj, 'jData'); -- extract jData for fillTemplate
+
 		SET v_doc_type   		= getJval(pjReqObj, 'jData.P_DOC_TYPE');
 		SET v_notes		 		= getJval(pjReqObj, 'jData.P_NOTES');
 		SET v_attachment_url  	= getJval(pjReqObj, 'jData.P_ATTACHMENT_URL');
         SET v_login_id			= getJval(pjReqObj, 'jData.P_LOGIN_ID');
         SET v_user_type			= getJval(pjReqObj, 'jData.P_USER_TYPE'); -- CUSTOMER OR EMPLOYEE
+
+
         
         /* -------- Normalize -------- */
         SET v_user_type			= UPPER(TRIM(v_user_type));
@@ -128,7 +133,7 @@ BEGIN
             
         
 		/* ===================== Build Template ===================== */
-        SET v_document_mng_json 	=  fillTemplate(pjReqObj, getTemplate('document_management'));
+        SET v_document_mng_json 	=  fillTemplate(reqObj, getTemplate('document_management'));
 
         SET v_row_metadata = buildJSONSmart( v_row_metadata, 'created_at', NOW());
         SET v_row_metadata = buildJSONSmart( v_row_metadata, 'created_by', v_login_id);
