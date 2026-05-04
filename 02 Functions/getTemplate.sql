@@ -122,7 +122,9 @@ BEGIN
 					"last_name"                      			  : null,
 					"user_name"                      			  : null,
 					"email"                         			  : null,
+					"is_email_verified"                     	  : null,
 					"phone"                          			  : null,
+					"is_phone_verified"                     	  : null,
 					"whatsapp_number"                			  : null,
 					"national_id"                    			  : null,
 					"main_account_num"	            			  : null,
@@ -152,7 +154,9 @@ BEGIN
 					"additional_contacts":  [
 						{
 							"additional_email"       			  : null,
-							"additional_phone"       			  : null
+              				"is_email_verified"             	  : null,
+							"additional_phone"       			  : null,
+              				"is_phone_verified"             	  : null
 						}
 					],
 
