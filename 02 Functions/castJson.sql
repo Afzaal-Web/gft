@@ -205,15 +205,15 @@ BEGIN
 					"additional_contacts" : [
 							{
 								"Additional_email_1"         : "j.doe.secondary@example.com",                  "_comment_Additional_email_1"            : "Secondary email for the customer",
-								"is_email1_verified"		 : "Yes",
+								"is_email_1_verified"		 : "Yes",
 								"Additional_phone_1"         : "+1234567891",                                  "_comment_Additional_phone_1"            : "Emergency contact phone number",
-								"is_phone1_verified"		 : "Yes"
+								"is_phone_1_verified"		 : "Yes"
 							},
 							{
 								"Additional_email_2"         : "j.doe.secondary@example.com",                  "_comment_Additional_email_2"            : "Secondary email for the customer",
-								"is_email1_verified"		 : "Yes",
+								"is_email_1_verified"		 : "Yes",
 								"Additional_phone_2"         : "+1234567891",                                  "_comment_Additional_phone_2"            : "Emergency contact phone number"
-								"is_phone1_verified"		 : "Yes"
+								"is_phone_1_verified"		 : "Yes"
 							}
 					],             
 
