@@ -81,7 +81,9 @@ CREATE TABLE IF NOT EXISTS customer (
     last_name 					VARCHAR(100),
     user_name					VARCHAR(100),
     email						VARCHAR(50),
+    is_email_verified			VARCHAR(3),
     phone						VARCHAR(20),
+    is_phone_verified			VARCHAR(3),
     whatsapp_num				VARCHAR(20),
     national_id					VARCHAR(50) 			UNIQUE,
     main_account_num			VARCHAR(50),
@@ -113,7 +115,9 @@ SET
     last_name                  				= 'Doe',
 	user_name								= 'john.doe123',
     email                  					= 'johndoe@gmail.com',
+    is_email_verified                       = 'Yes'
     phone	                  				= '+92301-1232123',
+    is_email_verified                       = 'Yes'
     whatsapp_num	                  		= '+92301-3212342',
     national_id                				= '331013434343433',
     main_account_num           				= 'AZS-001',
