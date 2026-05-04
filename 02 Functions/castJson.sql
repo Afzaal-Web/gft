@@ -137,7 +137,9 @@ BEGIN
 					"last_name"                      : "Doe",                                           "_comment_last_name"                      : "Customer\'s last name",
 					"user_name"                      : "johndoe123",                                    "_comment_user_name"                      : "Unique username for login",
 					"email"                          : "john.doe@example.com",                          "_comment_email"                          : "Primary email of the customer",
+					"is_email_verified"				 : "Yes",
 					"phone"                          : "+1234567890",                                   "_comment_phone"                          : "Primary phone number",
+					"is_phone_verified"				 : "Yes",
 					"whatsapp_number"                : "+1234567890",                                   "_comment_whatsapp_number"                : "WhatsApp contact number",
 					"national_id"                    : "331013434343433",                               "_comment_national_id"                    : "Government-issued national ID",
 					"main_account_number"            : "AZS-001",                                       "_comment_main_account_number"            : "Main account number for the customer",
@@ -203,11 +205,15 @@ BEGIN
 					"additional_contacts" : [
 							{
 								"Additional_email_1"         : "j.doe.secondary@example.com",                  "_comment_Additional_email_1"            : "Secondary email for the customer",
-								"Additional_phone_1"         : "+1234567891",                                  "_comment_Additional_phone_1"            : "Emergency contact phone number"
+								"is_email1_verified"		 : "Yes",
+								"Additional_phone_1"         : "+1234567891",                                  "_comment_Additional_phone_1"            : "Emergency contact phone number",
+								"is_phone1_verified"		 : "Yes"
 							},
 							{
 								"Additional_email_2"         : "j.doe.secondary@example.com",                  "_comment_Additional_email_2"            : "Secondary email for the customer",
+								"is_email1_verified"		 : "Yes",
 								"Additional_phone_2"         : "+1234567891",                                  "_comment_Additional_phone_2"            : "Emergency contact phone number"
+								"is_phone1_verified"		 : "Yes"
 							}
 					],             
 
