@@ -242,7 +242,8 @@ BEGIN
         -- =====================================================
         -- MESSAGING MODULE (MSG)
         -- =====================================================
-        WHEN 'MSG.I.OUTBOUND_QUEUE'          THEN CALL update_outbound_message_status(vjReqObj, vjResponse);
+        WHEN 'MSG.I.OUTBOUND_QUEUE'          THEN CALL updateOutboundMessageStatus(vjReqObj, vjResponse);
+        WHEN 'MSG.S.OUTBOUND_QUEUE'          THEN CALL getPendingOutboundMessages(vjReqObj, vjResponse);
 
         -- =====================================================
         -- ORDER MODULE (ORD)

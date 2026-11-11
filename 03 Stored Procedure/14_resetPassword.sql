@@ -55,7 +55,7 @@ BEGIN
         -- =========================
         -- Find customer & validate reset token
         -- =========================
-        SELECT customer_rec_id, 	user_name, 		email, 		phone, 	  getJval(customer_json,'$.otp_reset_token') AS token, 	getJval(customer_json,'$.reset_token_expiry') AS token_expiry
+        SELECT customer_rec_id, 	user_name, 		email, 		phone, 	  getJval(customer_json,'otp_reset_token') AS token, 	getJval(customer_json,'reset_token_expiry') AS token_expiry
         INTO   v_customer_rec_id, 	v_user_name, 	v_email, 	v_phone,  v_db_reset_token, 									v_token_expiry
         FROM   customer
         WHERE  user_name = v_login_id
@@ -75,7 +75,7 @@ BEGIN
         -- Token mismatch
         IF v_db_reset_token IS NULL
         OR v_db_reset_token = ''
-        OR NOT (BINARY v_reset_token <=> BINARY v_db_reset_token) THEN
+        OR NOT (v_reset_token <=> v_db_reset_token) THEN
 
             SET pjRespObj = buildJSONSmart(
                 pjRespObj,

@@ -1,9 +1,9 @@
 
-DROP PROCEDURE IF EXISTS get_pending_outbound_messages;
+DROP PROCEDURE IF EXISTS getPendingOutboundMessages;
 
 DELIMITER $$
 
-CREATE PROCEDURE get_pending_outbound_messages(
+CREATE PROCEDURE getPendingOutboundMessages(
                                                 IN     pjReqObj     JSON,
                                                 INOUT  pjResObj     JSON
                                                )

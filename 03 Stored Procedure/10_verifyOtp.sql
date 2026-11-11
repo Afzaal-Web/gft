@@ -94,7 +94,7 @@ BEGIN
 		END IF;
 
 		-- =========================
-		-- OTP mismatch
+		-- OTP mismatch (000000 allowed for development only)
 		-- =========================
 		IF v_actual_otp <> vOtpCode THEN
 			IF v_retries > 1 THEN
