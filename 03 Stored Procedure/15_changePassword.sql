@@ -6,9 +6,9 @@
 DROP PROCEDURE IF EXISTS changePassword;
 DELIMITER $$
 
-CREATE PROCEDURE changePassword(
+CREATE DEFINER=`admin`@`%` PROCEDURE `changePassword`(
 								IN      pjReqObj      JSON,
-								INOUT   pResObj       JSON
+								INOUT   pjRespObj     JSON
 							)
 BEGIN
     DECLARE v_login_id          VARCHAR(255);
@@ -53,7 +53,7 @@ BEGIN
         -- =========================
         -- Find user and get current password
         -- =========================
-        SELECT customer_rec_id, 	user_name, 	 email, 	phone,    getJval(auth_json,'$.login_credentials.password')  AS current_password
+        SELECT c.customer_rec_id, 	c.user_name, 	 c.email, 	c.phone,    getJval(auth_json,'$.login_credentials.password')  AS current_password
         INTO   v_customer_rec_id,   v_user_name, v_email,   v_phone,  v_db_password
         FROM   auth a
         JOIN   customer c ON a.parent_table_rec_id = c.customer_rec_id
@@ -137,7 +137,7 @@ BEGIN
               parent_table_rec_id		= v_customer_rec_id,
               password_hash				= SHA2(v_new_password,256),
               password_set_at			= NOW(),
-              password_change_by		= 'customer',
+              password_changed_by		= 'customer',
               password_change_reason	= 'Change password',
               last_password_updated_at  = NOW(),
               password_expiration_date	= DATE_ADD(NOW(), INTERVAL 90 DAY),
@@ -153,7 +153,6 @@ BEGIN
 
     END main_block;
 
-END $$
-
+END
 DELIMITER ;
 

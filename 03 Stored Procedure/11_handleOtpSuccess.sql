@@ -256,6 +256,14 @@ BEGIN
             -- =====================================================
             -- REGISTER (placeholder)
             -- =====================================================
+            WHEN 'FORGOT PASSWORD' THEN
+
+                SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 0);
+                SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message',      'OTP verified for Forgot password');
+
+                -- =====================================================
+            -- REGISTER (placeholder)
+            -- =====================================================
             WHEN 'REGISTER' THEN
 
                 SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 0);

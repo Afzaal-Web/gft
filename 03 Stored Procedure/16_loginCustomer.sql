@@ -19,6 +19,7 @@ BEGIN
     DECLARE v_email          		VARCHAR(255);
     DECLARE v_phone           		VARCHAR(20);
     DECLARE v_db_password     		VARCHAR(255);
+    DECLARE v_customer_json         JSON;
 
     main_block: BEGIN
 
@@ -40,8 +41,8 @@ BEGIN
         -- =========================
         -- Find user and get password
         -- =========================
-        SELECT c.customer_rec_id, c.user_name, c.email, c.phone, getJval(a.auth_json,'login_credentials.password') AS db_password
-        INTO   v_customer_rec_id, v_user_name, v_email, v_phone, v_db_password
+        SELECT c.customer_rec_id, c.user_name, c.email, c.phone,  c.customer_json, getJval(a.auth_json,'login_credentials.password') AS db_password
+        INTO   v_customer_rec_id, v_user_name, v_email, v_phone, v_customer_json,  v_db_password
         FROM   auth a
         JOIN   customer c ON a.parent_table_rec_id = c.customer_rec_id
         WHERE  c.user_name = v_login_id
@@ -76,6 +77,7 @@ BEGIN
 
         SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 0);
 	    SET pjRespObj = buildJSONSmart( pjRespObj,'jHeader.message', 'LOGIN_SUCCESS - Login successful.');
+        SET pjRespObj = buildJSONSmart(pjRespObj, 'jData.content', v_customer_json);
 
     END main_block;
 

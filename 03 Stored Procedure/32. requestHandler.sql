@@ -1,8 +1,8 @@
-DROP PROCEDURE requestHandler;
+DROP PROCEDURE request_handler;
 
 DELIMITER $$
 
-CREATE PROCEDURE requestHandler (
+CREATE PROCEDURE request_handler (
                                     IN    pClientIp       VARCHAR(45),
                                     IN    pAppName        VARCHAR(32),
                                     IN    pActionCode     VARCHAR(50),
@@ -173,6 +173,7 @@ BEGIN
         -- CUSTOMER MODULE (CUS)
         -- =====================================================
         WHEN 'CUS.U.CUSTOMER'                THEN CALL upsertCustomer(vjReqObj, vjResponse);
+        WHEN 'CUS.I.CUSTOMER'                THEN CALL upsertCustomer(vjReqObj, vjResponse);
         WHEN 'CUS.S.CUSTOMER'                THEN CALL getCustomer(vjReqObj, vjResponse);
         WHEN 'CUS.U.PREFERENCES'             THEN CALL savePreferences(vjReqObj, vjResponse);
 
@@ -208,6 +209,7 @@ BEGIN
         -- =====================================================
         -- INVENTORY MODULE (INV)
         -- =====================================================
+        WHEN 'INV.I.INVENTORY'               THEN CALL upsertInventory(vjReqObj, vjResponse);
         WHEN 'INV.U.INVENTORY'               THEN CALL upsertInventory(vjReqObj, vjResponse);
         WHEN 'INV.S.INVENTORY'               THEN CALL getInventory(vjReqObj, vjResponse);
 
@@ -240,28 +242,28 @@ BEGIN
         -- =====================================================
         -- MESSAGING MODULE (MSG)
         -- =====================================================
-        WHEN 'MSG.I.OUTBOUND_QUEUE'          THEN CALL queueOutboundMessage(vjReqObj, vjResponse);
+        WHEN 'MSG.I.OUTBOUND_QUEUE'          THEN CALL update_outbound_message_status(vjReqObj, vjResponse);
 
         -- =====================================================
         -- ORDER MODULE (ORD)
         -- =====================================================
         WHEN 'ORD.I.BUY_ORDER'               THEN CALL createBuyOrder(vjReqObj, vjResponse);
-        WHEN 'ORD.S.BUY_ORDER'               THEN CALL getOrder(vjReqObj, vjResponse); 
+        WHEN 'ORD.S.BUY_ORDER'               THEN CALL getOrders(vjReqObj, vjResponse); 
         WHEN 'ORD.U.BUY_ORDER'               THEN CALL updateOrder(vjReqObj, vjResponse); -- not done yet
         WHEN 'ORD.D.BUY_ORDER'               THEN CALL deleteOrder(vjReqObj, vjResponse); -- not done yet
 
         WHEN 'ORD.I.SELL_ORDER'              THEN CALL createSellOrder(vjReqObj, vjResponse);
-        WHEN 'ORD.S.SELL_ORDER'              THEN CALL getOrder(vjReqObj, vjResponse); 
+        WHEN 'ORD.S.SELL_ORDER'              THEN CALL getOrders(vjReqObj, vjResponse); 
         WHEN 'ORD.U.SELL_ORDER'              THEN CALL updateOrder(vjReqObj, vjResponse); -- not done yet
         WHEN 'ORD.D.SELL_ORDER'              THEN CALL deleteOrder(vjReqObj, vjResponse); -- not done yet
 
         WHEN 'ORD.I.EXCHANGE_ORDER'          THEN CALL createExchangeOrder(vjReqObj, vjResponse);
-        WHEN 'ORD.S.EXCHANGE_ORDER'          THEN CALL getOrder(vjReqObj, vjResponse); 
+        WHEN 'ORD.S.EXCHANGE_ORDER'          THEN CALL getOrders(vjReqObj, vjResponse); 
         WHEN 'ORD.U.EXCHANGE_ORDER'          THEN CALL updateOrder(vjReqObj, vjResponse); -- not done yet
         WHEN 'ORD.D.EXCHANGE_ORDER'          THEN CALL deleteOrder(vjReqObj, vjResponse); -- not done yet
 
         WHEN 'ORD.I.REDEEM_ORDER'            THEN CALL createRedeemOrder(vjReqObj, vjResponse);
-        WHEN 'ORD.S.REDEEM_ORDER'            THEN CALL getOrder(vjReqObj, vjResponse); 
+        WHEN 'ORD.S.REDEEM_ORDER'            THEN CALL getOrders(vjReqObj, vjResponse); 
         WHEN 'ORD.U.REDEEM_ORDER'            THEN CALL updateOrder(vjReqObj, vjResponse); -- not done yet
         WHEN 'ORD.D.REDEEM_ORDER'            THEN CALL deleteOrder(vjReqObj, vjResponse); -- not done yet
 
@@ -270,6 +272,8 @@ BEGIN
         -- =====================================================
         WHEN 'DOC.U.MANAGEMENT'              THEN CALL documentManagment(vjReqObj, vjResponse);
         WHEN 'DDVAL.S.DROPDOWN'              THEN CALL getDropDownValue(vjReqObj, vjResponse);
+        WHEN 'CMN.U.UPSERT_CONTENT'          THEN CALL upsert_content (vjReqObj, vjResponse);
+        WHEN 'CMN.S.APP_CONTENT'             THEN CALL get_app_content (vjReqObj, vjResponse);
 
       
 

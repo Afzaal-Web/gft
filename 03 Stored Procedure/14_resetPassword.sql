@@ -73,12 +73,24 @@ BEGIN
         END IF;
 
         -- Token mismatch
-        IF v_reset_token <>  v_db_reset_token THEN
+        IF v_db_reset_token IS NULL
+        OR v_db_reset_token = ''
+        OR NOT (BINARY v_reset_token <=> BINARY v_db_reset_token) THEN
 
-            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
-            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', 'The reset token is invalid.');
+            SET pjRespObj = buildJSONSmart(
+                pjRespObj,
+                'jHeader.responseCode',
+                1
+            );
+
+            SET pjRespObj = buildJSONSmart(
+                pjRespObj,
+                'jHeader.message',
+                'The reset token is invalid.'
+            );
 
             LEAVE main_block;
+
         END IF;
 
         -- Token expired

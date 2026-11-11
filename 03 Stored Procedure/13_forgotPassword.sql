@@ -81,7 +81,7 @@ BEGIN
                                         'jData', JSON_OBJECT(
                                                              'P_CONTACT_TYPE',  'email',
                                                              'P_DESTINATION',   v_email,
-                                                             'P_PURPOSE',       'RESET PASSWORD',
+                                                             'P_PURPOSE',       'FORGOT PASSWORD',
                                                              'P_PRESET_OTP',    @v_shared_otp
                                                             )
                                         ), pjRespObj
@@ -94,7 +94,7 @@ BEGIN
                                         'jData', JSON_OBJECT(
                                                             'P_CONTACT_TYPE',  'phone',
                                                             'P_DESTINATION',   v_phone,
-                                                            'P_PURPOSE',       'RESET PASSWORD',
+                                                            'P_PURPOSE',       'FORGOT PASSWORD',
                                                             'P_PRESET_OTP',     @v_shared_otp
                                                             )
                                         ), pjRespObj
@@ -107,7 +107,7 @@ BEGIN
                                         'jData', JSON_OBJECT(
                                                              'P_CONTACT_TYPE',  'email',
                                                              'P_DESTINATION',   v_email,
-                                                             'P_PURPOSE',       'RESET PASSWORD'
+                                                             'P_PURPOSE',       'FORGOT PASSWORD'
                                                             )
                                         ), pjRespObj
                             );
@@ -118,7 +118,7 @@ BEGIN
                                 'jData', JSON_OBJECT(
                                                     'P_CONTACT_TYPE',  'phone',
                                                     'P_DESTINATION',   v_phone,
-                                                    'P_PURPOSE',       'RESET PASSWORD'
+                                                    'P_PURPOSE',       'FORGOT PASSWORD'
                                                     )
                     ), pjRespObj
                 );

@@ -17,7 +17,6 @@ BEGIN
     DECLARE v_document_management_rec_id		INT;
     DECLARE v_login_id							VARCHAR(255);
     DECLARE v_doc_type	     					VARCHAR(150);
-    DECLARE v_notes	        					TEXT;
     DECLARE v_attachment_url   					VARCHAR(255);
     DECLARE v_user_type             			VARCHAR(50);
     
@@ -46,9 +45,8 @@ BEGIN
 		/* ===================== Extract Scalars ===================== */
         SET  reqObj   			= getJval(pjReqObj, 'jData'); -- extract jData for fillTemplate
 
-		SET v_doc_type   		= getJval(pjReqObj, 'jData.P_DOC_TYPE');
-		SET v_notes		 		= getJval(pjReqObj, 'jData.P_NOTES');
-		SET v_attachment_url  	= getJval(pjReqObj, 'jData.P_ATTACHMENT_URL');
+		SET v_doc_type   		= getJval(pjReqObj, 'jData.P_DOCUMENT_DETAILS.P_DOC_TYPE');
+		SET v_attachment_url  	= getJval(pjReqObj, 'jData.P_DOCUMENT_DETAILS.P_ATTACHMENT_URL');
         SET v_login_id			= getJval(pjReqObj, 'jData.P_LOGIN_ID');
         SET v_user_type			= getJval(pjReqObj, 'jData.P_USER_TYPE'); -- CUSTOMER OR EMPLOYEE
 
