@@ -19,6 +19,7 @@ BEGIN
 	DECLARE v_contact_type      	VARCHAR(20);
     DECLARE v_destination       	VARCHAR(255);
     DECLARE v_purpose           	TEXT;
+	DECLARE v_forgot 				VARCHAR(30);
     
     DECLARE v_otp                  	CHAR(6);
     DECLARE v_expiry               	DATETIME;
@@ -36,6 +37,7 @@ BEGIN
     SET v_contact_type 	= getJval(pjReqObj, 	'jData.P_CONTACT_TYPE');
     SET v_destination  	= getJval(pjReqObj, 	'jData.P_DESTINATION');
     SET v_purpose      	= getJval(pjReqObj, 	'jData.P_PURPOSE');
+	SET v_forgot 		= LOWER(TRIM(getJval(pjReqObj, 'jData.P_FORGOT')));
     
     main_block: BEGIN
 	-- =========================
@@ -48,6 +50,25 @@ BEGIN
 
         LEAVE main_block;
     END IF;
+
+	-- =========================
+	-- Validate Forgot Type
+	-- =========================
+	IF v_purpose = 'FORGOT LOGIN ID' THEN
+
+		IF v_forgot IS NULL OR v_forgot NOT IN ('username', 'email', 'phone') THEN
+
+			SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
+			SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', 'P_FORGOT must be username, email or phone.');
+
+			LEAVE main_block;
+		END IF;
+
+	ELSE
+
+		SET v_forgot = NULL;
+
+	END IF;
     
     -- =========================
     -- Cooldown check (e.g., 60 seconds)
@@ -106,7 +127,8 @@ BEGIN
 			expires_at        = v_expiry,
 			otp_retries       = 3,
 			next_otp_in_secs  = 60,
-			purpose			  = v_purpose;
+			purpose			  = v_purpose,
+			forgot_type 	  = v_forgot;
 
 		SET v_otp_rec_id 	  = LAST_INSERT_ID();
 

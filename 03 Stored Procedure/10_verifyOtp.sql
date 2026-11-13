@@ -23,6 +23,7 @@ BEGIN
     DECLARE vDestination    VARCHAR(255);
     DECLARE vPurpose        VARCHAR(100);
     DECLARE vOtpCode        CHAR(6);
+	DECLARE vForgot VARCHAR(30) DEFAULT NULL;
     
     DECLARE v_login_id      VARCHAR(100);
 
@@ -58,14 +59,15 @@ BEGIN
 		-- =========================
 		-- Get latest OTP
 		-- =========================
-		SELECT otp_rec_id, 		otp_code, 		expires_at, 	otp_retries
-		INTO   v_otp_rec_id, 	v_actual_otp, 	v_expiry, 		v_retries
-		FROM   otp
-		WHERE  contact_type = vContactType
-		AND    destination  = vDestination
-		AND    purpose      = vPurpose
+		SELECT  otp_rec_id,      otp_code,       expires_at,     otp_retries,    forgot_type
+		INTO    v_otp_rec_id,    v_actual_otp,   v_expiry,       v_retries,      vForgot
+		FROM    otp
+		WHERE   contact_type = vContactType
+		AND     destination  = vDestination
+		AND     purpose      = vPurpose
 		ORDER BY otp_rec_id DESC
-		LIMIT 1;
+		LIMIT   1;
+
 
 		-- =========================
 		-- No OTP found
@@ -80,9 +82,24 @@ BEGIN
 		END IF;
 
 		-- =========================
+		-- Validate Forgot Type
+		-- =========================
+		IF vPurpose = 'FORGOT LOGIN ID' THEN
+
+			IF vForgot IS NULL OR vForgot NOT IN ('username', 'email', 'phone') THEN
+
+				SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
+				SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', 'Invalid or missing forgot_type in OTP record.');
+
+				LEAVE main_block;
+			END IF;
+
+		END IF;
+
+		-- =========================
 		-- OTP expired
 		-- =========================
-		IF NOW() > v_expiry THEN
+		IF v_expiry IS NULL OR NOW() >= v_expiry THEN
 
 			SET pjRespObj = buildJSONSmart( pjRespObj, 'jHeader.responseCode', 1);
 
@@ -90,6 +107,17 @@ BEGIN
 								   			'jHeader.message', 'OTP EXPIRED'
 							               );  
 			
+			LEAVE main_block;
+		END IF;
+
+		-- =========================
+		-- Validate OTP Retries
+		-- =========================
+		IF v_retries IS NULL OR v_retries <= 0 THEN
+
+			SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
+			SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', 'OTP has no attempts remaining.');
+
 			LEAVE main_block;
 		END IF;
 
@@ -130,23 +158,12 @@ BEGIN
 		SET 	expires_at 		= NOW(),
 				otp_retries 	= 0
 		WHERE otp_rec_id = v_otp_rec_id;
-
-		-- =========================
-		-- (handles user_name case where same OTP sent to both email & phone)
-		-- =========================
-		UPDATE  otp
-		SET     expires_at  = NOW(),
-				otp_retries = 0
-		WHERE   otp_code    = vOtpCode       
-		AND     purpose     = vPurpose       
-		AND     expires_at  > NOW()          
-		AND     otp_rec_id  <> v_otp_rec_id; 
 		
 		-- =========================
 		-- Call Handle Otp Success SP
 		-- =========================
 		
-		CALL handleOtpSuccess(vContactType, vDestination, vPurpose, v_otp_token);
+		CALL handleOtpSuccess(vContactType, vDestination, vPurpose, vForgot, v_otp_token);
 		
 		
 			-- =========================
@@ -154,10 +171,18 @@ BEGIN
 			-- =========================
 
 		-- If handleOtpSuccess failed, leave with its error message intact
-		IF getJval(v_otp_token, 'jHeader.responseCode') != 0 THEN
+		-- =========================
+		-- Validate Handle OTP Response
+		-- =========================
+		IF COALESCE(
+			CAST(getJval(v_otp_token, 'jHeader.responseCode') AS SIGNED),
+			1
+		) <> 0 THEN
 
 			SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
-			SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', getJval(v_otp_token, 'jHeader.message'));
+			SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message',
+								COALESCE(getJval(v_otp_token, 'jHeader.message'),
+										'OTP verification processing failed.'));
 
 			LEAVE main_block;
 		END IF;

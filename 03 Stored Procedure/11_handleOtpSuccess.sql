@@ -11,6 +11,7 @@ CREATE PROCEDURE handleOtpSuccess(
 									IN    pContactType    ENUM('email','phone','loginid'),
 									IN    pDestination    VARCHAR(255),
                                     IN    pPurpose        VARCHAR(100),
+                                    IN    pForgot         VARCHAR(30),
                                     OUT   pjRespObj		  JSON
 								)
 BEGIN
@@ -29,6 +30,10 @@ BEGIN
     DECLARE v_user_auth_token       VARCHAR(64);
     DECLARE v_user_session_id       VARCHAR(36);
     DECLARE v_token_expires_at      VARCHAR(30);
+
+    DECLARE v_forgot_value       VARCHAR(255);
+    DECLARE v_message_subject    VARCHAR(255);
+    DECLARE v_message_body       TEXT;
 
     DECLARE v_outbound_msgs_json   	JSON;
     DECLARE v_row_metadata         	JSON;
@@ -67,8 +72,6 @@ BEGIN
 
     END IF;
 
-        CALL getSequence('OUTBOUND_MSGS.MESSAGE_GUID','MSG-', 5000,'genOTP SP', v_message_guid);
-
         SET v_outbound_msgs_json = getTemplate('outbound_msgs');
 
         SET v_outbound_msgs_json = JSON_SET(v_outbound_msgs_json,
@@ -101,145 +104,107 @@ BEGIN
 									);
 
         CASE pPurpose
+           
 
         -- =====================================================
-            -- FORGOT LOGIN ID
-            -- =====================================================
-            WHEN 'FORGOT LOGIN ID' THEN
+        -- FORGOT LOGIN ID
+        -- =====================================================
+        WHEN 'FORGOT LOGIN ID' THEN
 
-                -- Set common fields for this purpose
-                SET v_outbound_msgs_json = JSON_SET(v_outbound_msgs_json,
-                                                '$.object_name',                        'FORGOT_LOGIN_ID',
-                                                '$.business_context.message_name',      'Forgot Login ID',
-                                                '$.business_context.notes',             'Login ID recovery',
-                                                '$.message_content.message_subject',    'Your Login ID',
-                                                '$.message_content.message_body',       CONCAT('Your Login ID is: ', v_login_id)
-                                            );
+            -- =========================
+            -- Validate Forgot Type
+            -- =========================
+            IF pForgot IS NULL OR pForgot NOT IN ('username', 'email', 'phone') THEN
 
-                IF pContactType = 'loginid' THEN
+                SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
+                SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', 'Invalid forgot type.');
 
-                    -- Send to email if exists
-                    IF v_email IS NOT NULL THEN
+                LEAVE main_block;
+            END IF;
 
-                        CALL getSequence('OUTBOUND_MSGS.MESSAGE_GUID', 'MSG-', 5000, 'handleOtpSuccess SP', v_message_guid);
+            -- =========================
+            -- Set Recovery Information
+            -- =========================
+            CASE pForgot
 
-                        -- Override channel-specific fields
-                        SET v_outbound_msgs_json = JSON_SET(v_outbound_msgs_json,
-                                                        '$.message_guid',                       v_message_guid,
-                                                        '$.business_context.notes',             'Login ID recovery via email',
-                                                        '$.recipient_info.to_address',          v_email,
-                                                        '$.recipient_info.is_email_verified',   FALSE
-                                                    );
+                WHEN 'username' THEN
 
-                        INSERT INTO outbound_msgs
-                        SET message_guid                = v_message_guid,
-                            parent_message_table_name   = 'customer',
-                            parent_message_table_rec_id = v_customer_rec_id,
-                            object_name                 = 'FORGOT_LOGIN_ID',
-                            current_status              = 'PENDING',
-                            outbound_msgs_json          = v_outbound_msgs_json,
-                            row_metadata                = v_row_metadata;
+                    SET v_forgot_value       = v_login_id;
+                    SET v_message_subject    = 'Your Username';
+                    SET v_message_body       = CONCAT('Your Username is: ', v_login_id);
 
-                        SET v_outbound_msgs_rec_id  = LAST_INSERT_ID();
-                        SET v_outbound_msgs_json    = JSON_SET(v_outbound_msgs_json, '$.outbound_messages_rec_id', v_outbound_msgs_rec_id);
+                WHEN 'email' THEN
 
-                        UPDATE outbound_msgs
-                        SET    outbound_msgs_json   = v_outbound_msgs_json
-                        WHERE  outbound_msgs_rec_id = v_outbound_msgs_rec_id;
+                    SET v_forgot_value       = v_email;
+                    SET v_message_subject    = 'Your Registered Email';
+                    SET v_message_body       = CONCAT('Your Registered Email is: ', v_email);
 
-                    END IF;
+                WHEN 'phone' THEN
 
-                    -- Send to phone if exists
-                    IF v_phone IS NOT NULL THEN
+                    SET v_forgot_value       = v_phone;
+                    SET v_message_subject    = 'Your Registered Phone Number';
+                    SET v_message_body       = CONCAT('Your Registered Phone Number is: ', v_phone);
 
-                        CALL getSequence('OUTBOUND_MSGS.MESSAGE_GUID', 'MSG-', 5000, 'handleOtpSuccess SP', v_message_guid);
+            END CASE;
 
-                        -- Override channel-specific fields
-                        SET v_outbound_msgs_json = JSON_SET(v_outbound_msgs_json,
-                                                        '$.message_guid',                       v_message_guid,
-                                                        '$.business_context.notes',             'Login ID recovery via phone',
-                                                        '$.recipient_info.to_address',          v_phone,
-                                                        '$.recipient_info.is_email_verified',   NULL
-                                                    );
+            -- =========================
+            -- Validate Recovery Destination
+            -- =========================
+            IF v_forgot_value IS NULL
+            OR (pForgot = 'email' AND pContactType <> 'phone')
+            OR (pForgot = 'phone' AND pContactType <> 'email')
+            OR (pForgot = 'username' AND pContactType NOT IN ('email', 'phone'))
+            OR (pContactType = 'email' AND (v_email IS NULL OR BINARY pDestination <> BINARY v_email))
+            OR (pContactType = 'phone' AND (v_phone IS NULL OR BINARY pDestination <> BINARY v_phone)) THEN
 
-                        INSERT INTO outbound_msgs
-                        SET message_guid                = v_message_guid,
-                            parent_message_table_name   = 'customer',
-                            parent_message_table_rec_id = v_customer_rec_id,
-                            object_name                 = 'FORGOT_LOGIN_ID',
-                            current_status              = 'PENDING',
-                            outbound_msgs_json          = v_outbound_msgs_json,
-                            row_metadata                = v_row_metadata;
+                SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
+                SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', 'Invalid recovery destination.');
 
-                        SET v_outbound_msgs_rec_id  = LAST_INSERT_ID();
-                        SET v_outbound_msgs_json    = JSON_SET(v_outbound_msgs_json, '$.outbound_messages_rec_id', v_outbound_msgs_rec_id);
+                LEAVE main_block;
+            END IF;
 
-                        UPDATE outbound_msgs
-                        SET    outbound_msgs_json   = v_outbound_msgs_json
-                        WHERE  outbound_msgs_rec_id = v_outbound_msgs_rec_id;
+            -- =========================
+            -- Generate Message GUID
+            -- =========================
+            CALL getSequence('OUTBOUND_MSGS.MESSAGE_GUID', 'MSG-', 5000, 'handleOtpSuccess SP', v_message_guid);
 
-                    END IF;
+            -- =========================
+            -- Prepare Outbound Message JSON
+            -- =========================
+            SET v_outbound_msgs_json = buildJSONSmart(v_outbound_msgs_json, 'message_guid',                     v_message_guid);
+            SET v_outbound_msgs_json = buildJSONSmart(v_outbound_msgs_json, 'object_name',                      'FORGOT_LOGIN_ID');
+            SET v_outbound_msgs_json = buildJSONSmart(v_outbound_msgs_json, 'business_context.forgot_type',     pForgot);
+            SET v_outbound_msgs_json = buildJSONSmart(v_outbound_msgs_json, 'business_context.message_name',    CONCAT('Forgot ', pForgot));
+            SET v_outbound_msgs_json = buildJSONSmart(v_outbound_msgs_json, 'business_context.notes',           CONCAT('Recovery of ', pForgot));
+            SET v_outbound_msgs_json = buildJSONSmart(v_outbound_msgs_json, 'message_content.message_subject',  v_message_subject);
+            SET v_outbound_msgs_json = buildJSONSmart(v_outbound_msgs_json, 'message_content.message_body',     v_message_body);
+            SET v_outbound_msgs_json = buildJSONSmart(v_outbound_msgs_json, 'recipient_info.to_address',        pDestination);
 
-                ELSEIF pContactType = 'email' THEN
+            -- =========================
+            -- Insert Outbound Message
+            -- =========================
+            INSERT INTO outbound_msgs
+            SET     message_guid                    = v_message_guid,
+                    parent_message_table_name       = 'customer',
+                    parent_message_table_rec_id     = v_customer_rec_id,
+                    object_name                     = 'FORGOT_LOGIN_ID',
+                    current_status                  = 'PENDING',
+                    outbound_msgs_json              = v_outbound_msgs_json,
+                    row_metadata                    = v_row_metadata;
 
-                    CALL getSequence('OUTBOUND_MSGS.MESSAGE_GUID', 'MSG-', 5000, 'handleOtpSuccess SP', v_message_guid);
+            SET v_outbound_msgs_rec_id = LAST_INSERT_ID();
 
-                    -- Override channel-specific fields
-                    SET v_outbound_msgs_json = JSON_SET(v_outbound_msgs_json,
-                                                    '$.message_guid',                       v_message_guid,
-                                                    '$.business_context.notes',             'Login ID recovery via email',
-                                                    '$.recipient_info.to_address',          v_email,
-                                                    '$.recipient_info.is_email_verified',   FALSE
-                                                );
+            SET v_outbound_msgs_json = buildJSONSmart(v_outbound_msgs_json, 'outbound_messages_rec_id', v_outbound_msgs_rec_id);
 
-                    INSERT INTO outbound_msgs
-                    SET message_guid                = v_message_guid,
-                        parent_message_table_name   = 'customer',
-                        parent_message_table_rec_id = v_customer_rec_id,
-                        object_name                 = 'FORGOT_LOGIN_ID',
-                        current_status              = 'PENDING',
-                        outbound_msgs_json          = v_outbound_msgs_json,
-                        row_metadata                = v_row_metadata;
+            UPDATE  outbound_msgs
+            SET     outbound_msgs_json              = v_outbound_msgs_json
+            WHERE   outbound_msgs_rec_id            = v_outbound_msgs_rec_id;
 
-                    SET v_outbound_msgs_rec_id  = LAST_INSERT_ID();
-                    SET v_outbound_msgs_json    = JSON_SET(v_outbound_msgs_json, '$.outbound_messages_rec_id', v_outbound_msgs_rec_id);
-
-                    UPDATE outbound_msgs
-                    SET    outbound_msgs_json   = v_outbound_msgs_json
-                    WHERE  outbound_msgs_rec_id = v_outbound_msgs_rec_id;
-
-                ELSEIF pContactType = 'phone' THEN
-
-                    CALL getSequence('OUTBOUND_MSGS.MESSAGE_GUID', 'MSG-', 5000, 'handleOtpSuccess SP', v_message_guid);
-
-                    -- Override channel-specific fields
-                    SET v_outbound_msgs_json = JSON_SET(v_outbound_msgs_json,
-                                                    '$.message_guid',                       v_message_guid,
-                                                    '$.business_context.notes',             'Login ID recovery via phone',
-                                                    '$.recipient_info.to_address',          v_phone,
-                                                    '$.recipient_info.is_email_verified',   NULL
-                                                );
-
-                    INSERT INTO outbound_msgs
-                    SET message_guid                = v_message_guid,
-                        parent_message_table_name   = 'customer',
-                        parent_message_table_rec_id = v_customer_rec_id,
-                        object_name                 = 'FORGOT_LOGIN_ID',
-                        current_status              = 'PENDING',
-                        outbound_msgs_json          = v_outbound_msgs_json,
-                        row_metadata                = v_row_metadata;
-
-                    SET v_outbound_msgs_rec_id  = LAST_INSERT_ID();
-                    SET v_outbound_msgs_json    = JSON_SET(v_outbound_msgs_json, '$.outbound_messages_rec_id', v_outbound_msgs_rec_id);
-
-                    UPDATE outbound_msgs
-                    SET    outbound_msgs_json   = v_outbound_msgs_json
-                    WHERE  outbound_msgs_rec_id = v_outbound_msgs_rec_id;
-
-                END IF;
-
-                SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 0);
-                SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message',      'Success - Login ID sent via outbound message');
+            -- =========================
+            -- Build Success Response
+            -- =========================
+            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 0);
+            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', 'Account recovery information queued successfully.');
 
             -- =====================================================
             -- RESET PASSWORD
