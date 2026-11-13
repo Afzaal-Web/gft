@@ -53,7 +53,7 @@ BEGIN
         -- =========================
         -- Find user and get current password
         -- =========================
-        SELECT c.customer_rec_id, 	c.user_name, 	 c.email, 	c.phone,    getJval(auth_json,'$.login_credentials.password')  AS current_password
+        SELECT c.customer_rec_id, 	c.user_name, 	 c.email, 	c.phone,    getJval(auth_json,'login_credentials.password')  AS current_password
         INTO   v_customer_rec_id,   v_user_name, v_email,   v_phone,  v_db_password
         FROM   auth a
         JOIN   customer c ON a.parent_table_rec_id = c.customer_rec_id

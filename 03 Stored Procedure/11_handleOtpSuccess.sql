@@ -16,12 +16,19 @@ CREATE PROCEDURE handleOtpSuccess(
 BEGIN
 
 	DECLARE v_customer_rec_id   	INT;
+    DECLARE v_customer_json         JSON;
     DECLARE v_login_id        	    VARCHAR(100);
 	DECLARE v_email         	    VARCHAR(255);
     DECLARE v_phone         	    VARCHAR(20);
     DECLARE v_reset_token    	    VARCHAR(100);
     DECLARE v_message_guid          VARCHAR(100);
     DECLARE v_outbound_msgs_rec_id  INT;
+
+    DECLARE v_token_req_obj         JSON;
+    DECLARE v_token_resp_obj        JSON;
+    DECLARE v_user_auth_token       VARCHAR(64);
+    DECLARE v_user_session_id       VARCHAR(36);
+    DECLARE v_token_expires_at      VARCHAR(30);
 
     DECLARE v_outbound_msgs_json   	JSON;
     DECLARE v_row_metadata         	JSON;
@@ -268,6 +275,66 @@ BEGIN
 
                 SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 0);
                 SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message',      'OTP verified for registration');
+            
+           
+            -- =====================================================
+            -- LOGIN
+            -- =====================================================
+            WHEN 'LOGIN' THEN
+
+                -- =========================
+                -- Prepare Token Request
+                -- =========================
+                SET v_token_req_obj = getTemplate('reqResp');
+
+                SET v_token_req_obj = buildJSONSmart(v_token_req_obj, 'jData.P_CUSTOMER_REC_ID', v_customer_rec_id);
+
+                SET v_token_resp_obj = getTemplate('reqResp');
+
+                -- =========================
+                -- Generate User Auth Token
+                -- =========================
+                CALL generateUserAuthToken(v_token_req_obj, v_token_resp_obj);
+
+                -- =========================
+                -- Validate Token Response
+                -- =========================
+                IF COALESCE(getJval(v_token_resp_obj, 'jHeader.responseCode'), '1') <> '0' THEN
+
+                    SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
+                    SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', getJval(v_token_resp_obj, 'jHeader.message'));
+
+                    LEAVE main_block;
+                END IF;
+
+                -- =========================
+                -- Extract Generated Token
+                -- =========================
+                SET v_user_auth_token  = getJval(v_token_resp_obj, 'jData.user_auth_token');
+                SET v_user_session_id  = getJval(v_token_resp_obj, 'jData.user_session_id');
+                SET v_token_expires_at = getJval(v_token_resp_obj, 'jData.session_expires_at');
+
+                -- =========================
+                -- Get Customer JSON
+                -- =========================
+                SELECT  customer_json
+                INTO    v_customer_json
+                FROM    customer
+                WHERE   customer_rec_id = v_customer_rec_id
+                LIMIT   1;
+
+                -- =========================
+                -- Build Success Response
+                -- =========================
+                SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 0);
+                SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', 'LOGIN_SUCCESS - Login successful.');
+
+                SET pjRespObj = buildJSONSmart(pjRespObj, 'jData.contents', v_customer_json);
+
+                SET pjRespObj = buildJSONSmart(pjRespObj, 'jData.user_auth_token',   v_user_auth_token);
+                SET pjRespObj = buildJSONSmart(pjRespObj, 'jData.user_session_id',   v_user_session_id);
+                SET pjRespObj = buildJSONSmart(pjRespObj, 'jData.session_expires_at', v_token_expires_at);
+
 
             -- =====================================================
             -- DEFAULT

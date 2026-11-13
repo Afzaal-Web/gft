@@ -25,7 +25,7 @@ BEGIN
     DECLARE v_auth_rec_id         		 	INT;
 
     /* ===================== Customer Core ===================== */
-    DECLARE v_customer_status     			VARCHAR(30) DEFAULT 'registration_request';
+    DECLARE v_customer_status     			VARCHAR(30) DEFAULT 'account_created';
     DECLARE v_customer_type       			VARCHAR(30) DEFAULT 'personal';
     DECLARE v_email               			VARCHAR(100);
     DECLARE v_user_name           			VARCHAR(100);
@@ -34,6 +34,14 @@ BEGIN
     DECLARE v_account_seq 		  			VARCHAR(255);
     DECLARE v_mode 							VARCHAR(20);
 	DECLARE reqObj							JSON;
+
+	/* ===================== Authentication Token ===================== */
+	DECLARE v_token_req_obj       JSON;
+	DECLARE v_token_resp_obj      JSON;
+	DECLARE v_user_auth_token     VARCHAR(64);
+	DECLARE v_user_session_id     VARCHAR(36);
+	DECLARE v_token_expires_at    VARCHAR(30);
+	DECLARE v_token_resp_code     INT DEFAULT 1;
 
     /* ===================== JSON Objects ===================== */
     DECLARE v_customer_json       		JSON;
@@ -246,6 +254,45 @@ BEGIN
 				END LOOP asset_loop;
 
 			CLOSE asset_cursor;
+
+
+        /* ===================== Generate User Auth Token ===================== */
+
+        SET v_token_req_obj       = getTemplate('reqResp');
+        SET v_token_resp_obj      = getTemplate('reqResp');
+
+        SET v_token_req_obj 	  = buildJSONSmart(v_token_req_obj, 'jData.P_CUSTOMER_REC_ID', v_customer_rec_id);
+
+        CALL generateUserAuthToken(v_token_req_obj, v_token_resp_obj);
+
+        /* ===================== Validate Token Response ===================== */
+
+        SET v_token_resp_code = CAST(getJval(v_token_resp_obj, 'jHeader.responseCode') AS SIGNED);
+
+        IF v_token_resp_code IS NULL OR v_token_resp_code <> 0 THEN
+
+            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
+            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message',
+                            COALESCE(getJval(v_token_resp_obj, 'jHeader.message'),
+                                     'Failed to generate user authentication token.'));
+
+            LEAVE main_block;
+        END IF;
+
+        /* ===================== Extract Token Details ===================== */
+
+        SET v_user_auth_token  = getJval(v_token_resp_obj, 'jData.user_auth_token');
+        SET v_user_session_id  = getJval(v_token_resp_obj, 'jData.user_session_id');
+        SET v_token_expires_at = getJval(v_token_resp_obj, 'jData.session_expires_at');
+
+        IF v_user_auth_token IS NULL OR v_user_auth_token = '' THEN
+
+            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 1);
+            SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message', 'Authentication token missing from generation response.');
+
+            LEAVE main_block;
+        END IF;
+
             
 
 
@@ -383,15 +430,31 @@ BEGIN
 
 
 
-		        /* ===================== Successful Registration ===================== */
-	SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 0);
+		       
+        /* ===================== Build Success Response ===================== */
 
-	SET pjRespObj = buildJSONSmart( pjRespObj,
-							   'jHeader.message', IF( isFalsy(getJval(pjReqObj, 'jData.P_CUSTOMER_REC_ID')),
-														  'Success - Customer created successfully',
-														  'Success - Customer updated successfully'
-														)
-								);
+        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.responseCode', 0);
+        SET pjRespObj = buildJSONSmart(pjRespObj, 'jHeader.message',
+                            IF(v_mode = 'INSERT',
+                               'Success - Customer created successfully',
+                               'Success - Customer updated successfully'));
+
+        /* ===================== Return Customer JSON ===================== */
+
+        SET v_customer_json = getCustomer(v_customer_rec_id);
+
+        SET pjRespObj = buildJSONSmart(pjRespObj, 'jData.contents', v_customer_json);
+
+        /* ===================== Return Auth Token for Signup ===================== */
+
+        IF v_mode = 'INSERT' THEN
+
+            SET pjRespObj = buildJSONSmart(pjRespObj, 'jData.user_auth_token',    v_user_auth_token);
+            SET pjRespObj = buildJSONSmart(pjRespObj, 'jData.user_session_id',    v_user_session_id);
+            SET pjRespObj = buildJSONSmart(pjRespObj, 'jData.session_expires_at', v_token_expires_at);
+
+        END IF;
+
 
 
     END main_block;

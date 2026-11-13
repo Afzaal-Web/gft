@@ -181,6 +181,8 @@ BEGIN
         -- AUTH / SECURITY MODULE (AUT)
         -- =====================================================
         WHEN 'AUT.S.LOGIN'                   THEN CALL loginCustomer(vjReqObj, vjResponse);
+        WHEN 'AUT.S.AUTH_TOKEN'              THEN CALL validateUserAuthToken(vjReqObj, vjResponse);
+        WHEN 'AUT.U.AUTH_TOKEN'              THEN CALL revokeUserAuthToken(vjReqObj, vjResponse);
         WHEN 'AUT.S.AUTH'                    THEN CALL getAuth(vjReqObj, vjResponse);
         WHEN 'AUT.S.VERIFY_EXISTING_NUMBER'  THEN CALL verifiyExistingNumber(vjReqObj, vjResponse);
 

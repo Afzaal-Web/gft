@@ -18,6 +18,7 @@ BEGIN
     DECLARE v_email          	VARCHAR(255);
     DECLARE v_phone         	VARCHAR(20);
 	DECLARE v_input_type        ENUM('user_name','email','phone');
+    DECLARE v_shared_otp        VARCHAR(6);
 
     DECLARE v_err_msg           TEXT;
 
@@ -34,7 +35,8 @@ BEGIN
       -- =========================
         -- Extract login ID input
         -- =========================
-        SET v_input = getJval(pjReqObj, 'jData.P_LOGIN_ID');
+        SET v_input         = getJval(pjReqObj, 'jData.P_LOGIN_ID');
+        SET v_shared_otp    = getJval(pjReqObj, 'jData.P_PRESET_OTP');
         
 		-- =========================
         -- Detect input type
@@ -73,7 +75,7 @@ BEGIN
         WHEN 'user_name' THEN
                 -- Username supplied: send OTP to email and phone
 
-            SET @v_shared_otp = LPAD(FLOOR(100000 + RAND() * 900000), 6, '0');
+            -- SET @v_shared_otp = LPAD(FLOOR(100000 + RAND() * 900000), 6, '0'); // remove comment when not in dev
 
             IF v_email IS NOT NULL THEN
                 CALL genOtp(
@@ -82,7 +84,7 @@ BEGIN
                                                              'P_CONTACT_TYPE',  'email',
                                                              'P_DESTINATION',   v_email,
                                                              'P_PURPOSE',       'FORGOT PASSWORD',
-                                                             'P_PRESET_OTP',    @v_shared_otp
+                                                             'P_PRESET_OTP',    v_shared_otp
                                                             )
                                         ), pjRespObj
                             );
@@ -95,7 +97,7 @@ BEGIN
                                                             'P_CONTACT_TYPE',  'phone',
                                                             'P_DESTINATION',   v_phone,
                                                             'P_PURPOSE',       'FORGOT PASSWORD',
-                                                            'P_PRESET_OTP',     @v_shared_otp
+                                                            'P_PRESET_OTP',     v_shared_otp
                                                             )
                                         ), pjRespObj
                             );
@@ -107,7 +109,8 @@ BEGIN
                                         'jData', JSON_OBJECT(
                                                              'P_CONTACT_TYPE',  'email',
                                                              'P_DESTINATION',   v_email,
-                                                             'P_PURPOSE',       'FORGOT PASSWORD'
+                                                             'P_PURPOSE',       'FORGOT PASSWORD',
+                                                             'P_PRESET_OTP',     v_shared_otp
                                                             )
                                         ), pjRespObj
                             );
@@ -118,7 +121,8 @@ BEGIN
                                 'jData', JSON_OBJECT(
                                                     'P_CONTACT_TYPE',  'phone',
                                                     'P_DESTINATION',   v_phone,
-                                                    'P_PURPOSE',       'FORGOT PASSWORD'
+                                                    'P_PURPOSE',       'FORGOT PASSWORD',
+                                                    'P_PRESET_OTP',     v_shared_otp
                                                     )
                     ), pjRespObj
                 );

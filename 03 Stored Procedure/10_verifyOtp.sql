@@ -173,6 +173,23 @@ BEGIN
 			SET pjRespObj = buildJSONSmart(pjRespObj, 'jData.contents.reset_token_expires_in_minutes', getJval(v_otp_token, 'jData.contents.reset_token_expires_in_minutes'));
 
 		END IF;
+
+
+	
+		-- =========================
+		-- Return Customer JSON and Auth Token for LOGIN
+		-- =========================
+
+		IF vPurpose = 'LOGIN' THEN
+
+			SET pjRespObj = buildJSONSmart(pjRespObj, 'jData.contents',           JSON_EXTRACT(v_otp_token, '$.jData.contents'));
+			SET pjRespObj = buildJSONSmart(pjRespObj, 'jData.user_auth_token',    getJval(v_otp_token, 'jData.user_auth_token'));
+			SET pjRespObj = buildJSONSmart(pjRespObj, 'jData.user_session_id',    getJval(v_otp_token, 'jData.user_session_id'));
+			SET pjRespObj = buildJSONSmart(pjRespObj, 'jData.session_expires_at', getJval(v_otp_token, 'jData.session_expires_at'));
+
+		END IF;
+
+
 			
     END main_block;
     -- logging
